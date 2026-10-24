@@ -1,0 +1,54 @@
+## Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+## Visual Studio
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+## Visual Studio Code
+.vscode/
+
+## SQLite local data files
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+## User-specific files
+*.rsuser
+*.suo
+*.user
+*.userprefs
+
+## SonarQube & Test Results
+.sonarqube/
+TestResults/
+publish/
+dist/
+coverage*.xml
+coverage*.json
+
+## Docker local mounts
+docker-data/
+docker-backups/
+
+## Local AI Instructions
+AGENTS.md
+
+

@@ -1,0 +1,62 @@
+﻿@page "/Security/Login"
+@model Ledger.Features.Security.Pages.LoginModel
+@{
+    ViewData["Title"] = Localizer["Nav.Login"];
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex p-3 rounded-circle bg-primary bg-opacity-10 text-primary mb-2">
+                        <i class="bi bi-wallet2 fs-2"></i>
+                    </div>
+                    <h2 class="h4">@Localizer["Auth.LoginTitle"]</h2>
+                    <p class="text-muted small">@Localizer["Auth.LoginSubtitle"]</p>
+                </div>
+
+                <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label small fw-semibold">@Localizer["Auth.Email"]</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-envelope"></i></span>
+                            <input asp-for="Input.Email" class="form-control" autocomplete="username" placeholder="@Localizer["Auth.EmailPlaceholder"]" />
+                        </div>
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label small fw-semibold">@Localizer["Auth.Password"]</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+                            <input asp-for="Input.Password" class="form-control" autocomplete="current-password" />
+                        </div>
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3 form-check">
+                        <input asp-for="Input.RememberMe" class="form-check-input" />
+                        <label asp-for="Input.RememberMe" class="form-check-label small">@Localizer["Auth.RememberMe"]</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> @Localizer["Auth.SignInButton"]
+                    </button>
+                </form>
+
+                <div class="text-center mt-3 pt-3 border-top">
+                    <span class="small text-muted">@Localizer["Auth.NoAccountYet"] </span>
+                    <a href="/Security/Register" class="small text-decoration-none">@Localizer["Auth.CreateAccount"]</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

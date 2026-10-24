@@ -1,0 +1,357 @@
+﻿@page "/Accounts/Types"
+@model Ledger.Features.Accounts.Pages.TypesModel
+@{
+    ViewData["Title"] = "Types de comptes";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-4 max-w-6xl">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a href="/Accounts" class="text-decoration-none">Comptes</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Paramètres des types de comptes</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-wallet-fill text-primary me-2"></i>Types de comptes bancaires
+            </h1>
+            <p class="text-muted small mb-0">
+                Personnalisez les types de comptes et livrets disponibles (Compte de Dépôt, LDD Solidaire, Livret A, Carré mauve PEL, Parts Sociales, etc.) et configurez leur appartenance patrimoniale.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openTypeModal()">
+                <i class="bi bi-plus-lg me-1"></i> Nouveau type de compte
+            </button>
+            <a href="/Accounts" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Retour aux comptes
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+
+    <!-- Liste des types de comptes -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h2 class="h6 fw-bold mb-0">Types de comptes configurés en base de données (@Model.AccountTypes.Count)</h2>
+            <span class="small text-muted">Ces types apparaissent dans les listes déroulantes de création/modification de compte.</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th style="width: 50px;" class="text-center">#</th>
+                        <th style="width: 220px;">Aperçu du badge</th>
+                        <th>Nom & Code</th>
+                        <th>Groupe patrimonial (KPI)</th>
+                        <th>Description</th>
+                        <th style="width: 120px;" class="text-center">Comptes liés</th>
+                        <th style="width: 110px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    @foreach (var item in Model.AccountTypes)
+                    {
+                        var t = item.Type;
+                        <tr>
+                            <td class="text-center text-muted fw-semibold">@t.DisplayOrder</td>
+                            <td>
+                                <span class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
+                                      style="background-color: @(t.ColorHex)15; color: @t.ColorHex; border-color: @(t.ColorHex)40 !important; font-size: 0.75rem;">
+                                    <i class="bi @t.IconName"></i>
+                                    <span>@t.Name</span>
+                                </span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-dark">@t.Name</span>
+                                @if (!string.IsNullOrEmpty(t.Code))
+                                {
+                                    <span class="text-muted ms-1 font-monospace" style="font-size: 0.7rem;">(@t.Code)</span>
+                                }
+                                @if (t.IsSystem)
+                                {
+                                    <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.65rem;" title="Type standard initialisé">Standard</span>
+                                }
+                            </td>
+                            <td>
+                                @switch (t.CategoryGroup)
+                                {
+                                    case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Liquid:
+                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-wallet2 me-1"></i> Liquidités courantes</span>
+                                        break;
+                                    case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Savings:
+                                        <span class="badge bg-info-subtle text-info"><i class="bi bi-piggy-bank me-1"></i> Épargne & Livrets</span>
+                                        break;
+                                    case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Investment:
+                                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-graph-up me-1"></i> Investissements / Titres</span>
+                                        break;
+                                    case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Debt:
+                                        <span class="badge bg-danger-subtle text-danger"><i class="bi bi-credit-card me-1"></i> Passif / Dette</span>
+                                        break;
+                                }
+                            </td>
+                            <td class="text-muted">
+                                @(string.IsNullOrWhiteSpace(t.Description) ? "—" : t.Description)
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">
+                                    @item.AccountCount compte(s)
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2"
+                                            onclick="editType('@t.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Name)', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(item.NameEn ?? ""))', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Code ?? ""))', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Description ?? ""))', '@((int)t.CategoryGroup)', '@t.ColorHex', '@t.IconName')"
+                                            title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    @if (!t.IsSystem)
+                                    {
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@t.Id" class="d-inline"
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer le type \'@t.Name\' ?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Supprimer" @(item.AccountCount > 0 ? "disabled" : "")>
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'ajout / modification de type de compte -->
+<div class="modal fade" id="typeModal" tabindex="-1" aria-labelledby="typeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <form method="post" asp-page-handler="Save" id="typeForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="typeIdInput" name="Input.Id" />
+
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold h6" id="typeModalLabel">
+                        <i class="bi bi-wallet2 text-primary me-2"></i>Nouveau type de compte
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Aperçu en direct -->
+                    <div class="p-3 bg-light rounded-3 text-center mb-3 border">
+                        <div class="small text-muted mb-2">Aperçu en direct du badge :</div>
+                        <span id="previewBadge" class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
+                              style="background-color: #0dcaf015; color: #0dcaf0; border-color: #0dcaf040 !important; font-size: 0.8rem;">
+                            <i id="previewIcon" class="bi bi-piggy-bank"></i>
+                            <span id="previewName">Nouveau type</span>
+                        </span>
+                    </div>
+
+                    <!-- Nom FR & EN -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold" for="typeNameInput">
+                                <span>🇫🇷</span> Nom (Français) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="typeNameInput" name="Input.Name" required
+                                   placeholder="Ex : Livret A, Compte de Dépôt..." oninput="updateLivePreview()" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold" for="typeNameEnInput">
+                                <span>🇬🇧</span> Nom (English)
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="typeNameEnInput" name="Input.NameEn"
+                                   placeholder="Ex : Savings Account, Checking..." />
+                        </div>
+                    </div>
+
+                    <!-- Code technique optionnel -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="typeCodeInput">Code court / Identifiant (optionnel)</label>
+                        <input type="text" class="form-control form-control-sm" id="typeCodeInput" name="Input.Code"
+                               placeholder="Ex : Pel, Ldds, LivretA, Checking..." />
+                    </div>
+
+                    <!-- Groupe patrimonial -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="typeCategoryGroup">Groupe de calcul de patrimoine <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-sm" id="typeCategoryGroup" name="Input.CategoryGroup">
+                            <option value="0">Liquidités courantes (comptes chèques, espèces)</option>
+                            <option value="1">Épargne & Livrets (Livret A, LDDS, PEL, CAT...)</option>
+                            <option value="2">Investissements (PEA, CTO, Parts sociales, Crypto...)</option>
+                            <option value="3">Passif / Dettes (Crédit, carte différé négative)</option>
+                        </select>
+                        <div class="form-text small">Définit dans quel indicateur (KPI) du tableau de bord le solde du compte s'additionne.</div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="typeDescInput">Description / Remarque</label>
+                        <textarea class="form-control form-control-sm" id="typeDescInput" name="Input.Description" rows="2"
+                                  placeholder="Précisions sur les plafonds, conditions fiscales..."></textarea>
+                    </div>
+
+                    <!-- Sélecteur de couleur -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold mb-1" for="colorHexInput">Couleur</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="color" class="form-control form-control-color border-0 p-0" id="colorPicker" value="#0dcaf0"
+                                   style="width: 36px; height: 36px;" aria-label="Couleur" title="Choisir une couleur" oninput="syncColorFromPicker(this.value)" />
+                            <input type="text" class="form-control form-control-sm font-monospace" id="colorHexInput" name="Input.ColorHex"
+                                   value="#0dcaf0" style="max-width: 100px;" aria-label="Code couleur hexadécimal" oninput="syncColorFromHex(this.value)" />
+                            
+                            <!-- Couleurs rapides -->
+                            <div class="d-flex gap-1 ms-auto">
+                                <button type="button" class="btn btn-sm p-0 rounded-circle border" style="width: 22px; height: 22px; background-color: #3b82f6;" onclick="setColor('#3b82f6')" title="Bleu" aria-label="Bleu"></button>
+                                <button type="button" class="btn btn-sm p-0 rounded-circle border" style="width: 22px; height: 22px; background-color: #0dcaf0;" onclick="setColor('#0dcaf0')" title="Cyan" aria-label="Cyan"></button>
+                                <button type="button" class="btn btn-sm p-0 rounded-circle border" style="width: 22px; height: 22px; background-color: #198754;" onclick="setColor('#198754')" title="Vert" aria-label="Vert"></button>
+                                <button type="button" class="btn btn-sm p-0 rounded-circle border" style="width: 22px; height: 22px; background-color: #6f42c1;" onclick="setColor('#6f42c1')" title="Violet" aria-label="Violet"></button>
+                                <button type="button" class="btn btn-sm p-0 rounded-circle border" style="width: 22px; height: 22px; background-color: #ffc107;" onclick="setColor('#ffc107')" title="Jaune" aria-label="Jaune"></button>
+                                <button type="button" class="btn btn-sm p-0 rounded-circle border" style="width: 22px; height: 22px; background-color: #fd7e14;" onclick="setColor('#fd7e14')" title="Orange" aria-label="Orange"></button>
+                                <button type="button" class="btn btn-sm p-0 rounded-circle border" style="width: 22px; height: 22px; background-color: #6c757d;" onclick="setColor('#6c757d')" title="Gris" aria-label="Gris"></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sélecteur d'icône -->
+                    <div class="mb-3">
+                        <span class="form-label small fw-semibold d-block mb-1">Icône</span>
+                        <input type="hidden" id="iconNameInput" name="Input.IconName" value="bi-piggy-bank" />
+                        <div class="d-flex flex-wrap gap-1 p-2 bg-light rounded-3 border" id="iconPalette">
+                            @{
+                                var iconList = new[]
+                                {
+                                    "bi-wallet2", "bi-piggy-bank", "bi-tree", "bi-heart", "bi-person",
+                                    "bi-safe", "bi-house-door", "bi-house", "bi-clock-history",
+                                    "bi-graph-up-arrow", "bi-pie-chart", "bi-building-fill", "bi-shield-check",
+                                    "bi-umbrella", "bi-currency-bitcoin", "bi-credit-card", "bi-cash-stack",
+                                    "bi-bank", "bi-lock", "bi-gem"
+                                };
+                            }
+                            @foreach (var ic in iconList)
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary p-1 icon-btn @(ic == "bi-piggy-bank" ? "active" : "")"
+                                        data-icon="@ic" onclick="selectIcon('@ic')" style="width: 32px; height: 32px;" title="@ic" aria-label="@ic">
+                                    <i class="bi @ic"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>Enregistrer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var bsTypeModalInstance = null;
+
+        function openTypeModal() {
+            document.getElementById('typeModalLabel').innerHTML = '<i class="bi bi-wallet2 text-primary me-2"></i>Nouveau type de compte';
+            document.getElementById('typeIdInput').value = '';
+            document.getElementById('typeNameInput').value = '';
+            document.getElementById('typeNameEnInput').value = '';
+            document.getElementById('typeCodeInput').value = '';
+            document.getElementById('typeDescInput').value = '';
+            document.getElementById('typeCategoryGroup').value = '1';
+            setColor('#0dcaf0');
+            selectIcon('bi-piggy-bank');
+            updateLivePreview();
+
+            var modalEl = document.getElementById('typeModal');
+            bsTypeModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsTypeModalInstance.show();
+        }
+
+        function editType(id, name, nameEn, code, desc, categoryGroup, color, icon) {
+            document.getElementById('typeModalLabel').innerHTML = '<i class="bi bi-pencil-square text-primary me-2"></i>Modifier le type de compte';
+            document.getElementById('typeIdInput').value = id;
+            document.getElementById('typeNameInput').value = name;
+            document.getElementById('typeNameEnInput').value = nameEn || '';
+            document.getElementById('typeCodeInput').value = code || '';
+            document.getElementById('typeDescInput').value = desc || '';
+            document.getElementById('typeCategoryGroup').value = categoryGroup || '1';
+            setColor(color);
+            selectIcon(icon);
+            updateLivePreview();
+
+            var modalEl = document.getElementById('typeModal');
+            bsTypeModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsTypeModalInstance.show();
+        }
+
+        function setColor(hex) {
+            document.getElementById('colorPicker').value = hex;
+            document.getElementById('colorHexInput').value = hex;
+            updateLivePreview();
+        }
+
+        function syncColorFromPicker(hex) {
+            document.getElementById('colorHexInput').value = hex;
+            updateLivePreview();
+        }
+
+        function syncColorFromHex(hex) {
+            if (/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) {
+                document.getElementById('colorPicker').value = hex;
+            }
+            updateLivePreview();
+        }
+
+        function selectIcon(iconName) {
+            document.getElementById('iconNameInput').value = iconName;
+            document.querySelectorAll('#iconPalette .icon-btn').forEach(function(b) {
+                b.classList.remove('active', 'btn-primary');
+                b.classList.add('btn-outline-secondary');
+            });
+            var targetBtn = document.querySelector('#iconPalette .icon-btn[data-icon="' + iconName + '"]');
+            if (targetBtn) {
+                targetBtn.classList.add('active', 'btn-primary');
+                targetBtn.classList.remove('btn-outline-secondary');
+            }
+            updateLivePreview();
+        }
+
+        function updateLivePreview() {
+            var name = document.getElementById('typeNameInput').value.trim() || 'Nouveau type';
+            var hex = document.getElementById('colorHexInput').value.trim() || '#0dcaf0';
+            var icon = document.getElementById('iconNameInput').value || 'bi-piggy-bank';
+
+            document.getElementById('previewName').innerText = name;
+            var prevIcon = document.getElementById('previewIcon');
+            prevIcon.className = 'bi ' + icon;
+
+            var badge = document.getElementById('previewBadge');
+            badge.style.color = hex;
+            badge.style.backgroundColor = hex + '15';
+            badge.style.borderColor = hex + '40';
+        }
+    </script>
+}

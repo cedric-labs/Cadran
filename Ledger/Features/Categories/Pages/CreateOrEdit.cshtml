@@ -1,0 +1,263 @@
+﻿@page "/Categories/CreateOrEdit/{id:guid?}"
+@model Ledger.Features.Categories.Pages.CreateOrEditModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = Model.Id.HasValue ? Localizer["Categories.EditTitle"] : Localizer["Categories.CreateTitle"];
+    Layout = "_Layout";
+    var currentUiCulture = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+}
+
+<div class="row justify-content-center py-4">
+    <div class="col-lg-7 col-xl-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
+                        <i class="bi bi-tag-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <h1 class="h4 mb-0">@(Model.Id.HasValue ? Localizer["Categories.EditTitle"] : Localizer["Categories.CreateTitle"])</h1>
+                        <p class="text-muted small mb-0">@Localizer["Categories.FormSubtitle"]</p>
+                    </div>
+                </div>
+
+                <form method="post" id="categoryForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <!-- Champ Nom Principal (Par défaut) -->
+                    <div class="mb-3">
+                        <label asp-for="Input.Name" for="mainCategoryNameInput" class="form-label small fw-semibold">
+                            @Localizer["Categories.Name"] <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Input.Name" class="form-control" placeholder="@Localizer["Categories.NamePlaceholder"]" id="mainCategoryNameInput" />
+                        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                    </div>
+
+                    <!-- Sélecteur dynamique de traductions par langue -->
+                    <div class="mb-3 p-3 bg-light rounded-3 border">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label small fw-semibold mb-0 text-dark" for="languageSelect">
+                                <i class="bi bi-translate text-primary me-1"></i> @Localizer["Categories.TranslationsTitle"]
+                            </label>
+                            <span class="badge bg-white text-secondary border small" 
+                                  id="translationStatusBadge"
+                                  data-empty-text="@Localizer["Categories.NoTranslationYet"]"
+                                  data-translated-prefix="@Localizer["Categories.TranslatedPrefix"]"
+                                  data-default-note="@Localizer["Categories.DefaultNameNote"]">
+                                @Localizer["Categories.NoTranslationYet"]
+                            </span>
+                        </div>
+                        <p class="text-muted small mb-2" style="font-size: 0.78rem;">
+                            @Localizer["Categories.TranslationsHelp"]
+                        </p>
+
+                        <div class="row g-2 align-items-center">
+                            <!-- Liste déroulante des langues configurées -->
+                            <div class="col-sm-5">
+                                <select id="languageSelect" class="form-select form-select-sm" aria-label="@Localizer["Categories.TranslationsTitle"]" onchange="onLanguageChanged()">
+                                    @foreach (var lang in Model.SupportedLanguages)
+                                    {
+                                        <option value="@lang.Code">@lang.DisplayName</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Zone de texte unique dynamique -->
+                            <div class="col-sm-7">
+                                <input type="text" id="translationValueInput" class="form-control form-control-sm"
+                                       placeholder="@Localizer["Categories.TranslationPlaceholder"]"
+                                       aria-label="@Localizer["Categories.TranslationPlaceholder"]"
+                                       oninput="onTranslationInput(this.value)" />
+                            </div>
+                        </div>
+
+                        <!-- Champ caché stockant le dictionnaire JSON sérialisé -->
+                        <input type="hidden" asp-for="Input.TranslationsJson" id="hiddenTranslationsJson" />
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.ColorHex" for="inputColorHex" class="form-label small fw-semibold">@Localizer["Categories.Color"]</label>
+                            <div class="input-group">
+                                <input asp-for="Input.ColorHex" id="inputColorPicker" aria-label="@Localizer["Categories.Color"]" type="color" class="form-control form-control-color w-auto" />
+                                <input asp-for="Input.ColorHex" id="inputColorHex" type="text" class="form-control font-monospace text-uppercase" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.ParentCategoryId" for="inputParentCategoryId" class="form-label small fw-semibold">@Localizer["Categories.ParentCategory"]</label>
+                            <select asp-for="Input.ParentCategoryId" id="inputParentCategoryId" class="form-select">
+                                <option value="">@Localizer["Categories.NoParentMain"]</option>
+                                @foreach (var parent in Model.AvailableParentCategories)
+                                {
+                                    var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pTr) && !string.IsNullOrWhiteSpace(pTr) ? pTr : parent.Name;
+                                    <option value="@parent.Id">@parentName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Intégration du composant 'Icon Picker' -->
+                    <partial name="~/Features/Categories/Components/_IconPicker.cshtml"
+                             model="Model.Input.IconName"
+                             view-data='new ViewDataDictionary(ViewData) { { "InputName", "Input.IconName" }, { "InputId", "Input_IconName" } }' />
+
+                    <div class="mb-3 form-check form-switch">
+                        <input asp-for="Input.IsIncome" class="form-check-input" type="checkbox" role="switch" id="switchIsIncome" onchange="toggleSalaryVisibility()" />
+                        <label asp-for="Input.IsIncome" for="switchIsIncome" class="form-check-label small fw-semibold">@Localizer["Categories.IsIncomeLabel"]</label>
+                    </div>
+
+                    <div class="mb-4 p-3 bg-light rounded-3 border" id="salaryContainer" style="display: @(Model.Input.IsIncome ? "block" : "none");">
+                        <div class="form-check form-switch mb-0">
+                            <input asp-for="Input.IsSalary" class="form-check-input" type="checkbox" role="switch" id="switchIsSalary" />
+                            <label asp-for="Input.IsSalary" for="switchIsSalary" class="form-check-label small fw-semibold text-dark">
+                                <i class="bi bi-cash-stack text-success me-1"></i>@Localizer["Categories.IsSalaryLabel"]
+                            </label>
+                            <div class="form-text small text-muted mt-1" style="font-size: 0.75rem;">
+                                @Localizer["Categories.SalaryHelp"]
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                        <a href="/Categories" class="btn btn-outline-secondary">@Localizer["Common.Cancel"]</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-lg me-1"></i> @Localizer["Categories.SaveCategory"]
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Dictionnaire des traductions en mémoire : code -> valeur
+        var translationsMap = {};
+        try {
+            var rawJson = document.getElementById('hiddenTranslationsJson').value;
+            if (rawJson && rawJson.trim() !== '') {
+                translationsMap = JSON.parse(rawJson);
+            }
+        } catch (e) {
+            translationsMap = {};
+        }
+
+        // Langue de l'interface utilisateur
+        var currentUiLang = '@currentUiCulture';
+        var mainNameInput = document.getElementById('mainCategoryNameInput');
+
+        // Si la langue UI n'a pas encore de clé distincte, on initialise avec le nom affiché
+        if (mainNameInput && mainNameInput.value && !translationsMap[currentUiLang]) {
+            translationsMap[currentUiLang] = mainNameInput.value.trim();
+        }
+
+        function onLanguageChanged() {
+            var select = document.getElementById('languageSelect');
+            var input = document.getElementById('translationValueInput');
+            var mainInput = document.getElementById('mainCategoryNameInput');
+            if (!select || !input) return;
+
+            var currentLang = select.value;
+            // Remplir le champ texte avec la valeur existante pour cette langue
+            var val = translationsMap[currentLang];
+            if ((val === undefined || val === null || val === '') && currentLang === currentUiLang && mainInput && mainInput.value) {
+                val = mainInput.value.trim();
+                translationsMap[currentLang] = val;
+            } else if (val === undefined || val === null) {
+                val = '';
+            }
+
+            input.value = val;
+            updateBadge(val);
+        }
+
+        function onTranslationInput(val) {
+            var select = document.getElementById('languageSelect');
+            var mainInput = document.getElementById('mainCategoryNameInput');
+            if (!select) return;
+
+            var currentLang = select.value;
+
+            if (val && val.trim() !== '') {
+                translationsMap[currentLang] = val.trim();
+                // Si la langue éditée dans le sélecteur correspond à la langue active de l'interface, synchroniser le champ principal
+                if (currentLang === currentUiLang && mainInput) {
+                    mainInput.value = val.trim();
+                }
+            } else {
+                delete translationsMap[currentLang];
+            }
+
+            // Mettre à jour le champ JSON caché
+            document.getElementById('hiddenTranslationsJson').value = JSON.stringify(translationsMap);
+            updateBadge(val);
+        }
+
+        // Synchroniser si l'utilisateur modifie directement le champ Nom Principal
+        if (mainNameInput) {
+            mainNameInput.addEventListener('input', function() {
+                var select = document.getElementById('languageSelect');
+                var input = document.getElementById('translationValueInput');
+                var val = this.value.trim();
+                translationsMap[currentUiLang] = val;
+                document.getElementById('hiddenTranslationsJson').value = JSON.stringify(translationsMap);
+                if (select && select.value === currentUiLang && input) {
+                    input.value = val;
+                    updateBadge(val);
+                }
+            });
+        }
+
+        function updateBadge(val) {
+            var badge = document.getElementById('translationStatusBadge');
+            var select = document.getElementById('languageSelect');
+            if (!badge) return;
+
+            var currentLang = select ? select.value : '';
+            var emptyText = badge.getAttribute('data-empty-text') || 'Non traduit';
+            var translatedPrefix = badge.getAttribute('data-translated-prefix') || 'Traduite';
+            var defaultNote = badge.getAttribute('data-default-note') || 'Langue principale';
+
+            if (val && val.trim() !== '') {
+                badge.className = 'badge bg-success-subtle text-success border border-success-subtle small';
+                badge.innerText = translatedPrefix + ' : ' + val.trim();
+            } else if (currentLang === 'fr') {
+                badge.className = 'badge bg-primary-subtle text-primary border border-primary-subtle small';
+                badge.innerText = defaultNote;
+            } else {
+                badge.className = 'badge bg-white text-secondary border small';
+                badge.innerText = emptyText;
+            }
+        }
+
+        function toggleSalaryVisibility() {
+            var isIncome = document.getElementById('switchIsIncome').checked;
+            var container = document.getElementById('salaryContainer');
+            var salarySwitch = document.getElementById('switchIsSalary');
+            if (container) {
+                container.style.display = isIncome ? 'block' : 'none';
+            }
+            if (!isIncome && salarySwitch) {
+                salarySwitch.checked = false;
+            }
+        }
+
+        // Initialisation à l'ouverture de la page
+        document.addEventListener('DOMContentLoaded', function () {
+            var langSelect = document.getElementById('languageSelect');
+            if (langSelect && langSelect.options.length > 0) {
+                // Sélectionner directement la langue courante de l'interface (ex: 'en' si en anglais, 'fr' si en français)
+                for (var i = 0; i < langSelect.options.length; i++) {
+                    if (langSelect.options[i].value === currentUiLang) {
+                        langSelect.selectedIndex = i;
+                        break;
+                    }
+                }
+
+                onLanguageChanged();
+            }
+        });
+    </script>
+}

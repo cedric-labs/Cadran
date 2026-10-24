@@ -1,0 +1,30 @@
+{
+  "stryker-config": {
+    "solution": "Ledger.slnx",
+    "project": "Ledger/Ledger.csproj",
+    "test-projects": [
+      "tests/Ledger.Tests/Ledger.Tests.csproj"
+    ],
+    "concurrency": 4,
+    "mutation-level": "Standard",
+    "mutate": [
+      "Features/Accounts/Services/**/*.cs",
+      "Features/Imports/Strategies/**/*.cs",
+      "Features/RulesEngine/Services/**/*.cs",
+      "Features/Recurring/Services/**/*.cs",
+      "Features/Reports/Services/**/*.cs",
+      "Features/Merchants/Services/**/*.cs",
+      "!Migrations/**/*.cs"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 65,
+      "break": 50
+    },
+    "reporters": [
+      "progress",
+      "cleartext",
+      "html"
+    ]
+  }
+}

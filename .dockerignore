@@ -1,0 +1,22 @@
+# Ignore Git and IDE metadata
+.git/
+.vs/
+.vscode/
+.sonarqube/
+
+# Ignore build artifacts
+**/bin/
+**/obj/
+**/TestResults/
+
+# Ignore local databases and user keys
+**/*.db
+**/*.db-wal
+**/*.db-shm
+**/*.sqlite
+**/*.sqlite3
+dbkey.dat
+
+# Ignore host Docker volume mounts
+docker-data/
+docker-backups/

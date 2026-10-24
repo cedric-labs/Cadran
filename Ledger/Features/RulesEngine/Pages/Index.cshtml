@@ -1,0 +1,1318 @@
+﻿@page "/RulesEngine"
+@model Ledger.Features.RulesEngine.Pages.IndexModel
+@{
+    ViewData["Title"] = Localizer["Rules.Title"];
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-3">
+    <style>
+        tr[id^="rule-"] {
+            scroll-margin-top: 80px;
+        }
+        .rule-row {
+            transition: background-color 1.5s ease-out;
+        }
+    </style>
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-lightning-charge-fill text-primary me-2"></i>@Localizer["Rules.Title"]
+            </h1>
+            <p class="text-muted small mb-0">@Localizer["Rules.Subtitle"]</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#rulesGuideCollapse" aria-expanded="false">
+                <i class="bi bi-question-circle me-1"></i> @Localizer["Rules.GuideBtn"]
+            </button>
+            <button class="btn btn-success btn-sm btn-open-apply-modal" type="button" data-bs-toggle="modal" data-bs-target="#applyRulesModal">
+                <i class="bi bi-lightning-charge-fill me-1"></i> @Localizer["Rules.ApplyBtn"]
+            </button>
+            <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#newRuleCollapse" aria-expanded="false" id="btnToggleNewRule">
+                <i class="bi bi-plus-lg me-1"></i> @Localizer["Rules.AddBtn"]
+            </button>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+    @if (TempData["InfoMessage"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-info-circle-fill me-2"></i> @TempData["InfoMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+
+    <!-- Guide interactif & Exemples (collapsible) -->
+    <div class="collapse mb-4" id="rulesGuideCollapse">
+        <div class="card shadow-sm border-0 border-start border-4 border-info">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="h6 fw-bold text-dark mb-0">
+                        <i class="bi bi-book-half text-info me-2"></i>Guide pratique : Créer des règles de catégorisation facilement
+                    </h5>
+                    <button type="button" class="btn-close btn-sm" data-bs-toggle="collapse" data-bs-target="#rulesGuideCollapse"></button>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <h6 class="fw-bold small text-primary mb-2">
+                                <i class="bi bi-stars me-1"></i> 1. Les Jokers à votre disposition
+                            </h6>
+                            <p class="small text-muted mb-2">
+                                Pas besoin d'être informaticien ! Vous pouvez taper des mots ou des jokers simples :
+                            </p>
+                            <ul class="small text-muted ps-3 mb-0">
+                                <li class="mb-1">
+                                    <code class="text-primary fw-bold">*</code> ou <code class="text-primary fw-bold">%</code> : remplace <strong>n'importe quel texte</strong> ou suite de caractères.
+                                    <br><span class="text-secondary fst-italic">Ex: AXA*21767 trouvera "AXA CONTRAT 21767" ou "AXA FRANCE 2176789".</span>
+                                </li>
+                                <li>
+                                    <code class="text-primary fw-bold">?</code> : remplace <strong>un seul caractère</strong> quelconque.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <h6 class="fw-bold small text-primary mb-2">
+                                <i class="bi bi-funnel me-1"></i> 2. Les Conditions de correspondance
+                            </h6>
+                            <ul class="small text-muted ps-3 mb-0">
+                                <li class="mb-2">
+                                    <strong>🔍 Contient</strong> : La règle s'active si le texte est présent n'importe où dans le libellé bancaire. <em>(Mode le plus recommandé !)</em>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>🏁 Commence par</strong> : Utile pour cibler un préfixe bancaire précis (ex: <code>PRLVT SEPA</code> ou <code>VIR INST</code>).
+                                </li>
+                                <li class="mb-2">
+                                    <strong>🛑 Termine par</strong> : Utile si un identifiant se trouve en toute fin d'intitulé.
+                                </li>
+                                <li>
+                                    <strong>🎯 Égal à</strong> : Le libellé complet doit correspondre exactement.
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <h6 class="fw-bold small text-primary mb-2">
+                                <i class="bi bi-lightbulb me-1"></i> 3. Exemples prêts à l'emploi
+                            </h6>
+                            <p class="small text-muted mb-2">Cliquez pour pré-remplir l'assistant d'ajout :</p>
+                            <div class="d-flex flex-column gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary text-start btn-apply-guide-example"
+                                        data-name="Assurance Auto AXA"
+                                        data-mode="contains"
+                                        data-keyword="AXA*CONTRAT%21767"
+                                        data-sample="VIR SEPA AXA FRANCE IARD CONTRAT 2176789 ECHEANCE">
+                                    <span class="fw-semibold">Assurance AXA</span> : <code>AXA*CONTRAT%21767</code>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary text-start btn-apply-guide-example"
+                                        data-name="Échéance Prêt Immobilier"
+                                        data-mode="contains"
+                                        data-keyword="ECHEANCE PRET*00987"
+                                        data-sample="PRLVT SEPA ECHEANCE PRET N 00987452 MENSUALITE">
+                                    <span class="fw-semibold">Prêt Immobilier</span> : <code>ECHEANCE PRET*00987</code>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary text-start btn-apply-guide-example"
+                                        data-name="Courses Grandes Surfaces"
+                                        data-mode="advanced"
+                                        data-pattern="(?i)(carrefour|auchan|leclerc|lidl|monoprix)"
+                                        data-sample="CB LECLERC DRIVE 24/09">
+                                    <span class="fw-semibold">Grandes Surfaces</span> : <code>(carrefour|auchan|...)</code>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulaire d'ajout de règle (collapsible) -->
+    <div class="collapse mb-4" id="newRuleCollapse">
+        <div class="card shadow-sm border-0 border-top border-4 border-primary">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="h6 fw-bold mb-0 text-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Créer une nouvelle règle de catégorisation
+                    </h5>
+                    <button type="button" class="btn-close btn-sm" data-bs-toggle="collapse" data-bs-target="#newRuleCollapse"></button>
+                </div>
+
+                <form method="post" asp-page-handler="Create" id="createRuleForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label asp-for="Input.Name" for="createRuleName" class="form-label small fw-semibold">@Localizer["Rules.RuleName"]</label>
+                            <input asp-for="Input.Name" class="form-control form-control-sm" id="createRuleName" aria-label="@Localizer["Rules.RuleName"]" placeholder="Ex: Assurance Auto AXA, Courses Lidl..." required />
+                            <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="Input.TargetCategoryId" for="createRuleCategory" class="form-label small fw-semibold">@Localizer["Rules.AssignedCategory"]</label>
+                            <select asp-for="Input.TargetCategoryId" id="createRuleCategory" aria-label="@Localizer["Rules.AssignedCategory"]" class="form-select form-select-sm" required>
+                                <option value="">@Localizer["Rules.ChooseCategory"]</option>
+                                @foreach (var parent in Model.ParentCategories)
+                                {
+                                    var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pTr) && !string.IsNullOrWhiteSpace(pTr) ? pTr : parent.Name;
+                                    <optgroup label="📁 @parentName.ToUpper()">
+                                        <option value="@parent.Id">▶ @parentName (@Localizer["Categories.EditParent"])</option>
+                                        @foreach (var cat in parent.SubCategories.OrderBy(c => c.Name))
+                                        {
+                                            var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : cat.Name;
+                                            <option value="@cat.Id">&nbsp;&nbsp;&nbsp;• @catName</option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                            <span asp-validation-for="Input.TargetCategoryId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3 position-relative" id="createMerchantContainer">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label asp-for="Input.TargetMerchantId" for="createMerchantSearch" class="form-label small fw-semibold mb-0">@Localizer["Merchants.Merchant"]</label>
+                                <a href="/Merchants" class="small text-muted text-decoration-none" target="_blank" style="font-size: 0.72rem;">
+                                    <i class="bi bi-gear me-1"></i>@Localizer["Merchants.ManageMerchants"]
+                                </a>
+                            </div>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-shop"></i></span>
+                                <input type="text" class="form-control" id="createMerchantSearch" 
+                                       aria-label="@Localizer["Merchants.SearchOrAdd"]"
+                                       placeholder="@Localizer["Merchants.SearchOrAdd"]" 
+                                       autocomplete="off" />
+                                <button type="button" class="btn btn-outline-secondary" id="btnCreateClearMerchant" title="@Localizer["Common.Clear"]">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" asp-for="Input.TargetMerchantId" id="createMerchantId" />
+                            <input type="hidden" asp-for="Input.NewMerchantName" id="createNewMerchantName" />
+                            <div id="createMerchantList" class="dropdown-menu w-100 shadow border p-1" style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1060;"></div>
+                        </div>
+                        <div class="col-md-2">
+                            <label asp-for="Input.Priority" class="form-label small fw-semibold"></label>
+                            <input asp-for="Input.Priority" class="form-control form-control-sm" type="number" min="1" max="1000" />
+                            <span class="form-text text-muted" style="font-size: 0.7rem;">1 = priorité maximale</span>
+                        </div>
+                    </div>
+
+                    <!-- Assistant de Motif Regex (Create) -->
+                    <div class="card border-primary border-opacity-25 bg-light bg-opacity-50 p-3 mb-3 rounded-3" id="createAssistantContainer">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="fw-bold small text-primary">
+                                <i class="bi bi-magic me-1"></i> Assistant de création de motif
+                            </div>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check assistant-mode-radio" name="createModeRadio" id="createModeAssistant" value="assistant" checked autocomplete="off">
+                                <label class="btn btn-outline-primary btn-sm py-0 px-2" for="createModeAssistant">
+                                    <i class="bi bi-stars me-1"></i> Assistant guidé
+                                </label>
+                                <input type="radio" class="btn-check assistant-mode-radio" name="createModeRadio" id="createModeAdvanced" value="advanced" autocomplete="off">
+                                <label class="btn btn-outline-primary btn-sm py-0 px-2" for="createModeAdvanced">
+                                    <i class="bi bi-code-slash me-1"></i> Mode expert (Regex)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Section Assistant Guidé -->
+                        <div class="assistant-guided-section mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label for="createMatchType" class="form-label small text-muted mb-1">Condition de détection</label>
+                                    <select class="form-select form-select-sm assistant-match-type" id="createMatchType" aria-label="Condition de détection">
+                                        <option value="contains" selected>🔍 Le libellé contient</option>
+                                        <option value="startsWith">🏁 Le libellé commence par</option>
+                                        <option value="endsWith">🛑 Le libellé se termine par</option>
+                                        <option value="exact">🎯 Le libellé est exactement égal à</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="createKeywordInput" class="form-label small text-muted mb-1">
+                                        Texte ou mots-clés recherchés
+                                        <span class="badge bg-white text-secondary border ms-1 fw-normal">Jokers * et % acceptés</span>
+                                    </label>
+                                    <input type="text" class="form-control form-control-sm assistant-keyword-input" id="createKeywordInput"
+                                           aria-label="Texte ou mots-clés recherchés"
+                                           placeholder="Ex: AXA*CONTRAT ou LECLERC ou PRET" />
+                                </div>
+                            </div>
+                            <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle text-primary me-1"></i>
+                                Tapez simplement votre texte. Les jokers <code>*</code> ou <code>%</code> remplacent n'importe quels caractères. Les symboles sont automatiquement protégés.
+                            </div>
+                        </div>
+
+                        <!-- Champ Pattern Regex -->
+                        <div class="mb-3">
+                            <label asp-for="Input.Pattern" for="createPatternInput" class="form-label small fw-semibold mb-1">
+                                Formule de détection (Regex)
+                            </label>
+                            <input asp-for="Input.Pattern" class="form-control form-control-sm font-monospace assistant-pattern-input" id="createPatternInput" aria-label="Formule de détection (Regex)" required />
+                            <span asp-validation-for="Input.Pattern" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Testeur en direct -->
+                        <div class="border-top pt-2">
+                            <label for="createTestInput" class="form-label small fw-semibold text-dark mb-1">
+                                <i class="bi bi-play-circle text-success me-1"></i> Tester sur un exemple de libellé bancaire réel :
+                            </label>
+                            <div class="input-group input-group-sm mb-1">
+                                <input type="text" class="form-control assistant-test-input" id="createTestInput"
+                                       aria-label="Tester sur un exemple de libellé bancaire réel"
+                                       placeholder="Collez ici un exemple de libellé de votre compte pour vérifier..." />
+                                <button class="btn btn-outline-secondary assistant-clear-test-btn" type="button" title="Effacer">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <div class="assistant-test-result mt-1 small">
+                                <span class="text-muted"><i class="bi bi-arrow-return-right me-1"></i>Saisissez un exemple ci-dessus pour vérifier instantanément la détection.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtres optionnels (Compte, Montants) -->
+                    <div class="accordion mb-3" id="createOptionalFiltersAccordion">
+                        <div class="accordion-item border rounded">
+                            <h2 class="accordion-header" id="headingCreateFilters">
+                                <button class="accordion-button collapsed py-2 px-3 bg-white text-muted small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCreateFilters">
+                                    <i class="bi bi-sliders me-2 text-primary"></i> Filtres additionnels optionnels (Compte bancaire, Plage de montants)
+                                </button>
+                            </h2>
+                            <div id="collapseCreateFilters" class="accordion-collapse collapse" data-bs-parent="#createOptionalFiltersAccordion">
+                                <div class="accordion-body p-3 bg-light bg-opacity-25">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label asp-for="Input.TargetBankAccountId" class="form-label small fw-semibold"></label>
+                                            <select asp-for="Input.TargetBankAccountId" class="form-select form-select-sm">
+                                                <option value="">-- S'applique à tous les comptes --</option>
+                                                @foreach (var acc in Model.AvailableAccounts)
+                                                {
+                                                    <option value="@acc.Id">@acc.Name (@(acc.Bank?.Name ?? "Banque"))</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label asp-for="Input.MinAmount" class="form-label small fw-semibold"></label>
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="Input.MinAmount" class="form-control" type="number" step="0.01" placeholder="Ex: 50.00" />
+                                                <span class="input-group-text">€</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label asp-for="Input.MaxAmount" class="form-label small fw-semibold"></label>
+                                            <div class="input-group input-group-sm">
+                                                <input asp-for="Input.MaxAmount" class="form-control" type="number" step="0.01" placeholder="Ex: 500.00" />
+                                                <span class="input-group-text">€</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <div class="form-check form-switch p-2 bg-white rounded border">
+                                                <input class="form-check-input ms-0 me-2" type="checkbox" asp-for="Input.ShiftToNextMonth" id="createShiftToNextMonth">
+                                                <label class="form-check-label small fw-semibold" for="createShiftToNextMonth">
+                                                    <i class="bi bi-calendar-plus text-primary me-1"></i> Reporter la date budgétaire sur le mois suivant (+1 mois)
+                                                </label>
+                                                <div class="small text-muted ms-4">
+                                                    Idéal pour les salaires reçus vers le 25 du mois : le montant sera comptabilisé sur le budget du mois suivant.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#newRuleCollapse">Annuler</button>
+                        <button type="submit" class="btn btn-primary btn-sm ms-2">
+                            <i class="bi bi-check-lg me-1"></i> Créer la règle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des règles actives -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="h5 fw-bold mb-0">
+                <i class="bi bi-list-check me-2 text-primary"></i><span id="rulesHeaderCount">@string.Format(Localizer["Rules.ActiveRulesOrdered"], Model.Rules.Count)</span>
+            </h2>
+            <span class="badge bg-light text-muted border small">
+                @Localizer["Rules.PriorityHelpBadge"]
+            </span>
+        </div>
+
+        @if (Model.Rules.Any())
+        {
+            <div class="p-3 bg-light border-bottom">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-6 col-lg-4">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-end-0 text-muted">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="rulesSearchInput" class="form-control border-start-0" 
+                                   aria-label="@Localizer["Rules.SearchPlaceholder"]"
+                                   placeholder="@Localizer["Rules.SearchPlaceholder"]" />
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" id="rulesResetSearchBtn" class="btn btn-outline-secondary btn-sm" title="@Localizer["Common.Cancel"]">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </div>
+                    <div class="col text-end">
+                        <span id="rulesFilteredBadge" class="badge bg-light text-dark border d-none"></span>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="rulesTable">
+                <thead class="table-light small">
+                    <tr>
+                        <th style="width: 75px;">@Localizer["Rules.Priority"]</th>
+                        <th>@Localizer["Rules.RuleName"]</th>
+                        <th>@Localizer["Rules.DetectionCriteria"]</th>
+                        <th>@Localizer["Rules.AssignedCategory"]</th>
+                        <th>@Localizer["Merchants.Merchant"]</th>
+                        <th>@Localizer["Rules.BankAccount"]</th>
+                        <th>@Localizer["Rules.Amounts"]</th>
+                        <th class="text-end" style="width: 120px;">@Localizer["Common.Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody id="rulesTableBody">
+                    @if (!Model.Rules.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-lightning-charge fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                <span class="fw-semibold">@Localizer["Rules.NoRules"]</span>
+                                <p class="small text-muted mb-3">@Localizer["Rules.NoRulesSubtitle"]</p>
+                                <button class="btn btn-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#newRuleCollapse">
+                                    <i class="bi bi-plus-lg me-1"></i> @Localizer["Rules.AddFirstRule"]
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var rule in Model.Rules)
+                        {
+                            <tr id="rule-@rule.Id" class="rule-row">
+                                <td>
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace px-2 py-1">@rule.Priority</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-dark">@rule.Name</span>
+                                    @if (rule.ShiftToNextMonth)
+                                    {
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle small ms-1" title="La date budgétaire est automatiquement décalée au mois suivant (+1 mois)">
+                                            <i class="bi bi-calendar-plus me-1"></i> +1 mois
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    <code class="p-1 px-2 bg-light rounded text-dark font-monospace small border">@rule.Pattern</code>
+                                </td>
+                                <td>
+                                    @if (rule.TargetCategory != null)
+                                    {
+                                        var catName = Model.CategoryTranslations.TryGetValue(rule.TargetCategory.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : rule.TargetCategory.Name;
+                                        <span class="badge rounded-pill border" style="background-color: @(rule.TargetCategory.ColorHex)15; color: @rule.TargetCategory.ColorHex; border-color: @(rule.TargetCategory.ColorHex)40 !important;">
+                                            <i class="bi @rule.TargetCategory.IconName me-1"></i> @catName
+                                        </span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (rule.TargetMerchant != null)
+                                    {
+                                        <span class="badge rounded-pill border" style="background-color: @(rule.TargetMerchant.ColorHex ?? "#6366f1")15; color: @(rule.TargetMerchant.ColorHex ?? "#6366f1"); border-color: @(rule.TargetMerchant.ColorHex ?? "#6366f1")40 !important;">
+                                            <i class="bi @(rule.TargetMerchant.IconName ?? "bi-shop") me-1"></i> @rule.TargetMerchant.Name
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="small text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="small text-muted">@(rule.TargetBankAccount?.Name ?? "Tous les comptes")</span>
+                                </td>
+                                <td>
+                                    @if (rule.MinAmount.HasValue || rule.MaxAmount.HasValue)
+                                    {
+                                        <span class="badge bg-light text-dark border small">
+                                            @(rule.MinAmount.HasValue ? $"≥ {rule.MinAmount.Value:N2}€" : "")
+                                            @(rule.MinAmount.HasValue && rule.MaxAmount.HasValue ? " et " : "")
+                                            @(rule.MaxAmount.HasValue ? $"≤ {rule.MaxAmount.Value:N2}€" : "")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="small text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-success btn-apply-single-rule p-1 px-2"
+                                                data-rule-id="@rule.Id"
+                                                data-rule-name="@rule.Name"
+                                                title="Appliquer cette règle aux opérations...">
+                                            <i class="bi bi-play-fill"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-primary btn-edit-rule p-1 px-2"
+                                                data-rule-id="@rule.Id"
+                                                data-rule-name="@rule.Name"
+                                                data-rule-pattern="@rule.Pattern"
+                                                data-rule-priority="@rule.Priority"
+                                                data-rule-category-id="@rule.TargetCategoryId"
+                                                data-rule-merchant-id="@(rule.TargetMerchantId?.ToString() ?? "")"
+                                                data-rule-merchant-name="@(rule.TargetMerchant?.Name ?? "")"
+                                                data-rule-account-id="@(rule.TargetBankAccountId?.ToString() ?? "")"
+                                                data-rule-min-amount="@(rule.MinAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                                                data-rule-max-amount="@(rule.MaxAmount?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
+                                                data-rule-shift-next="@(rule.ShiftToNextMonth ? "true" : "false")"
+                                                title="Modifier la règle">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@rule.Id" class="d-inline" onsubmit="return confirm('Confirmer la suppression de la règle « @rule.Name » ?');">
+                                            <button type="submit" class="btn btn-outline-danger p-1 px-2" title="Supprimer la règle">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    <tr id="noMatchingRulesRow" class="d-none">
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-funnel text-secondary fs-3 d-block mb-2"></i>
+                            <span>@Localizer["Rules.NoMatchingRules"]</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'édition de règle -->
+<div class="modal fade" id="editRuleModal" tabindex="-1" aria-labelledby="editRuleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="Update" id="editRuleForm">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold h6" id="editRuleModalLabel">
+                        <i class="bi bi-pencil-square text-primary me-2"></i>Modifier la règle de catégorisation
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" name="Input.Id" id="editRuleId" />
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label for="editRuleName" class="form-label small fw-semibold">Nom de la règle</label>
+                            <input name="Input.Name" class="form-control form-control-sm" id="editRuleName" aria-label="Nom de la règle" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="editRuleCategory" class="form-label small fw-semibold">@Localizer["Rules.AssignedCategory"]</label>
+                            <select name="Input.TargetCategoryId" class="form-select form-select-sm" id="editRuleCategory" aria-label="@Localizer["Rules.AssignedCategory"]" required>
+                                <option value="">@Localizer["Rules.ChooseCategory"]</option>
+                                @foreach (var parent in Model.ParentCategories)
+                                {
+                                    var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pTr) && !string.IsNullOrWhiteSpace(pTr) ? pTr : parent.Name;
+                                    <optgroup label="📁 @parentName.ToUpper()">
+                                        <option value="@parent.Id">▶ @parentName (@Localizer["Categories.EditParent"])</option>
+                                        @foreach (var cat in parent.SubCategories.OrderBy(c => c.Name))
+                                        {
+                                            var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : cat.Name;
+                                            <option value="@cat.Id">&nbsp;&nbsp;&nbsp;• @catName</option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3 position-relative" id="editMerchantContainer">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label for="editMerchantSearch" class="form-label small fw-semibold mb-0">@Localizer["Merchants.Merchant"]</label>
+                                <a href="/Merchants" class="small text-muted text-decoration-none" target="_blank" style="font-size: 0.72rem;">
+                                    <i class="bi bi-gear me-1"></i>@Localizer["Merchants.ManageMerchants"]
+                                </a>
+                            </div>
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-shop"></i></span>
+                                <input type="text" class="form-control" id="editMerchantSearch" 
+                                       aria-label="@Localizer["Merchants.SearchOrAdd"]"
+                                       placeholder="@Localizer["Merchants.SearchOrAdd"]" 
+                                       autocomplete="off" />
+                                <button type="button" class="btn btn-outline-secondary" id="btnEditClearMerchant" title="@Localizer["Common.Clear"]">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </div>
+                            <input type="hidden" name="Input.TargetMerchantId" id="editRuleMerchant" />
+                            <input type="hidden" name="Input.NewMerchantName" id="editRuleNewMerchantName" />
+                            <div id="editMerchantList" class="dropdown-menu w-100 shadow border p-1" style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1060;"></div>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="editRulePriority" class="form-label small fw-semibold">Priorité</label>
+                            <input name="Input.Priority" class="form-control form-control-sm" id="editRulePriority" aria-label="Priorité" type="number" min="1" max="1000" required />
+                        </div>
+                    </div>
+
+                    <!-- Assistant de Motif Regex (Edit) -->
+                    <div class="card border-primary border-opacity-25 bg-light bg-opacity-50 p-3 mb-3 rounded-3" id="editAssistantContainer">
+                        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                            <div class="fw-bold small text-primary">
+                                <i class="bi bi-magic me-1"></i> Assistant de détection
+                            </div>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <input type="radio" class="btn-check assistant-mode-radio" name="editModeRadio" id="editModeAssistant" value="assistant" checked autocomplete="off">
+                                <label class="btn btn-outline-primary btn-sm py-0 px-2" for="editModeAssistant">
+                                    <i class="bi bi-stars me-1"></i> Assistant guidé
+                                </label>
+                                <input type="radio" class="btn-check assistant-mode-radio" name="editModeRadio" id="editModeAdvanced" value="advanced" autocomplete="off">
+                                <label class="btn btn-outline-primary btn-sm py-0 px-2" for="editModeAdvanced">
+                                    <i class="bi bi-code-slash me-1"></i> Mode expert (Regex)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Section Assistant Guidé -->
+                        <div class="assistant-guided-section mb-3">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label for="editMatchType" class="form-label small text-muted mb-1">Condition de détection</label>
+                                    <select class="form-select form-select-sm assistant-match-type" id="editMatchType" aria-label="Condition de détection">
+                                        <option value="contains" selected>🔍 Le libellé contient</option>
+                                        <option value="startsWith">🏁 Le libellé commence par</option>
+                                        <option value="endsWith">🛑 Le libellé se termine par</option>
+                                        <option value="exact">🎯 Le libellé est exactement égal à</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-8">
+                                    <label for="editKeywordInput" class="form-label small text-muted mb-1">
+                                        Texte ou mots-clés recherchés
+                                        <span class="badge bg-white text-secondary border ms-1 fw-normal">Jokers * et % acceptés</span>
+                                    </label>
+                                    <input type="text" class="form-control form-control-sm assistant-keyword-input" id="editKeywordInput"
+                                           aria-label="Texte ou mots-clés recherchés"
+                                           placeholder="Ex: AXA*CONTRAT ou LECLERC ou PRET" />
+                                </div>
+                            </div>
+                            <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+                                <i class="bi bi-info-circle text-primary me-1"></i>
+                                Tapez simplement votre texte. Les jokers <code>*</code> ou <code>%</code> remplacent n'importe quels caractères.
+                            </div>
+                        </div>
+
+                        <!-- Champ Pattern Regex -->
+                        <div class="mb-3">
+                            <label for="editPatternInput" class="form-label small fw-semibold mb-1">
+                                Formule de détection (Regex)
+                            </label>
+                            <input name="Input.Pattern" class="form-control form-control-sm font-monospace assistant-pattern-input" id="editPatternInput" aria-label="Formule de détection (Regex)" required />
+                        </div>
+
+                        <!-- Testeur en direct -->
+                        <div class="border-top pt-2">
+                            <label for="editTestInput" class="form-label small fw-semibold text-dark mb-1">
+                                <i class="bi bi-play-circle text-success me-1"></i> Tester sur un exemple de libellé bancaire réel :
+                            </label>
+                            <div class="input-group input-group-sm mb-1">
+                                <input type="text" class="form-control assistant-test-input" id="editTestInput"
+                                       aria-label="Tester sur un exemple de libellé bancaire réel"
+                                       placeholder="Collez ici un exemple de libellé de votre compte pour vérifier..." />
+                                <button class="btn btn-outline-secondary assistant-clear-test-btn" type="button" title="Effacer">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </div>
+                            <div class="assistant-test-result mt-1 small">
+                                <span class="text-muted"><i class="bi bi-arrow-return-right me-1"></i>Saisissez un exemple ci-dessus pour vérifier instantanément la détection.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtres additionnels optionnels -->
+                    <div class="accordion" id="editOptionalFiltersAccordion">
+                        <div class="accordion-item border rounded">
+                            <h2 class="accordion-header" id="headingEditFilters">
+                                <button class="accordion-button collapsed py-2 px-3 bg-white text-muted small fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEditFilters">
+                                    <i class="bi bi-sliders me-2 text-primary"></i> Filtres additionnels (Compte bancaire, Plage de montants)
+                                </button>
+                            </h2>
+                            <div id="collapseEditFilters" class="accordion-collapse collapse" data-bs-parent="#editOptionalFiltersAccordion">
+                                <div class="accordion-body p-3 bg-light bg-opacity-25">
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="editRuleAccount" class="form-label small fw-semibold">Compte bancaire ciblé</label>
+                                            <select name="Input.TargetBankAccountId" class="form-select form-select-sm" id="editRuleAccount" aria-label="Compte bancaire ciblé">
+                                                <option value="">-- S'applique à tous les comptes --</option>
+                                                @foreach (var acc in Model.AvailableAccounts)
+                                                {
+                                                    <option value="@acc.Id">@acc.Name (@(acc.Bank?.Name ?? "Banque"))</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="editRuleMinAmount" class="form-label small fw-semibold">Montant minimum</label>
+                                            <div class="input-group input-group-sm">
+                                                <input name="Input.MinAmount" class="form-control" id="editRuleMinAmount" aria-label="Montant minimum" type="number" step="0.01" placeholder="Ex: 50.00" />
+                                                <span class="input-group-text">€</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="editRuleMaxAmount" class="form-label small fw-semibold">Montant maximum</label>
+                                            <div class="input-group input-group-sm">
+                                                <input name="Input.MaxAmount" class="form-control" id="editRuleMaxAmount" aria-label="Montant maximum" type="number" step="0.01" placeholder="Ex: 500.00" />
+                                                <span class="input-group-text">€</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <div class="form-check form-switch p-2 bg-white rounded border">
+                                                <input class="form-check-input ms-0 me-2" type="checkbox" name="Input.ShiftToNextMonth" id="editRuleShiftToNextMonth" value="true">
+                                                <label class="form-check-label small fw-semibold" for="editRuleShiftToNextMonth">
+                                                    <i class="bi bi-calendar-plus text-primary me-1"></i> Reporter la date budgétaire sur le mois suivant (+1 mois)
+                                                </label>
+                                                <div class="small text-muted ms-4">
+                                                    Idéal pour les salaires reçus vers le 25 du mois : le montant sera comptabilisé sur le budget du mois suivant.
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-save me-1"></i> Enregistrer les modifications
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'application / forçage des règles -->
+<div class="modal fade" id="applyRulesModal" tabindex="-1" aria-labelledby="applyRulesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="ApplyRules">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold h6" id="applyRulesModalLabel">
+                        <i class="bi bi-lightning-charge-fill text-success me-2"></i>Appliquer les règles aux opérations
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Cette action évalue vos opérations bancaires par rapport aux règles configurées pour les catégoriser automatiquement.
+                    </p>
+
+                    <!-- Sélection des règles -->
+                    <div class="mb-3">
+                        <label for="applyModalRuleSelect" class="form-label small fw-semibold">Règle(s) à appliquer</label>
+                        <select name="ruleId" class="form-select form-select-sm" id="applyModalRuleSelect" aria-label="Règle(s) à appliquer">
+                            <option value="">⚡ Toutes les règles actives (par ordre de priorité)</option>
+                            @foreach (var r in Model.Rules)
+                            {
+                                <option value="@r.Id">Règle : @r.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Compte ciblé -->
+                    <div class="mb-3">
+                        <label for="applyModalAccountSelect" class="form-label small fw-semibold">Périmètre des comptes</label>
+                        <select name="accountId" class="form-select form-select-sm" id="applyModalAccountSelect" aria-label="Périmètre des comptes">
+                            <option value="">Tous les comptes bancaires</option>
+                            @foreach (var acc in Model.AvailableAccounts)
+                            {
+                                <option value="@acc.Id">@acc.Name (@(acc.Bank?.Name ?? "Banque"))</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Choix du forçage -->
+                    <div class="mb-2">
+                        <div class="form-label small fw-semibold d-block mb-2">Mode d'application (Forçage)</div>
+
+                        <div class="card p-2 mb-2 border rounded-3 bg-light bg-opacity-50">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="overwriteExisting" id="modeStandard" value="false" checked>
+                                <label class="form-check-label small fw-semibold text-dark" for="modeStandard">
+                                    <i class="bi bi-shield-check text-success me-1"></i> Uniquement les opérations non catégorisées
+                                </label>
+                                <div class="text-muted small ps-1" style="font-size: 0.75rem;">
+                                    Recommandé : n'écrase pas les catégories que vous avez déjà affectées manuellement.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card p-2 border border-warning-subtle rounded-3 bg-warning bg-opacity-10">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="overwriteExisting" id="modeForce" value="true">
+                                <label class="form-check-label small fw-bold text-danger" for="modeForce">
+                                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i> Forcer sur TOUTES les opérations (Écrasement forcé)
+                                </label>
+                                <div class="text-muted small ps-1" style="font-size: 0.75rem;">
+                                    Réévalue l'intégralité des opérations et remplace leur catégorie actuelle si elles correspondent à la règle.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-play-circle-fill me-1"></i> Exécuter les règles
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        (function () {
+            const availableMerchants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableMerchants.Select(m => new { id = m.Id.ToString(), name = m.Name })));
+
+            function setupMerchantCombobox(config) {
+                const searchInput = document.getElementById(config.searchInputId);
+                const idInput = document.getElementById(config.idInputId);
+                const newNameInput = document.getElementById(config.newNameInputId);
+                const listEl = document.getElementById(config.listId);
+                const clearBtn = document.getElementById(config.clearBtnId);
+                const container = document.getElementById(config.containerId);
+
+                if (!searchInput || !idInput || !newNameInput || !listEl) return null;
+
+                function renderList(filterTerm) {
+                    const term = (filterTerm || '').trim().toLowerCase();
+                    const matches = availableMerchants.filter(m => !term || m.name.toLowerCase().indexOf(term) !== -1);
+                    const exactMatch = availableMerchants.some(m => m.name.toLowerCase() === term);
+
+                    let html = '';
+                    if (term && !exactMatch) {
+                        const safeTerm = filterTerm.trim().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                        html += `<button type="button" class="dropdown-item text-primary fw-semibold py-1 bg-primary-subtle border-bottom mb-1 btn-create-merchant-item" data-name="${safeTerm}">`
+                              + `<i class="bi bi-plus-circle me-1"></i> Créer « ${filterTerm.trim()} »`
+                              + `</button>`;
+                    }
+
+                    matches.slice(0, 30).forEach(m => {
+                        const safeName = m.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                        html += `<button type="button" class="dropdown-item d-flex align-items-center justify-content-between py-1 btn-select-merchant-item" data-id="${m.id}" data-name="${safeName}">`
+                              + `<span class="fw-semibold text-truncate">${m.name}</span>`
+                              + `<i class="bi bi-chevron-right text-muted small" style="font-size: 0.7rem;"></i>`
+                              + `</button>`;
+                    });
+
+                    if (!html) {
+                        html = '<div class="p-2 text-muted small text-center">Aucun tiers trouvé</div>';
+                    }
+
+                    listEl.innerHTML = html;
+                    listEl.style.display = 'block';
+
+                    listEl.querySelectorAll('.btn-create-merchant-item').forEach(btn => {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const name = this.getAttribute('data-name');
+                            idInput.value = '';
+                            newNameInput.value = name;
+                            searchInput.value = name;
+                            hideList();
+                        });
+                    });
+
+                    listEl.querySelectorAll('.btn-select-merchant-item').forEach(btn => {
+                        btn.addEventListener('click', function (e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const id = this.getAttribute('data-id');
+                            const name = this.getAttribute('data-name');
+                            idInput.value = id;
+                            newNameInput.value = '';
+                            searchInput.value = name;
+                            hideList();
+                        });
+                    });
+                }
+
+                function hideList() {
+                    listEl.style.display = 'none';
+                }
+
+                searchInput.addEventListener('input', function () {
+                    const val = this.value.trim();
+                    const exact = availableMerchants.find(m => m.name.toLowerCase() === val.toLowerCase());
+                    if (exact) {
+                        idInput.value = exact.id;
+                        newNameInput.value = '';
+                    } else if (val) {
+                        idInput.value = '';
+                        newNameInput.value = val;
+                    } else {
+                        idInput.value = '';
+                        newNameInput.value = '';
+                    }
+                    renderList(this.value);
+                });
+
+                searchInput.addEventListener('focus', function () {
+                    renderList(this.value);
+                });
+
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        idInput.value = '';
+                        newNameInput.value = '';
+                        searchInput.value = '';
+                        hideList();
+                    });
+                }
+
+                document.addEventListener('click', function (e) {
+                    if (container && !container.contains(e.target)) {
+                        hideList();
+                    }
+                });
+
+                return {
+                    setValue: function (id, name) {
+                        idInput.value = id || '';
+                        newNameInput.value = '';
+                        searchInput.value = name || '';
+                        hideList();
+                    },
+                    clear: function () {
+                        idInput.value = '';
+                        newNameInput.value = '';
+                        searchInput.value = '';
+                        hideList();
+                    }
+                };
+            }
+
+            const createMerchantCombobox = setupMerchantCombobox({
+                containerId: 'createMerchantContainer',
+                searchInputId: 'createMerchantSearch',
+                idInputId: 'createMerchantId',
+                newNameInputId: 'createNewMerchantName',
+                listId: 'createMerchantList',
+                clearBtnId: 'btnCreateClearMerchant'
+            });
+
+            const editMerchantCombobox = setupMerchantCombobox({
+                containerId: 'editMerchantContainer',
+                searchInputId: 'editMerchantSearch',
+                idInputId: 'editRuleMerchant',
+                newNameInputId: 'editRuleNewMerchantName',
+                listId: 'editMerchantList',
+                clearBtnId: 'btnEditClearMerchant'
+            });
+
+            // --- Helper 1: Construction du motif Regex à partir du texte utilisateur et du mode ---
+            function buildRegexPattern(text, matchType) {
+                if (!text || text.trim() === '') return '';
+                let sanitized = text.trim().replace(/%/g, '*');
+
+                // On sépare sur les jokers * et ? pour n'échapper que le texte littéral
+                const parts = sanitized.split(/(\*|\?)/);
+                const escapedBody = parts.map(part => {
+                    if (part === '*') return '.*';
+                    if (part === '?') return '.';
+                    return part.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
+                }).join('');
+
+                if (matchType === 'startsWith') {
+                    return '(?i)^' + escapedBody;
+                } else if (matchType === 'endsWith') {
+                    return '(?i)' + escapedBody + '$';
+                } else if (matchType === 'exact') {
+                    return '(?i)^' + escapedBody + '$';
+                } else {
+                    // contains
+                    return '(?i)' + escapedBody;
+                }
+            }
+
+            // --- Helper 2: Analyse inverse d'un motif existant pour renseigner l'assistant ---
+            function parseRegexToAssistant(pattern) {
+                if (!pattern) return { mode: 'assistant', matchType: 'contains', text: '' };
+                let p = pattern.trim();
+                let temp = p;
+
+                if (temp.startsWith('(?i)')) {
+                    temp = temp.substring(4);
+                }
+
+                let matchType = 'contains';
+                if (temp.startsWith('^') && temp.endsWith('$')) {
+                    matchType = 'exact';
+                    temp = temp.substring(1, temp.length - 1);
+                } else if (temp.startsWith('^')) {
+                    matchType = 'startsWith';
+                    temp = temp.substring(1);
+                } else if (temp.endsWith('$')) {
+                    matchType = 'endsWith';
+                    temp = temp.substring(0, temp.length - 1);
+                }
+
+                // Vérifier s'il y a des méta-caractères Regex avancés non gérés par le mode simple
+                // (ex: alternance |, groupes (), classes [], quantificateurs +, {})
+                const hasComplexSyntax = /(?<!\\)[|(){}\[\]+]/.test(temp);
+                if (hasComplexSyntax) {
+                    return { mode: 'advanced', matchType: 'contains', text: '', rawPattern: pattern };
+                }
+
+                // Restauration des jokers
+                let readable = temp.replace(/\.\*/g, '*');
+                readable = readable.replace(/\\\./g, '___DOT___');
+                readable = readable.replace(/(?<!\\)\./g, '?');
+                readable = readable.replace(/___DOT___/g, '.');
+                // Déséchappement des caractères
+                readable = readable.replace(/\\([\\^$.|+()[\]{}?*])/g, '$1');
+
+                return {
+                    mode: 'assistant',
+                    matchType: matchType,
+                    text: readable,
+                    rawPattern: pattern
+                };
+            }
+
+            // --- Helper 3: Évaluation du test en direct ---
+            function testRegexPattern(pattern, sample) {
+                if (!pattern || !pattern.trim() || !sample || !sample.trim()) {
+                    return { tested: false };
+                }
+                try {
+                    let clean = pattern.trim();
+                    if (clean.startsWith('(?i)')) {
+                        clean = clean.substring(4);
+                    }
+                    const regex = new RegExp(clean, 'i');
+                    return { tested: true, matches: regex.test(sample.trim()), error: null };
+                } catch (err) {
+                    return { tested: true, matches: false, error: err.message };
+                }
+            }
+
+            function updateTestResultBadge(resultContainer, testRes) {
+                if (!testRes.tested) {
+                    resultContainer.innerHTML = '<span class="text-muted"><i class="bi bi-arrow-return-right me-1"></i>Saisissez un exemple ci-dessus pour vérifier instantanément la détection.</span>';
+                    return;
+                }
+                if (testRes.error) {
+                    resultContainer.innerHTML = '<span class="badge bg-danger-subtle text-danger border border-danger"><i class="bi bi-exclamation-triangle-fill me-1"></i>Expression invalide : ' + testRes.error + '</span>';
+                    return;
+                }
+                if (testRes.matches) {
+                    resultContainer.innerHTML = '<span class="badge bg-success-subtle text-success border border-success"><i class="bi bi-check-circle-fill me-1"></i>Correspondance confirmée ! L\'opération sera automatiquement reconnue.</span>';
+                } else {
+                    resultContainer.innerHTML = '<span class="badge bg-secondary-subtle text-secondary border"><i class="bi bi-x-circle me-1"></i>Aucune correspondance avec cet exemple de libellé.</span>';
+                }
+            }
+
+            // --- Initialisation d'un bloc Assistant (Create ou Edit) ---
+            function setupAssistant(containerId) {
+                const container = document.getElementById(containerId);
+                if (!container) return null;
+
+                const modeRadios = container.querySelectorAll('.assistant-mode-radio');
+                const guidedSection = container.querySelector('.assistant-guided-section');
+                const matchTypeSelect = container.querySelector('.assistant-match-type');
+                const keywordInput = container.querySelector('.assistant-keyword-input');
+                const patternInput = container.querySelector('.assistant-pattern-input');
+                const testInput = container.querySelector('.assistant-test-input');
+                const clearTestBtn = container.querySelector('.assistant-clear-test-btn');
+                const testResultContainer = container.querySelector('.assistant-test-result');
+
+                function getMode() {
+                    let m = 'assistant';
+                    modeRadios.forEach(r => { if (r.checked) m = r.value; });
+                    return m;
+                }
+
+                function syncPatternFromGuided() {
+                    if (getMode() === 'assistant') {
+                        const kw = keywordInput.value;
+                        const mt = matchTypeSelect.value;
+                        patternInput.value = buildRegexPattern(kw, mt);
+                    }
+                    runLiveTest();
+                }
+
+                function runLiveTest() {
+                    const res = testRegexPattern(patternInput.value, testInput.value);
+                    updateTestResultBadge(testResultContainer, res);
+                }
+
+                function onModeChange() {
+                    const mode = getMode();
+                    if (mode === 'assistant') {
+                        guidedSection.classList.remove('d-none');
+                        patternInput.readOnly = true;
+                        patternInput.classList.add('bg-light');
+                        syncPatternFromGuided();
+                    } else {
+                        guidedSection.classList.add('d-none');
+                        patternInput.readOnly = false;
+                        patternInput.classList.remove('bg-light');
+                        runLiveTest();
+                    }
+                }
+
+                modeRadios.forEach(r => r.addEventListener('change', onModeChange));
+                matchTypeSelect.addEventListener('change', syncPatternFromGuided);
+                keywordInput.addEventListener('input', syncPatternFromGuided);
+                patternInput.addEventListener('input', runLiveTest);
+                testInput.addEventListener('input', runLiveTest);
+
+                if (clearTestBtn) {
+                    clearTestBtn.addEventListener('click', function () {
+                        testInput.value = '';
+                        runLiveTest();
+                    });
+                }
+
+                onModeChange();
+
+                return {
+                    setValues: function (pattern, testSample) {
+                        const parsed = parseRegexToAssistant(pattern);
+                        modeRadios.forEach(r => {
+                            r.checked = (r.value === parsed.mode);
+                        });
+                        if (parsed.mode === 'assistant') {
+                            matchTypeSelect.value = parsed.matchType;
+                            keywordInput.value = parsed.text;
+                        }
+                        patternInput.value = pattern || '';
+                        if (testSample !== undefined) {
+                            testInput.value = testSample;
+                        }
+                        onModeChange();
+                        runLiveTest();
+                    },
+                    setSample: function(sample) {
+                        testInput.value = sample;
+                        runLiveTest();
+                    }
+                };
+            }
+
+            // Configurer l'assistant de création
+            const createAssistant = setupAssistant('createAssistantContainer');
+
+            // Configurer l'assistant d'édition
+            const editAssistant = setupAssistant('editAssistantContainer');
+
+            // Gestion des boutons d'exemples du guide
+            document.querySelectorAll('.btn-apply-guide-example').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const name = this.getAttribute('data-name');
+                    const mode = this.getAttribute('data-mode');
+                    const keyword = this.getAttribute('data-keyword');
+                    const pattern = this.getAttribute('data-pattern');
+                    const sample = this.getAttribute('data-sample');
+
+                    // Déplier le formulaire de création si replié
+                    const collapseEl = document.getElementById('newRuleCollapse');
+                    const bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapseEl, { toggle: false });
+                    bsCollapse.show();
+
+                    document.getElementById('createRuleName').value = name || '';
+
+                    if (mode === 'advanced') {
+                        createAssistant.setValues(pattern, sample);
+                    } else {
+                        const matchMode = this.getAttribute('data-mode-type') || 'contains';
+                        document.getElementById('createMatchType').value = matchMode;
+                        document.getElementById('createKeywordInput').value = keyword || '';
+                        document.getElementById('createModeAssistant').checked = true;
+                        createAssistant.setValues(buildRegexPattern(keyword, matchMode), sample);
+                    }
+
+                    collapseEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+
+            // Gestion de l'ouverture du Modal d'édition
+            const editModalEl = document.getElementById('editRuleModal');
+            const editModal = editModalEl ? new bootstrap.Modal(editModalEl) : null;
+
+            document.querySelectorAll('.btn-edit-rule').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const ruleId = this.getAttribute('data-rule-id');
+                    const name = this.getAttribute('data-rule-name');
+                    const pattern = this.getAttribute('data-rule-pattern');
+                    const priority = this.getAttribute('data-rule-priority');
+                    const categoryId = this.getAttribute('data-rule-category-id');
+                    const accountId = this.getAttribute('data-rule-account-id');
+                    const minAmount = this.getAttribute('data-rule-min-amount');
+                    const maxAmount = this.getAttribute('data-rule-max-amount');
+
+                    document.getElementById('editRuleId').value = ruleId || '';
+                    document.getElementById('editRuleName').value = name || '';
+                    document.getElementById('editRulePriority').value = priority || '10';
+                    document.getElementById('editRuleCategory').value = categoryId || '';
+                    const merchantId = this.getAttribute('data-rule-merchant-id') || '';
+                    const merchantName = this.getAttribute('data-rule-merchant-name') || '';
+                    if (editMerchantCombobox) {
+                        editMerchantCombobox.setValue(merchantId, merchantName);
+                    }
+                    document.getElementById('editRuleAccount').value = accountId || '';
+                    document.getElementById('editRuleMinAmount').value = minAmount || '';
+                    document.getElementById('editRuleMaxAmount').value = maxAmount || '';
+                    document.getElementById('editRuleShiftToNextMonth').checked = (this.getAttribute('data-rule-shift-next') === 'true');
+
+                    if (editAssistant) {
+                        editAssistant.setValues(pattern, '');
+                    }
+
+                    if (editModal) {
+                        editModal.show();
+                    }
+                });
+            });
+
+            // Gestion du Modal d'application / forçage des règles
+            const applyModalEl = document.getElementById('applyRulesModal');
+            const applyModal = applyModalEl ? new bootstrap.Modal(applyModalEl) : null;
+
+            document.querySelectorAll('.btn-apply-single-rule').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const ruleId = this.getAttribute('data-rule-id');
+                    const ruleSelect = document.getElementById('applyModalRuleSelect');
+                    if (ruleSelect) {
+                        ruleSelect.value = ruleId || '';
+                    }
+                    if (applyModal) {
+                        applyModal.show();
+                    }
+                });
+            });
+
+            const openApplyBtn = document.querySelector('.btn-open-apply-modal');
+            if (openApplyBtn) {
+                openApplyBtn.addEventListener('click', function () {
+                    const ruleSelect = document.getElementById('applyModalRuleSelect');
+                    if (ruleSelect) {
+                        ruleSelect.value = '';
+                    }
+                });
+            }
+
+            // Gestion de la recherche / filtrage en direct dans le tableau des règles
+            const rulesSearchInput = document.getElementById('rulesSearchInput');
+            const rulesResetSearchBtn = document.getElementById('rulesResetSearchBtn');
+            const rulesTableBody = document.getElementById('rulesTableBody');
+            const noMatchingRulesRow = document.getElementById('noMatchingRulesRow');
+            const rulesFilteredBadge = document.getElementById('rulesFilteredBadge');
+
+            if (rulesSearchInput && rulesTableBody) {
+                const ruleRows = Array.from(rulesTableBody.querySelectorAll('tr')).filter(tr => tr.id !== 'noMatchingRulesRow');
+                const totalRulesCount = ruleRows.length;
+
+                function applyRulesFilter() {
+                    const query = (rulesSearchInput.value || '').trim().toLowerCase();
+                    let visibleCount = 0;
+
+                    ruleRows.forEach(row => {
+                        const text = (row.textContent || '').toLowerCase();
+                        if (!query || text.includes(query)) {
+                            row.style.display = '';
+                            visibleCount++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    if (noMatchingRulesRow) {
+                        if (visibleCount === 0 && totalRulesCount > 0) {
+                            noMatchingRulesRow.classList.remove('d-none');
+                        } else {
+                            noMatchingRulesRow.classList.add('d-none');
+                        }
+                    }
+
+                    if (rulesFilteredBadge) {
+                        if (query) {
+                            rulesFilteredBadge.classList.remove('d-none');
+                            rulesFilteredBadge.textContent = `${visibleCount} / ${totalRulesCount}`;
+                        } else {
+                            rulesFilteredBadge.classList.add('d-none');
+                        }
+                    }
+                }
+
+                rulesSearchInput.addEventListener('input', applyRulesFilter);
+
+                if (rulesResetSearchBtn) {
+                    rulesResetSearchBtn.addEventListener('click', function () {
+                        rulesSearchInput.value = '';
+                        applyRulesFilter();
+                        rulesSearchInput.focus();
+                    });
+                }
+            }
+
+            // Défilement automatique et mise en valeur de la règle modifiée ou créée
+            const updatedRuleId = '@(TempData["UpdatedRuleId"] ?? "")';
+            const hashRuleId = window.location.hash && window.location.hash.startsWith('#rule-')
+                ? window.location.hash.substring(6)
+                : '';
+            const targetRuleId = updatedRuleId || hashRuleId;
+
+            if (targetRuleId) {
+                const targetRow = document.getElementById('rule-' + targetRuleId);
+                if (targetRow) {
+                    setTimeout(() => {
+                        targetRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        targetRow.classList.add('table-primary');
+                        setTimeout(() => {
+                            targetRow.classList.remove('table-primary');
+                        }, 2500);
+                    }, 150);
+                }
+            }
+
+        })();
+    </script>
+}

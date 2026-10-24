@@ -1,0 +1,108 @@
+﻿@page "/Security/EnableMfa"
+@model Ledger.Features.Security.Pages.EnableMfaModel
+@{
+    ViewData["Title"] = Localizer["Auth.MfaPageTitle"];
+    Layout = "_Layout";
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex align-items-center mb-4">
+                <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
+                    <i class="bi bi-shield-lock fs-3"></i>
+                </div>
+                <div>
+                    <h1 class="h3 mb-0">@Localizer["Auth.MfaLoginTitle"]</h1>
+                    <p class="text-muted small mb-0">@Localizer["Auth.MfaPageSubtitle"]</p>
+                </div>
+            </div>
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success d-flex align-items-center mb-4" role="alert">
+                    <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                    <div>@TempData["SuccessMessage"]</div>
+                </div>
+            }
+
+            @if (Model.RecoveryCodes != null && Model.RecoveryCodes.Any())
+            {
+                <div class="card border-warning mb-4">
+                    <div class="card-header bg-warning bg-opacity-10 text-warning-emphasis fw-bold">
+                        <i class="bi bi-key-fill me-1"></i> @Localizer["Auth.EmergencyCodesTitle"]
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-danger fw-semibold">
+                            @Localizer["Auth.EmergencyCodesWarning"]
+                        </p>
+                        <div class="row row-cols-2 g-2">
+                            @foreach (var code in Model.RecoveryCodes)
+                            {
+                                <div class="col">
+                                    <code class="p-2 d-block bg-light rounded text-center fw-bold">@code</code>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <div class="row g-4">
+                        <div class="col-md-5 text-center border-end">
+                            <h5 class="h6 mb-3">@Localizer["Auth.Step1Scan"]</h5>
+                            @if (!string.IsNullOrEmpty(Model.QrCodeBase64))
+                            {
+                                <img src="@Model.QrCodeBase64" alt="QR Code TOTP" class="img-fluid rounded border p-2 mb-3 bg-white" style="max-width: 220px;" />
+                            }
+                            <div class="text-muted small">@Localizer["Auth.ManualKey"]</div>
+                            <div class="user-select-all font-monospace fw-semibold bg-light p-2 rounded small mt-1">@Model.SharedKey</div>
+                        </div>
+
+                        <div class="col-md-7">
+                            <h5 class="h6 mb-3">@Localizer["Auth.Step2Confirm"]</h5>
+                            <p class="text-muted small">
+                                @Localizer["Auth.Step2Desc"]
+                            </p>
+
+                            <form method="post">
+                                <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Input.Code" class="form-label small fw-semibold">@Localizer["Auth.TwoFactorCode"]</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light"><i class="bi bi-clock-history"></i></span>
+                                        <input asp-for="Input.Code" class="form-control font-monospace fs-5 text-center" placeholder="123456" maxlength="7" autocomplete="off" />
+                                    </div>
+                                    <span asp-validation-for="Input.Code" class="text-danger small"></span>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-100 py-2">
+                                    <i class="bi bi-shield-check me-1"></i> @Localizer["Auth.EnableMfaButton"]
+                                </button>
+                            </form>
+
+                            <div class="mt-4 p-3 bg-light rounded-3">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-info-circle text-primary me-2 fs-5"></i>
+                                    <div class="small text-muted">
+                                        @Localizer["Auth.AccountStatus"]
+                                        <span class="badge @(Model.Is2faEnabled ? "bg-success" : "bg-secondary")">
+                                            @(Model.Is2faEnabled ? Localizer["Auth.MfaEnabledBadge"] : Localizer["Auth.MfaDisabledBadge"])
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

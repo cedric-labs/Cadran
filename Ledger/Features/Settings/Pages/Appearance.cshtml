@@ -1,0 +1,557 @@
+﻿@page "/Settings/Appearance"
+@model Ledger.Features.Settings.Pages.AppearanceModel
+@{
+    ViewData["Title"] = "Apparence & Polices";
+    Layout = "_Layout";
+}
+
+<!-- Préchargement des polices distantes pour les aperçus réels dans la page -->
+@foreach (var font in Model.Fonts.Where(f => !string.IsNullOrEmpty(f.GoogleFontUrl)))
+{
+    <link rel="stylesheet" href="@font.GoogleFontUrl" />
+}
+
+<div class="container-fluid py-4 max-w-6xl">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a href="/Accounts" class="text-decoration-none">Accueil</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Paramètres d'affichage</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-palette-fill text-primary me-2"></i>Apparence & Polices de caractères
+            </h1>
+            <p class="text-muted small mb-0">
+                Personnalisez la typographie, la taille du texte et le mode d'affichage par défaut de vos opérations bancaires.
+            </p>
+        </div>
+        <div>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addFontModal">
+                <i class="bi bi-plus-circle me-1"></i> Ajouter une police
+            </button>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+
+    <form method="post" asp-page-handler="SavePreferences" id="appearanceForm">
+        @Html.AntiForgeryToken()
+
+        <div class="row g-4">
+            <!-- Colonne de gauche : Réglages -->
+            <div class="col-lg-7">
+                <!-- 1. Choix de la police d'écriture -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-type text-primary fs-5"></i>
+                            <h2 class="h6 fw-bold mb-0">Police d'écriture (@Model.Fonts.Count polices en base)</h2>
+                        </div>
+                        <span class="small text-muted">Stockée en base de données</span>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-2" id="fontOptionsContainer">
+                            @foreach (var font in Model.Fonts)
+                            {
+                                var isSelected = font.Id == Model.ActiveFont.Id;
+                                <div class="col-md-6">
+                                    <label class="card h-100 p-3 border cursor-pointer font-card position-relative @(isSelected ? "border-primary bg-primary bg-opacity-10 shadow-sm" : "bg-white")"
+                                           for="font_@font.Id" style="transition: all 0.2s ease;">
+                                        <div class="d-flex align-items-start justify-content-between mb-2">
+                                            <div class="form-check m-0">
+                                                <input class="form-check-input font-radio" type="radio" name="fontId" id="font_@font.Id"
+                                                       value="@font.Id" @(isSelected ? "checked" : "")
+                                                       data-font-css="@font.FontFamilyCss"
+                                                       data-font-name="@font.Name"
+                                                       onchange="onFontSelected(this)" />
+                                                <span class="form-check-label fw-bold ms-1" style="font-family: @Html.Raw(font.FontFamilyCss);">
+                                                    @font.Name
+                                                </span>
+                                            </div>
+                                            @if (isSelected)
+                                            {
+                                                <span class="badge bg-primary text-white" style="font-size: 0.65rem;">Active</span>
+                                            }
+                                        </div>
+                                        <div class="small text-muted mb-2" style="font-family: @Html.Raw(font.FontFamilyCss); font-size: 0.85rem;">
+                                            Voix ambiguë d’un cœur qui au zéphir préfère les jasmins. 1234,56 €
+                                        </div>
+                                        @if (!font.IsSystem)
+                                        {
+                                            <div class="d-flex justify-content-end mt-auto pt-2 border-top">
+                                                <button type="submit" asp-page-handler="DeleteFont" asp-route-id="@font.Id"
+                                                        class="btn btn-link btn-sm text-danger p-0 small text-decoration-none"
+                                                        onclick="return confirm('Supprimer la police \'@font.Name\' ?');"
+                                                        title="Supprimer cette police personnalisée">
+                                                    <i class="bi bi-trash"></i> Supprimer
+                                                </button>
+                                            </div>
+                                        }
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Taille de police de l'interface -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-textarea-resize text-primary fs-5"></i>
+                        <h2 class="h6 fw-bold mb-0">Taille du texte</h2>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-2">
+                            @{
+                                var sizes = new[] {
+                                    new { Value = "13px", Name = "Compacte (13px)", Desc = "Maximise l'espace, idéal pour voir beaucoup d'opérations" },
+                                    new { Value = "14px", Name = "Standard (14px)", Desc = "Recommandé, équilibre parfait lisibilité et compacité" },
+                                    new { Value = "15px", Name = "Moyenne (15px)", Desc = "Lecture plus aérée et confortable" },
+                                    new { Value = "16px", Name = "Grande (16px)", Desc = "Haute visibilité pour écrans haute résolution" }
+                                };
+                            }
+                            @foreach (var sz in sizes)
+                            {
+                                var isSizeSelected = sz.Value == Model.ActiveFontSize;
+                                <div class="col-sm-6">
+                                    <label class="card h-100 p-3 border cursor-pointer size-card @(isSizeSelected ? "border-primary bg-primary bg-opacity-10 shadow-sm" : "bg-white")"
+                                           for="size_@sz.Value">
+                                        <div class="form-check m-0">
+                                            <input class="form-check-input size-radio" type="radio" name="fontSize" id="size_@sz.Value"
+                                                   value="@sz.Value" @(isSizeSelected ? "checked" : "")
+                                                   onchange="onSizeSelected(this)" />
+                                            <span class="form-check-label fw-bold ms-1" style="font-size: @sz.Value;">
+                                                @sz.Name
+                                            </span>
+                                        </div>
+                                        <div class="small text-muted mt-1 ms-4" style="font-size: 0.75rem;">
+                                            @sz.Desc
+                                        </div>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Mode d'affichage par défaut des opérations -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-layout-three-columns text-primary fs-5"></i>
+                        <h2 class="h6 fw-bold mb-0">Affichage par défaut des opérations</h2>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <label class="card h-100 p-3 border cursor-pointer mode-card @(Model.DefaultDisplayMode == "compact" ? "border-primary bg-primary bg-opacity-10 shadow-sm" : "bg-white")"
+                                       for="mode_compact">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input mode-radio" type="radio" name="displayMode" id="mode_compact"
+                                               value="compact" @(Model.DefaultDisplayMode == "compact" ? "checked" : "")
+                                               onchange="onModeSelected(this)" />
+                                        <span class="form-check-label fw-bold ms-1">
+                                            <i class="bi bi-list-task me-1 text-primary"></i> Mode Compact
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted mt-2 ms-4" style="font-size: 0.78rem;">
+                                        Affiche le libellé épuré. Les références et descriptifs bruts sont masqués et se déplient d'un simple clic sur <em>"Détails"</em>.
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="card h-100 p-3 border cursor-pointer mode-card @(Model.DefaultDisplayMode == "comfort" ? "border-primary bg-primary bg-opacity-10 shadow-sm" : "bg-white")"
+                                       for="mode_comfort">
+                                    <div class="form-check m-0">
+                                        <input class="form-check-input mode-radio" type="radio" name="displayMode" id="mode_comfort"
+                                               value="comfort" @(Model.DefaultDisplayMode == "comfort" ? "checked" : "")
+                                               onchange="onModeSelected(this)" />
+                                        <span class="form-check-label fw-bold ms-1">
+                                            <i class="bi bi-view-list me-1 text-primary"></i> Mode Confort
+                                        </span>
+                                    </div>
+                                    <div class="small text-muted mt-2 ms-4" style="font-size: 0.78rem;">
+                                        Affiche directement toutes les informations sur chaque ligne (libellé, descriptif bancaire brut et référence).
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Période par défaut & Pagination des opérations -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-sliders2 text-primary fs-5"></i>
+                        <h2 class="h6 fw-bold mb-0">Comportement & Affichage des opérations</h2>
+                    </div>
+                    <div class="card-body p-3">
+                        <div class="row g-3">
+                            <!-- Période temporelle par défaut -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold" for="defaultPeriodSelect">
+                                    <i class="bi bi-calendar-range me-1 text-primary"></i>Période par défaut à l'ouverture
+                                </label>
+                                <select class="form-select form-select-sm" id="defaultPeriodSelect" name="defaultPeriod">
+                                    <option value="current-month" selected="@(Model.DefaultPeriod == "current-month")">Mois en cours (par défaut)</option>
+                                    <option value="two-weeks" selected="@(Model.DefaultPeriod == "two-weeks")">2 dernières semaines</option>
+                                    <option value="last-month" selected="@(Model.DefaultPeriod == "last-month")">Mois précédent</option>
+                                    <option value="three-months" selected="@(Model.DefaultPeriod == "three-months")">3 derniers mois</option>
+                                    <option value="six-months" selected="@(Model.DefaultPeriod == "six-months")">6 derniers mois</option>
+                                    <option value="all" selected="@(Model.DefaultPeriod == "all")">Toutes les opérations (sans filtre de date)</option>
+                                </select>
+                                <div class="text-muted small mt-1" style="font-size: 0.74rem;">
+                                    Détermine quelle période est chargée automatiquement lorsque vous ouvrez vos comptes.
+                                </div>
+                            </div>
+
+                            <!-- Nombre maximum d'opérations -->
+                            <div class="col-md-6">
+                                <label class="form-label small fw-semibold" for="pageSizeSelect">
+                                    <i class="bi bi-list-ol me-1 text-primary"></i>Nombre maximum d'opérations par page
+                                </label>
+                                <select class="form-select form-select-sm" id="pageSizeSelect" name="transactionsPageSize">
+                                    <option value="100" selected="@(Model.TransactionsPageSize == 100)">100 opérations</option>
+                                    <option value="250" selected="@(Model.TransactionsPageSize == 250)">250 opérations (recommandé)</option>
+                                    <option value="500" selected="@(Model.TransactionsPageSize == 500)">500 opérations</option>
+                                    <option value="1000" selected="@(Model.TransactionsPageSize == 1000)">1 000 opérations</option>
+                                    <option value="5000" selected="@(Model.TransactionsPageSize == 5000)">Illimité (jusqu'à 5 000)</option>
+                                </select>
+                                <div class="text-muted small mt-1" style="font-size: 0.74rem;">
+                                    Limite le nombre d'opérations affichées simultanément pour conserver une fluidité maximale.
+                                </div>
+                            </div>
+
+                            <!-- Affichage des centimes sur les vignettes KPI -->
+                            <div class="col-12 border-top pt-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" id="showKpiCentsSwitch" 
+                                           name="showKpiCents" value="true" @(Model.ShowKpiCents ? "checked" : "") />
+                                    <input type="hidden" name="showKpiCents" value="false" />
+                                    <label class="form-check-label fw-semibold small" for="showKpiCentsSwitch">
+                                        <i class="bi bi-cash-stack me-1 text-success"></i>Afficher les centimes sur les vignettes de synthèse (KPI)
+                                    </label>
+                                </div>
+                                <div class="text-muted small ps-4 ms-2 mt-1" style="font-size: 0.74rem;">
+                                    Si désactivé, les montants des 5 vignettes sont arrondis à l'euro (ex: <code>1 428 €</code> au lieu de <code>1 428,50 €</code>), ce qui réduit la largeur nécessaire.
+                                </div>
+                            </div>
+
+                            <!-- Tolérance d'écart de date pour la détection des doublons -->
+                            <div class="col-12 border-top pt-3">
+                                <label class="form-label small fw-semibold" for="duplicateToleranceInput">
+                                    <i class="bi bi-calendar-check me-1 text-primary"></i>Tolérance d'écart de date pour la détection des doublons (jours)
+                                </label>
+                                <div class="input-group input-group-sm" style="max-width: 280px;">
+                                    <input type="number" class="form-control form-control-sm" id="duplicateToleranceInput" 
+                                           name="duplicateToleranceDays" value="@Model.DuplicateToleranceDays" min="0" max="30" required />
+                                    <span class="input-group-text small">jour(s) (±)</span>
+                                </div>
+                                <div class="text-muted small mt-1" style="font-size: 0.74rem;">
+                                    Permet de détecter les doublons lors des imports et du nettoyage même si la date diffère de quelques jours (ex: week-ends, jours fériés, décalage interbancaire ou agrégateurs comme Linxo). Valeur par défaut : <code>5</code> jours.
+                                </div>
+                            </div>
+
+                            <!-- Jour de début du mois budgétaire / salarial -->
+                            <div class="col-12 border-top pt-3">
+                                <label class="form-label small fw-semibold" for="salaryMonthStartDayInput">
+                                    <i class="bi bi-calendar-event me-1 text-primary"></i>Jour de début du mois budgétaire / salarial (ex: versement du salaire)
+                                </label>
+                                <div class="input-group input-group-sm" style="max-width: 280px;">
+                                    <span class="input-group-text small">Le</span>
+                                    <input type="number" class="form-control form-control-sm" id="salaryMonthStartDayInput" 
+                                           name="salaryMonthStartDay" value="@Model.SalaryMonthStartDay" min="1" max="28" required />
+                                    <span class="input-group-text small">du mois</span>
+                                </div>
+                                <div class="text-muted small mt-1" style="font-size: 0.74rem;">
+                                    Si supérieur à 1 (ex: <code>25</code> si votre salaire arrive le 25), le filtre « Mois en cours » des opérations et du TCD couvrira la période du 25 au 24 du mois suivant au lieu du mois calendaire.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end mb-4">
+                    <button type="submit" class="btn btn-primary px-4 py-2 fw-semibold">
+                        <i class="bi bi-check-lg me-1"></i> Enregistrer les préférences
+                    </button>
+                </div>
+            </div>
+
+            <!-- Colonne de droite : Aperçu en direct -->
+            <div class="col-lg-5">
+                <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
+                    <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-eye text-primary fs-5"></i>
+                            <h2 class="h6 fw-bold mb-0">Aperçu interactif en direct</h2>
+                        </div>
+                        <span class="badge bg-light text-dark border" id="previewFontBadge">@Model.ActiveFont.Name (@Model.ActiveFontSize)</span>
+                    </div>
+                    <div class="card-body p-3" id="livePreviewContainer" style="font-family: @Html.Raw(Model.ActiveFont.FontFamilyCss); font-size: @Model.ActiveFontSize;">
+                        <!-- Vignette KPI aperçu -->
+                        <div class="card border-0 border-start border-primary border-3 py-2 px-3 bg-light mb-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="text-muted small" style="font-size: 0.72rem; text-transform: uppercase;">Solde Net Période</div>
+                                    <div class="fw-bold text-success mt-0" style="font-size: 1.1rem;">+1 428,50 €</div>
+                                </div>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                    <i class="bi bi-arrow-up-right me-1"></i> +12%
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Exemple de tableau d'opérations aperçu -->
+                        <div class="border rounded-3 overflow-hidden bg-white mb-3">
+                            <div class="bg-light p-2 px-3 border-bottom d-flex justify-content-between align-items-center small fw-semibold">
+                                <span>Opérations récentes</span>
+                                <span class="badge bg-secondary-subtle text-secondary">Aperçu</span>
+                            </div>
+                            <div class="p-2 border-bottom">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="fw-semibold">PAYPAL * GOURMANDIZ</span>
+                                            <button type="button" class="tx-detail-btn preview-toggle-btn" id="previewToggleBtn" onclick="togglePreviewDetails(event)" title="Afficher/masquer les détails">
+                                                <i class="bi bi-caret-down-fill" id="previewCaretIcon"></i>
+                                            </button>
+                                        </div>
+                                        <div class="text-muted preview-details-panel mt-1" id="previewDetailsPanel" style="font-size: 0.72rem; font-family: monospace; display: none;">
+                                            Services - PAIEMENT PAR CARTE X0305 08/10<br />
+                                            <span class="badge bg-secondary-subtle text-secondary" style="font-size: 0.65rem;">Ref: 20261008-0305</span>
+                                        </div>
+                                    </div>
+                                    <span class="fw-bold text-danger">-34,50 €</span>
+                                </div>
+                                <div class="d-flex gap-1 align-items-center mt-1">
+                                    <span class="status-pill-badge" style="background-color: #19875415; color: #198754; border-color: #19875440 !important;">
+                                        <i class="bi bi-check2-all"></i> Pointée
+                                    </span>
+                                    <span class="badge rounded-pill border" style="background-color: #fd7e1415; color: #fd7e14; border-color: #fd7e1440 !important; font-size: 0.7rem;">
+                                        <i class="bi bi-cart me-1"></i> Alimentation
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="p-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="fw-semibold">VIREMENT SALAIRE ACME CORP</div>
+                                    </div>
+                                    <span class="fw-bold text-success">+2 850,00 €</span>
+                                </div>
+                                <div class="d-flex gap-1 align-items-center mt-1">
+                                    <span class="status-pill-badge" style="background-color: #0dcaf015; color: #0dcaf0; border-color: #0dcaf040 !important;">
+                                        <i class="bi bi-check-lg"></i> Comptabilisée
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Boutons d'action aperçu -->
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-primary btn-sm flex-grow-1">
+                                <i class="bi bi-check-circle me-1"></i> Valider
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-funnel me-1"></i> Filtrer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal d'ajout de police personnalisée -->
+<div class="modal fade" id="addFontModal" tabindex="-1" aria-labelledby="addFontModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <form method="post" asp-page-handler="AddCustomFont">
+                @Html.AntiForgeryToken()
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold h6" id="addFontModalLabel">
+                        <i class="bi bi-plus-circle text-primary me-2"></i>Ajouter une police personnalisée
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="fontNameInput">Nom de la police <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm" id="fontNameInput" name="CustomFontInput.Name" required
+                               placeholder="Ex : Montserrat, Nunito, Lato..." />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="fontCssInput">Règle CSS font-family <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control form-control-sm font-monospace" id="fontCssInput" name="CustomFontInput.FontFamilyCss" required
+                               placeholder="Ex : 'Montserrat', sans-serif" />
+                        <div class="small text-muted mt-1" style="font-size: 0.75rem;">Indiquez la police et les polices de repli système.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="fontUrlInput">URL Google Fonts ou feuille CSS (optionnel)</label>
+                        <input type="url" class="form-control form-control-sm font-monospace" id="fontUrlInput" name="CustomFontInput.GoogleFontUrl"
+                               placeholder="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" />
+                        <div class="small text-muted mt-1" style="font-size: 0.75rem;">Laissez vide s'il s'agit d'une police déjà installée sur l'ordinateur.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-check-lg me-1"></i> Ajouter à la base
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .cursor-pointer { cursor: pointer; }
+        .font-card:hover, .size-card:hover, .mode-card:hover {
+            border-color: #3b82f6 !important;
+        }
+        .tx-detail-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background-color: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+            padding: 0;
+            font-size: 0.6rem;
+            cursor: pointer;
+            line-height: 1;
+            transition: all 0.15s ease-in-out;
+        }
+        .tx-detail-btn:hover {
+            background-color: #e2e8f0;
+            color: #1e293b;
+            border-color: #94a3b8;
+        }
+        .tx-detail-btn.active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            border-color: #a5b4fc;
+        }
+        .status-pill-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 1px 7px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            line-height: 1.25;
+            border-radius: 9999px;
+            border: 1px solid;
+            cursor: pointer;
+            background: transparent;
+            white-space: nowrap;
+            transition: all 0.15s ease-in-out;
+        }
+    </style>
+    <script>
+        var currentFontCss = "@Html.Raw(Model.ActiveFont.FontFamilyCss)";
+        var currentFontSize = "@Model.ActiveFontSize";
+        var currentFontName = "@Model.ActiveFont.Name";
+
+        function updatePreview() {
+            var container = document.getElementById('livePreviewContainer');
+            var badge = document.getElementById('previewFontBadge');
+            if (container) {
+                container.style.fontFamily = currentFontCss;
+                container.style.fontSize = currentFontSize;
+            }
+            if (badge) {
+                badge.textContent = currentFontName + ' (' + currentFontSize + ')';
+            }
+        }
+
+        function onFontSelected(radio) {
+            document.querySelectorAll('.font-card').forEach(function(c) {
+                c.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+                c.classList.add('bg-white');
+            });
+            var label = radio.closest('.font-card');
+            if (label) {
+                label.classList.add('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+                label.classList.remove('bg-white');
+            }
+            currentFontCss = radio.getAttribute('data-font-css');
+            currentFontName = radio.getAttribute('data-font-name');
+            updatePreview();
+        }
+
+        function onSizeSelected(radio) {
+            document.querySelectorAll('.size-card').forEach(function(c) {
+                c.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+                c.classList.add('bg-white');
+            });
+            var label = radio.closest('.size-card');
+            if (label) {
+                label.classList.add('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+                label.classList.remove('bg-white');
+            }
+            currentFontSize = radio.value;
+            updatePreview();
+        }
+
+        function onModeSelected(radio) {
+            document.querySelectorAll('.mode-card').forEach(function(c) {
+                c.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+                c.classList.add('bg-white');
+            });
+            var label = radio.closest('.mode-card');
+            if (label) {
+                label.classList.add('border-primary', 'bg-primary', 'bg-opacity-10', 'shadow-sm');
+                label.classList.remove('bg-white');
+            }
+            var panel = document.getElementById('previewDetailsPanel');
+            var btn = document.querySelector('.preview-toggle-btn');
+            if (radio.value === 'comfort') {
+                if (panel) panel.style.display = 'block';
+                if (btn) btn.style.display = 'none';
+            } else {
+                if (panel) panel.style.display = 'none';
+                if (btn) btn.style.display = 'inline-block';
+            }
+        }
+
+        function togglePreviewDetails(e) {
+            e.preventDefault();
+            var panel = document.getElementById('previewDetailsPanel');
+            var icon = document.getElementById('previewCaretIcon');
+            var btn = document.getElementById('previewToggleBtn');
+            if (!panel) return;
+            if (panel.style.display === 'none' || !panel.style.display) {
+                panel.style.display = 'block';
+                if (icon) icon.className = 'bi bi-caret-up-fill';
+                if (btn) btn.classList.add('active');
+            } else {
+                panel.style.display = 'none';
+                if (icon) icon.className = 'bi bi-caret-down-fill';
+                if (btn) btn.classList.remove('active');
+            }
+        }
+    </script>
+}

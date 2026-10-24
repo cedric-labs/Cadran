@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ledger.Tests/Ledger.Tests.csproj" />
+    <Project Path="tests/Ledger.Tests.E2E/Ledger.Tests.E2E.csproj" />
+    <Project Path="tests/Cadran.Launcher.Tests/Cadran.Launcher.Tests.csproj" />
+  </Folder>
+  <Project Path="Ledger/Ledger.csproj" />
+  <Project Path="Cadran.Launcher/Cadran.Launcher.csproj" />
+</Solution>

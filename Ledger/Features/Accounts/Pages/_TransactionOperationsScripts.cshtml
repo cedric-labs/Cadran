@@ -1,0 +1,1649 @@
+﻿@model Ledger.Features.Accounts.Pages.TransactionOperationsPageModelBase
+
+    <style>
+        .cursor-pointer { cursor: pointer; }
+        .tree-node-header:hover, .tree-child-item:hover, .tree-item:hover {
+            background-color: #f1f5f9;
+        }
+        .tree-selected {
+            background-color: #e0e7ff !important;
+            font-weight: 600;
+            border-left: 3px solid #6366f1 !important;
+        }
+        .tree-toggle {
+            cursor: pointer;
+            padding: 2px 4px;
+        }
+        .table-comfort .tx-details-panel { display: block !important; }
+        .table-comfort .tx-detail-btn { display: none !important; }
+        .tx-detail-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            border-radius: 50%;
+            background-color: #f1f5f9;
+            color: #64748b;
+            border: 1px solid #cbd5e1;
+            padding: 0;
+            font-size: 0.6rem;
+            cursor: pointer;
+            line-height: 1;
+            transition: all 0.15s ease-in-out;
+        }
+        .tx-detail-btn:hover {
+            background-color: #e2e8f0;
+            color: #1e293b;
+            border-color: #94a3b8;
+        }
+        .tx-detail-btn.active {
+            background-color: #e0e7ff;
+            color: #4338ca;
+            border-color: #a5b4fc;
+        }
+        .status-pill-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 1px 7px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            line-height: 1.25;
+            border-radius: 9999px;
+            border: 1px solid;
+            cursor: pointer;
+            background: transparent;
+            white-space: nowrap;
+            transition: all 0.15s ease-in-out;
+        }
+        .status-pill-badge:hover {
+            filter: brightness(0.92);
+        }
+        .col-draggable {
+            cursor: grab;
+            user-select: none;
+            position: relative;
+        }
+        .col-draggable:active {
+            cursor: grabbing;
+        }
+        .col-dragging {
+            opacity: 0.4;
+            background-color: #e2e8f0 !important;
+        }
+        .col-drag-over-left {
+            border-left: 3px solid #3b82f6 !important;
+        }
+        .col-drag-over-right {
+            border-right: 3px solid #3b82f6 !important;
+        }
+    </style>
+    <script src="~/js/table-columns.js" asp-append-version="true"></script>
+    <script>
+        var bsModalInstance = null;
+
+        function toggleTreeNode(parentId) {
+            var children = document.getElementById('children-' + parentId);
+            var chevron = document.getElementById('chevron-' + parentId);
+            if (children.style.display === 'none') {
+                children.style.display = 'block';
+                chevron.className = 'bi bi-chevron-down';
+            } else {
+                children.style.display = 'none';
+                chevron.className = 'bi bi-chevron-right';
+            }
+        }
+
+        var modalCurrentTxType = 'Debit';
+
+        function selectCategoryNode(catId, catName, icon, color, isIncome) {
+            document.getElementById('modalNewCategoryId').value = catId;
+
+            // Retirer la classe sélectionnée précédente
+            document.querySelectorAll('.tree-selected').forEach(function(el) {
+                el.classList.remove('tree-selected');
+            });
+
+            // Ajouter la classe à l'élément cliqué
+            var selectedItem = catId ? document.getElementById('tree-item-' + catId) : document.getElementById('tree-item-none');
+            if (selectedItem) {
+                selectedItem.classList.add('tree-selected');
+            }
+
+            // Mettre à jour l'aperçu
+            var preview = document.getElementById('modalSelectedCategoryPreview');
+            if (catId) {
+                preview.innerHTML = '<span class="badge rounded-pill border" style="background-color: ' + color + '20; color: ' + color + '; border-color: ' + color + '40 !important;"><i class="bi ' + icon + ' me-1"></i> ' + catName + '</span>';
+            } else {
+                preview.innerHTML = '<span class="badge bg-light text-muted border"><i class="bi bi-tag me-1"></i> Non catégorisé</span>';
+            }
+
+            // Alerte en cas d'incohérence flux/catégorie
+            var alertEl = document.getElementById('modalCategoryAnomalyAlert');
+            if (alertEl) {
+                if (isIncome !== null && isIncome !== undefined && modalCurrentTxType) {
+                    var isAnomaly = (modalCurrentTxType === 'Debit' && isIncome === true) ||
+                                    (modalCurrentTxType === 'Credit' && isIncome === false);
+                    if (isAnomaly) {
+                        alertEl.classList.remove('d-none');
+                        alertEl.classList.add('d-flex');
+                    } else {
+                        alertEl.classList.remove('d-flex');
+                        alertEl.classList.add('d-none');
+                    }
+                } else {
+                    alertEl.classList.remove('d-flex');
+                    alertEl.classList.add('d-none');
+                }
+            }
+        }
+
+        function filterCategoryTree(term) {
+            var search = (term || '').trim().toLowerCase();
+            var nodes = document.querySelectorAll('#categoryTreeContainer .tree-node');
+
+            nodes.forEach(function(node) {
+                var parentName = node.getAttribute('data-cat-name') || '';
+                var children = node.querySelectorAll('.tree-child-item');
+                var matchCount = 0;
+
+                children.forEach(function(child) {
+                    var childName = child.getAttribute('data-cat-name') || '';
+                    if (!search || childName.indexOf(search) !== -1 || parentName.indexOf(search) !== -1) {
+                        child.style.display = 'flex';
+                        matchCount++;
+                    } else {
+                        child.style.display = 'none';
+                    }
+                });
+
+                var parentMatches = parentName.indexOf(search) !== -1;
+                if (!search || parentMatches || matchCount > 0) {
+                    node.style.display = 'block';
+                    // Déplier automatiquement si recherche active
+                    if (search) {
+                        var childContainer = node.querySelector('.tree-children');
+                        var chevron = node.querySelector('.bi-chevron-right, .bi-chevron-down');
+                        if (childContainer) childContainer.style.display = 'block';
+                        if (chevron) chevron.className = 'bi bi-chevron-down';
+                    }
+                } else {
+                    node.style.display = 'none';
+                }
+            });
+        }
+
+        var modalCurrentTxDate = '';
+
+        function updateModalBudgetDateBadge() {
+            var bInput = document.getElementById('modalBudgetDateInput');
+            var badge = document.getElementById('modalBudgetDateBadge');
+            if (!bInput || !badge) return;
+            if (modalCurrentTxDate && bInput.value) {
+                var txMonth = modalCurrentTxDate.substring(0, 7);
+                var bMonth = bInput.value.substring(0, 7);
+                if (txMonth !== bMonth) {
+                    badge.className = 'badge bg-primary text-white';
+                    badge.textContent = 'Décalé sur ' + bMonth;
+                    return;
+                }
+            }
+            badge.className = 'badge bg-secondary-subtle text-secondary';
+            badge.textContent = 'Date réelle';
+        }
+
+        var btnShift = document.getElementById('btnModalShiftNextMonth');
+        if (btnShift) {
+            btnShift.addEventListener('click', function () {
+                if (!modalCurrentTxDate) return;
+                var parts = modalCurrentTxDate.split('-');
+                var y = parseInt(parts[0], 10);
+                var m = parseInt(parts[1], 10);
+                m++;
+                if (m > 12) {
+                    m = 1;
+                    y++;
+                }
+                var nextMonthStr = y + '-' + String(m).padStart(2, '0') + '-01';
+                var bInput = document.getElementById('modalBudgetDateInput');
+                if (bInput) {
+                    bInput.value = nextMonthStr;
+                    updateModalBudgetDateBadge();
+                }
+            });
+        }
+
+        var btnReset = document.getElementById('btnModalResetBudgetDate');
+        if (btnReset) {
+            btnReset.addEventListener('click', function () {
+                if (!modalCurrentTxDate) return;
+                var bInput = document.getElementById('modalBudgetDateInput');
+                if (bInput) {
+                    bInput.value = modalCurrentTxDate;
+                    updateModalBudgetDateBadge();
+                }
+            });
+        }
+
+        var bInputEl = document.getElementById('modalBudgetDateInput');
+        if (bInputEl) {
+            bInputEl.addEventListener('change', updateModalBudgetDateBadge);
+        }
+
+        var availableMerchants = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AvailableMerchants.Select(m => new { id = m.Id.ToString(), name = m.Name, defaultCategoryId = m.DefaultCategoryId?.ToString() })));
+
+        function renderMerchantList(filterTerm) {
+            var listEl = document.getElementById('modalMerchantList');
+            if (!listEl) return;
+            var term = (filterTerm || '').trim().toLowerCase();
+            var matches = availableMerchants.filter(function(m) {
+                return !term || m.name.toLowerCase().indexOf(term) !== -1;
+            });
+
+            var exactMatch = availableMerchants.some(function(m) {
+                return m.name.toLowerCase() === term;
+            });
+
+            var html = '';
+            matches.slice(0, 30).forEach(function(m) {
+                var safeName = m.name.replace(/"/g, '&quot;');
+                html += '<button type="button" class="dropdown-item d-flex align-items-center justify-content-between py-1" onclick="selectMerchant(\'' + m.id + '\', \'' + safeName + '\', \'' + (m.defaultCategoryId || '') + '\')">'
+                     + '<span class="fw-semibold text-truncate">' + m.name + '</span>'
+                     + '<i class="bi bi-chevron-right text-muted small" style="font-size: 0.7rem;"></i>'
+                     + '</button>';
+            });
+
+            if (term && !exactMatch) {
+                var safeTerm = filterTerm.trim().replace(/"/g, '&quot;');
+                html = '<button type="button" class="dropdown-item text-primary fw-semibold py-1 bg-primary-subtle border-bottom mb-1" onclick="selectNewMerchant(\'' + safeTerm + '\')">'
+                     + '<i class="bi bi-plus-circle me-1"></i> Créer « ' + filterTerm.trim() + ' »'
+                     + '</button>' + html;
+            }
+
+            if (!html) {
+                html = '<div class="p-2 text-muted small text-center">Aucun tiers trouvé</div>';
+            }
+
+            listEl.innerHTML = html;
+            listEl.style.display = 'block';
+        }
+
+        function onMerchantSearchInput(val) {
+            document.getElementById('modalMerchantId').value = '';
+            document.getElementById('modalNewMerchantName').value = val.trim();
+            renderMerchantList(val);
+        }
+
+        function onMerchantSearchFocus() {
+            renderMerchantList(document.getElementById('modalMerchantSearch').value);
+        }
+
+        function selectMerchant(id, name, defaultCatId) {
+            document.getElementById('modalMerchantId').value = id;
+            document.getElementById('modalNewMerchantName').value = '';
+            document.getElementById('modalMerchantSearch').value = name;
+            hideMerchantDropdown();
+
+            var currentCatVal = document.getElementById('modalNewCategoryId').value;
+            if (defaultCatId && (!currentCatVal || currentCatVal === '')) {
+                var targetNode = document.getElementById('tree-item-' + defaultCatId);
+                if (targetNode) {
+                    targetNode.click();
+                }
+            }
+        }
+
+        function selectNewMerchant(name) {
+            document.getElementById('modalMerchantId').value = '';
+            document.getElementById('modalNewMerchantName').value = name;
+            document.getElementById('modalMerchantSearch').value = name;
+            hideMerchantDropdown();
+        }
+
+        function clearSelectedMerchant() {
+            document.getElementById('modalMerchantId').value = '';
+            document.getElementById('modalNewMerchantName').value = '';
+            document.getElementById('modalMerchantSearch').value = '';
+            hideMerchantDropdown();
+        }
+
+        function hideMerchantDropdown() {
+            var listEl = document.getElementById('modalMerchantList');
+            if (listEl) listEl.style.display = 'none';
+        }
+
+        document.addEventListener('click', function(e) {
+            var container = document.getElementById('merchantComboboxContainer');
+            if (container && !container.contains(e.target)) {
+                hideMerchantDropdown();
+            }
+        });
+
+        function openCategoryModal(txId, currentCatId, label, amount, type, txDate, budgetDate, notes) {
+            var row = document.getElementById('tx-row-' + txId);
+            if (row) {
+                currentCatId = row.dataset.catId || currentCatId || '';
+                label = row.dataset.label || label || '';
+                amount = row.dataset.amount || amount || '';
+                type = row.dataset.type || type || 'Debit';
+                txDate = row.dataset.date || txDate || '';
+                budgetDate = row.dataset.budgetDate || budgetDate || '';
+                notes = row.dataset.notes || notes || '';
+            }
+
+            document.getElementById('modalTransactionId').value = txId;
+            document.getElementById('modalTransactionLabel').textContent = label;
+            document.getElementById('modalTransactionAmount').textContent = (type === 'Credit' ? '+' : '-') + amount;
+            document.getElementById('modalTransactionAmount').className = 'small fw-semibold mt-1 ' + (type === 'Credit' ? 'text-success' : 'text-dark');
+            document.getElementById('modalTransactionNotes').value = notes || '';
+            document.getElementById('modalApplySimilar').checked = false;
+            document.getElementById('categoryTreeSearch').value = '';
+            filterCategoryTree('');
+
+            var merchantId = row ? (row.dataset.merchantId || '') : '';
+            var merchantName = row ? (row.dataset.merchantName || '') : '';
+            document.getElementById('modalMerchantId').value = merchantId;
+            document.getElementById('modalNewMerchantName').value = '';
+            document.getElementById('modalMerchantSearch').value = merchantName;
+            hideMerchantDropdown();
+
+            modalCurrentTxDate = txDate || '';
+            var bInput = document.getElementById('modalBudgetDateInput');
+            if (bInput) {
+                bInput.value = budgetDate || txDate || '';
+                updateModalBudgetDateBadge();
+            }
+
+            // Mettre en surbrillance l'élément actuel
+            var selectedItem = currentCatId ? document.getElementById('tree-item-' + currentCatId) : document.getElementById('tree-item-none');
+            document.querySelectorAll('.tree-selected').forEach(function(el) { el.classList.remove('tree-selected'); });
+            if (selectedItem) {
+                selectedItem.classList.add('tree-selected');
+                selectedItem.scrollIntoView({ block: 'nearest' });
+            }
+
+            // Initialiser la valeur dans le champ
+            document.getElementById('modalNewCategoryId').value = currentCatId || '';
+
+            modalCurrentTxType = type || 'Debit';
+
+            // Aperçu actuel
+            var preview = document.getElementById('modalSelectedCategoryPreview');
+            var existingBadge = document.querySelector('.category-pill-' + txId);
+            if (existingBadge && currentCatId) {
+                preview.innerHTML = existingBadge.outerHTML;
+            } else {
+                preview.innerHTML = '<span class="badge bg-light text-muted border"><i class="bi bi-tag me-1"></i> Non catégorisé</span>';
+            }
+
+            // Vérifier anomalie initiale
+            var alertEl = document.getElementById('modalCategoryAnomalyAlert');
+            if (alertEl) {
+                if (selectedItem && selectedItem.getAttribute('data-is-income') !== null && selectedItem.getAttribute('data-is-income') !== '') {
+                    var isIncome = selectedItem.getAttribute('data-is-income') === 'true';
+                    var isAnomaly = (modalCurrentTxType === 'Debit' && isIncome) || (modalCurrentTxType === 'Credit' && !isIncome);
+                    if (isAnomaly) {
+                        alertEl.classList.remove('d-none');
+                        alertEl.classList.add('d-flex');
+                    } else {
+                        alertEl.classList.remove('d-flex');
+                        alertEl.classList.add('d-none');
+                    }
+                } else {
+                    alertEl.classList.remove('d-flex');
+                    alertEl.classList.add('d-none');
+                }
+            }
+
+            var statusSelect = document.getElementById('modalTransactionStatus');
+            if (statusSelect) {
+                statusSelect.value = (row ? row.dataset.statusId : '') || '';
+            }
+
+            var modalEl = document.getElementById('categoryModal');
+            bsModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsModalInstance.show();
+        }
+
+        function applyStatusToRow(txId, statusId, colorHex, iconClass, displayName) {
+            var row = document.getElementById('tx-row-' + txId);
+            if (row) {
+                row.dataset.statusId = statusId;
+            }
+            var btn = document.querySelector('.status-btn-' + txId);
+            if (btn) {
+                btn.style.backgroundColor = colorHex + '15';
+                btn.style.color = colorHex;
+                btn.style.borderColor = colorHex + '40';
+            }
+            var icon = document.querySelector('.status-icon-' + txId);
+            if (icon) {
+                icon.className = 'bi ' + iconClass + ' status-icon-' + txId;
+            }
+            var label = document.querySelector('.status-label-' + txId);
+            if (label) {
+                label.textContent = displayName;
+            }
+            var dropdownMenu = document.querySelector('#status-dropdown-' + txId + ' .dropdown-menu');
+            if (dropdownMenu) {
+                dropdownMenu.querySelectorAll('.dropdown-item').forEach(function(item) {
+                    item.classList.remove('active', 'fw-bold');
+                });
+                var activeItem = dropdownMenu.querySelector('.item-status-' + statusId);
+                if (activeItem) {
+                    activeItem.classList.add('active', 'fw-bold');
+                }
+            }
+        }
+
+        function updateTransactionStatus(txId, statusId) {
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            var formData = new FormData();
+            formData.append('transactionId', txId);
+            formData.append('statusId', statusId);
+
+            fetch(window.location.pathname + '?handler=UpdateStatus', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    applyStatusToRow(txId, data.statusId, data.colorHex, data.iconClass, data.displayName);
+                } else {
+                    alert('Erreur lors du changement de statut.');
+                }
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert('Erreur de communication lors du changement de statut.');
+            });
+        }
+
+        function toggleSelectAll(checked) {
+            var checkboxes = document.querySelectorAll('.tx-select-check');
+            checkboxes.forEach(function(cb) {
+                cb.checked = checked;
+            });
+            updateBulkActionBar();
+        }
+
+        function onTransactionSelectChange() {
+            var all = document.querySelectorAll('.tx-select-check');
+            var checked = document.querySelectorAll('.tx-select-check:checked');
+            var selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) {
+                selectAll.checked = (all.length > 0 && all.length === checked.length);
+                selectAll.indeterminate = (checked.length > 0 && checked.length < all.length);
+            }
+            updateBulkActionBar();
+        }
+
+        function updateBulkActionBar() {
+            var checked = document.querySelectorAll('.tx-select-check:checked');
+            var bar = document.getElementById('bulkActionsBar');
+            var badge = document.getElementById('selectedCountBadge');
+            if (!bar) return;
+            if (checked.length > 0) {
+                bar.classList.remove('d-none');
+                if (badge) badge.textContent = checked.length;
+            } else {
+                bar.classList.add('d-none');
+                if (badge) badge.textContent = '0';
+            }
+        }
+
+        function clearSelection() {
+            var checkboxes = document.querySelectorAll('.tx-select-check');
+            checkboxes.forEach(function(cb) { cb.checked = false; });
+            var selectAll = document.getElementById('selectAllCheckbox');
+            if (selectAll) {
+                selectAll.checked = false;
+                selectAll.indeterminate = false;
+            }
+            updateBulkActionBar();
+        }
+
+        function applyBulkStatus(statusId) {
+            var checked = document.querySelectorAll('.tx-select-check:checked');
+            if (checked.length === 0) return;
+
+            var ids = Array.from(checked).map(function(cb) { return cb.value; });
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            var formData = new FormData();
+            ids.forEach(function(id) {
+                formData.append('transactionIds', id);
+            });
+            formData.append('statusId', statusId);
+
+            fetch(window.location.pathname + '?handler=BulkUpdateStatus', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success && data.updatedIds) {
+                    data.updatedIds.forEach(function(id) {
+                        applyStatusToRow(id, data.statusId, data.colorHex, data.iconClass, data.displayName);
+                    });
+                    clearSelection();
+                } else {
+                    alert('Erreur lors de la mise à jour des statuts.');
+                }
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert('Erreur de communication.');
+            });
+        }
+
+        var updateCatForm = document.getElementById('updateCategoryForm');
+        if (updateCatForm) {
+            updateCatForm.addEventListener('submit', function (e) {
+                var mSearch = (document.getElementById('modalMerchantSearch')?.value || '').trim();
+                var mId = document.getElementById('modalMerchantId')?.value;
+                var hiddenNew = document.getElementById('modalNewMerchantName');
+            if (!mId && mSearch) {
+                var found = availableMerchants.find(function(m) {
+                    return m.name.toLowerCase() === mSearch.toLowerCase();
+                });
+                if (found) {
+                    document.getElementById('modalMerchantId').value = found.id;
+                    hiddenNew.value = '';
+                } else {
+                    hiddenNew.value = mSearch;
+                }
+            } else if (!mSearch) {
+                document.getElementById('modalMerchantId').value = '';
+                hiddenNew.value = '';
+            }
+
+            var applySimilar = document.getElementById('modalApplySimilar').checked;
+            if (applySimilar) {
+                return;
+            }
+
+            e.preventDefault();
+            var form = this;
+            var formData = new FormData(form);
+            var txId = document.getElementById('modalTransactionId').value;
+            var submitBtn = document.getElementById('modalSubmitBtn');
+            submitBtn.disabled = true;
+
+            fetch(form.action || window.location.pathname + '?handler=UpdateCategory', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var row = document.getElementById('tx-row-' + txId);
+                    if (row) {
+                        row.dataset.catId = data.categoryId || '';
+                        row.dataset.budgetDate = data.budgetDateStr || '';
+                        row.dataset.notes = data.notes || '';
+                        row.dataset.merchantId = data.merchantId || '';
+                        row.dataset.merchantName = data.merchantName || '';
+                    }
+
+                    var mBadge = document.querySelector('.tx-merchant-badge-' + txId);
+                    if (mBadge) {
+                        if (data.merchantName) {
+                            mBadge.classList.remove('d-none');
+                            mBadge.innerHTML = '<i class="bi bi-shop me-1"></i>' + data.merchantName;
+                        } else {
+                            mBadge.classList.add('d-none');
+                            mBadge.innerHTML = '';
+                        }
+                    }
+
+                    if (data.merchantId && !availableMerchants.some(function(m) { return m.id === data.merchantId; })) {
+                        availableMerchants.push({ id: data.merchantId, name: data.merchantName, defaultCategoryId: data.categoryId });
+                    }
+
+                    var badges = document.querySelectorAll('.category-pill-' + txId);
+                    badges.forEach(function(badge) {
+                        if (data.categoryId) {
+                            badge.className = 'badge rounded-pill border category-pill-' + txId;
+                            badge.style.backgroundColor = data.categoryColor + '20';
+                            badge.style.color = data.categoryColor;
+                            badge.style.borderColor = data.categoryColor + '40';
+                            badge.innerHTML = '<i class="bi ' + data.categoryIcon + ' me-1"></i> ' + data.categoryName + ' <i class="bi bi-pencil-fill ms-1 opacity-50" style="font-size: 0.7em;"></i>';
+                        } else {
+                            badge.className = 'badge bg-light text-muted border category-pill-' + txId;
+                            badge.style = 'cursor: pointer;';
+                            badge.innerHTML = '<i class="bi bi-tag me-1"></i> Non catégorisé <i class="bi bi-pencil-fill ms-1 opacity-50" style="font-size: 0.7em;"></i>';
+                        }
+                    });
+
+                    // Mise à jour du statut
+                    if (data.statusId) {
+                        applyStatusToRow(txId, data.statusId, data.statusColorHex, data.statusIconClass, data.statusDisplayName);
+                    }
+
+                    // Mise à jour du badge budgétaire
+                    var budgetBadge = document.getElementById('budget-badge-' + txId);
+                    if (budgetBadge) {
+                        if (data.isShifted && data.budgetBadgeText) {
+                            budgetBadge.innerHTML = '<span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;" title="Comptabilisé sur le budget de ' + data.budgetBadgeText + '"><i class="bi bi-calendar-event me-1"></i> Budget ' + data.budgetBadgeText + '</span>';
+                        } else {
+                            budgetBadge.innerHTML = '';
+                        }
+                    }
+
+                    // Mise à jour de la note
+                    var notesBadge = document.getElementById('notes-badge-' + txId);
+                    if (notesBadge) {
+                        if (data.notes && data.notes.trim()) {
+                            var escDiv = document.createElement('div');
+                            escDiv.textContent = data.notes;
+                            notesBadge.innerHTML = '<div class="small text-dark bg-warning-subtle border border-warning-subtle rounded px-2 py-1 d-inline-flex align-items-center gap-1 cursor-pointer" onclick="openCategoryModal(\'' + txId + '\')" title="Cliquer pour modifier la note" style="font-size: 0.78rem;"><i class="bi bi-sticky-fill text-warning"></i><span class="note-text">' + escDiv.innerHTML + '</span></div>';
+                        } else {
+                            notesBadge.innerHTML = '';
+                        }
+                    }
+
+                    if (bsModalInstance) {
+                        bsModalInstance.hide();
+                    }
+                } else {
+                    form.submit();
+                }
+            })
+            .catch(function(err) {
+                form.submit();
+            })
+            .finally(function() {
+                submitBtn.disabled = false;
+            });
+        });
+        }
+
+        // Gestion de la liste déroulante de filtre de période
+        const periodSelect = document.getElementById('periodSelect');
+        if (periodSelect) {
+            periodSelect.addEventListener('change', function () {
+                const period = this.value;
+                const form = document.getElementById('filterForm');
+                const startInput = document.getElementById('startDateInput');
+                const endInput = document.getElementById('endDateInput');
+
+                const now = new Date();
+                const formatDate = (d) => {
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                if (period === 'all') {
+                    if (startInput) startInput.value = '';
+                    if (endInput) endInput.value = '';
+                } else if (period === 'current-month') {
+                    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+                    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+                    if (startInput) startInput.value = formatDate(start);
+                    if (endInput) endInput.value = formatDate(end);
+                } else if (period === 'two-weeks') {
+                    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 14);
+                    if (startInput) startInput.value = formatDate(start);
+                    if (endInput) endInput.value = formatDate(now);
+                } else if (period === 'last-month') {
+                    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+                    if (startInput) startInput.value = formatDate(start);
+                    if (endInput) endInput.value = formatDate(end);
+                } else if (period === 'three-months') {
+                    const start = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate());
+                    if (startInput) startInput.value = formatDate(start);
+                    if (endInput) endInput.value = formatDate(now);
+                } else if (period === 'six-months') {
+                    const start = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate());
+                    if (startInput) startInput.value = formatDate(start);
+                    if (endInput) endInput.value = formatDate(now);
+                }
+
+                if (period !== 'custom') {
+                    if (form) form.submit();
+                }
+            });
+        }
+
+        // Détection de modification manuelle des dates
+        const handleManualDateChange = function () {
+            if (periodSelect) periodSelect.value = 'custom';
+        };
+        const sInput = document.getElementById('startDateInput');
+        const eInput = document.getElementById('endDateInput');
+        if (sInput) sInput.addEventListener('change', handleManualDateChange);
+        if (eInput) eInput.addEventListener('change', handleManualDateChange);
+
+        function setDisplayMode(mode) {
+            var table = document.getElementById('transactionsTable');
+            var btnCompact = document.getElementById('btnModeCompact');
+            var btnComfort = document.getElementById('btnModeComfort');
+
+            if (!table) return;
+
+            if (mode === 'comfort') {
+                table.classList.remove('table-compact');
+                table.classList.add('table-comfort');
+                if (btnCompact) { btnCompact.classList.remove('btn-primary', 'text-white'); btnCompact.classList.add('btn-outline-secondary'); }
+                if (btnComfort) { btnComfort.classList.remove('btn-outline-secondary'); btnComfort.classList.add('btn-primary', 'text-white'); }
+            } else {
+                table.classList.remove('table-comfort');
+                table.classList.add('table-compact');
+                if (btnComfort) { btnComfort.classList.remove('btn-primary', 'text-white'); btnComfort.classList.add('btn-outline-secondary'); }
+                if (btnCompact) { btnCompact.classList.remove('btn-outline-secondary'); btnCompact.classList.add('btn-primary', 'text-white'); }
+            }
+            try { localStorage.setItem('tx_display_mode', mode); } catch(e){}
+        }
+
+        function toggleTxDetails(txId) {
+            var panel = document.getElementById('tx-details-panel-' + txId);
+            var icon = document.querySelector('.tx-detail-icon-' + txId);
+            var btn = document.getElementById('btn-toggle-' + txId);
+            if (!panel) return;
+            if (panel.style.display === 'none' || !panel.style.display) {
+                panel.style.display = 'block';
+                if (icon) icon.className = 'bi bi-caret-up-fill tx-detail-icon-' + txId;
+                if (btn) btn.classList.add('active');
+            } else {
+                panel.style.display = 'none';
+                if (icon) icon.className = 'bi bi-caret-down-fill tx-detail-icon-' + txId;
+                if (btn) btn.classList.remove('active');
+            }
+        }
+
+        // --- Gestion de la création rapide de règle depuis une opération ---
+        var bsQuickRuleModalInstance = null;
+
+        function convertKeywordToRegex(keyword, matchType) {
+            if (!keyword) return '';
+            var escaped = keyword.split(/([*%?])/).map(function(part) {
+                if (part === '*' || part === '%') return '.*';
+                if (part === '?') return '.';
+                return part.replace(/[\\^$.|+()[\]{}]/g, '\\$&');
+            }).join('');
+
+            if (matchType === 'startsWith') {
+                return '(?i)^' + escaped;
+            } else if (matchType === 'endsWith') {
+                return '(?i)' + escaped + '$';
+            } else if (matchType === 'exact') {
+                return '(?i)^' + escaped + '$';
+            } else {
+                return '(?i)' + escaped;
+            }
+        }
+
+        function updateQuickRulePattern() {
+            var keyword = document.getElementById('qrKeyword').value.trim();
+            var matchType = document.getElementById('qrMatchType').value;
+            var pattern = convertKeywordToRegex(keyword, matchType);
+            var previewEl = document.getElementById('qrPatternPreview');
+            if (previewEl) {
+                previewEl.textContent = pattern || '(aucun mot-clé)';
+            }
+            return pattern;
+        }
+
+        var qrMerchantCombobox = null;
+        function initQrMerchantCombobox() {
+            if (qrMerchantCombobox) return qrMerchantCombobox;
+            var searchInput = document.getElementById('qrMerchantSearch');
+            var idInput = document.getElementById('qrTargetMerchantId');
+            var newNameInput = document.getElementById('qrNewMerchantName');
+            var listEl = document.getElementById('qrMerchantList');
+            var clearBtn = document.getElementById('btnQrClearMerchant');
+            var container = document.getElementById('qrMerchantComboboxContainer');
+
+            if (!searchInput || !idInput || !newNameInput || !listEl) return null;
+
+            function renderList(filterTerm) {
+                var term = (filterTerm || '').trim().toLowerCase();
+                var matches = availableMerchants.filter(function (m) {
+                    return !term || m.name.toLowerCase().indexOf(term) !== -1;
+                });
+                var exactMatch = availableMerchants.some(function (m) {
+                    return m.name.toLowerCase() === term;
+                });
+
+                var html = '';
+                if (term && !exactMatch) {
+                    var safeTerm = filterTerm.trim().replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    html += '<button type="button" class="dropdown-item text-primary fw-semibold py-1 bg-primary-subtle border-bottom mb-1 btn-create-merchant-item" data-name="' + safeTerm + '">'
+                          + '<i class="bi bi-plus-circle me-1"></i> Créer « ' + filterTerm.trim() + ' »'
+                          + '</button>';
+                }
+
+                matches.slice(0, 30).forEach(function (m) {
+                    var safeName = m.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+                    html += '<button type="button" class="dropdown-item d-flex align-items-center justify-content-between py-1 btn-select-merchant-item" data-id="' + m.id + '" data-name="' + safeName + '" data-cat-id="' + (m.defaultCategoryId || '') + '">'
+                          + '<span class="fw-semibold text-truncate">' + m.name + '</span>'
+                          + '<i class="bi bi-chevron-right text-muted small" style="font-size: 0.7rem;"></i>'
+                          + '</button>';
+                });
+
+                if (!html) {
+                    html = '<div class="p-2 text-muted small text-center">Aucun tiers trouvé</div>';
+                }
+
+                listEl.innerHTML = html;
+                listEl.style.display = 'block';
+
+                listEl.querySelectorAll('.btn-create-merchant-item').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var name = this.getAttribute('data-name');
+                        idInput.value = '';
+                        newNameInput.value = name;
+                        searchInput.value = name;
+                        hideList();
+                    });
+                });
+
+                listEl.querySelectorAll('.btn-select-merchant-item').forEach(function (btn) {
+                    btn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        var id = this.getAttribute('data-id');
+                        var name = this.getAttribute('data-name');
+                        var catId = this.getAttribute('data-cat-id');
+                        idInput.value = id;
+                        newNameInput.value = '';
+                        searchInput.value = name;
+                        hideList();
+                        if (catId && !document.getElementById('qrTargetCategoryId').value) {
+                            document.getElementById('qrTargetCategoryId').value = catId;
+                        }
+                    });
+                });
+            }
+
+            function hideList() {
+                listEl.style.display = 'none';
+            }
+
+            searchInput.addEventListener('input', function () {
+                var val = this.value.trim();
+                var exact = availableMerchants.find(function (m) {
+                    return m.name.toLowerCase() === val.toLowerCase();
+                });
+                if (exact) {
+                    idInput.value = exact.id;
+                    newNameInput.value = '';
+                } else if (val) {
+                    idInput.value = '';
+                    newNameInput.value = val;
+                } else {
+                    idInput.value = '';
+                    newNameInput.value = '';
+                }
+                renderList(this.value);
+            });
+
+            searchInput.addEventListener('focus', function () {
+                renderList(this.value);
+            });
+
+            if (clearBtn) {
+                clearBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    idInput.value = '';
+                    newNameInput.value = '';
+                    searchInput.value = '';
+                    hideList();
+                });
+            }
+
+            document.addEventListener('click', function (e) {
+                if (container && !container.contains(e.target)) {
+                    hideList();
+                }
+            });
+
+            qrMerchantCombobox = {
+                setValue: function (id, name) {
+                    idInput.value = id || '';
+                    newNameInput.value = '';
+                    searchInput.value = name || '';
+                    hideList();
+                },
+                clear: function () {
+                    idInput.value = '';
+                    newNameInput.value = '';
+                    searchInput.value = '';
+                    hideList();
+                }
+            };
+            return qrMerchantCombobox;
+        }
+
+        function openQuickRuleModal(txId) {
+            var row = document.getElementById('tx-row-' + txId);
+            if (!row) return;
+
+            var label = row.dataset.label || '';
+            var rawLabel = row.dataset.rawLabel || '';
+            var amount = row.dataset.amount || '';
+            var type = row.dataset.type || 'Debit';
+            var catId = row.dataset.catId || '';
+            var accountId = row.dataset.accountId || '';
+
+            document.getElementById('qrSourceLabel').textContent = label;
+            document.getElementById('qrSourceAmount').textContent = (type === 'Credit' ? '+' : '-') + amount;
+            document.getElementById('qrSourceAmount').className = 'fw-bold ' + (type === 'Credit' ? 'text-success' : 'text-danger');
+
+            var rawEl = document.getElementById('qrSourceRawLabel');
+            if (rawLabel && rawLabel !== label) {
+                rawEl.textContent = 'Libellé brut : ' + rawLabel;
+                rawEl.style.display = 'block';
+            } else {
+                rawEl.style.display = 'none';
+            }
+
+            document.getElementById('qrTargetBankAccountId').value = accountId || '';
+            document.getElementById('qrRuleName').value = label;
+            document.getElementById('qrKeyword').value = label;
+            document.getElementById('qrMatchType').value = 'contains';
+            document.getElementById('qrPriority').value = '10';
+            document.getElementById('qrTargetCategoryId').value = catId;
+
+            var cb = initQrMerchantCombobox();
+            if (cb) {
+                var mId = row.dataset.merchantId || '';
+                var mName = row.dataset.merchantName || '';
+                cb.setValue(mId, mName);
+            }
+
+            document.getElementById('qrShiftToNextMonth').checked = false;
+            document.getElementById('qrApplyImmediately').checked = true;
+            document.getElementById('qrOverwriteExisting').checked = false;
+
+            // Alerte sur les règles existantes
+            var ruleCount = parseInt(row.dataset.ruleCount || '0', 10);
+            var ruleFirst = row.dataset.ruleFirst || '';
+            var ruleAll = row.dataset.ruleAll || '';
+            var alertEl = document.getElementById('qrExistingRuleAlert');
+            var alertText = document.getElementById('qrExistingRuleText');
+            var alertIcon = document.getElementById('qrExistingRuleIcon');
+
+            if (alertEl && alertText) {
+                if (ruleCount === 0) {
+                    alertEl.className = 'alert alert-light py-2 px-3 small mb-3 border rounded-3 text-muted';
+                    alertIcon.className = 'bi bi-info-circle text-muted fs-6';
+                    alertText.innerHTML = 'Aucune règle ne catégorise actuellement ce type d\'opération.';
+                    alertEl.classList.remove('d-none');
+                } else if (ruleCount === 1) {
+                    alertEl.className = 'alert alert-success py-2 px-3 small mb-3 border-0 rounded-3 text-success';
+                    alertIcon.className = 'bi bi-check-circle-fill text-success fs-6';
+                    alertText.innerHTML = '<strong>1 règle active couvre déjà cette opération :</strong> « ' + ruleFirst + ' ». Vous pouvez ajuster le motif pour affiner la détection.';
+                    alertEl.classList.remove('d-none');
+                } else {
+                    alertEl.className = 'alert alert-warning py-2 px-3 small mb-3 border-0 rounded-3 text-dark';
+                    alertIcon.className = 'bi bi-exclamation-triangle-fill text-warning fs-6';
+                    alertText.innerHTML = '<strong>Attention : ' + ruleCount + ' règles correspondent déjà !</strong> (' + ruleAll + ')<br>Règle prioritaire actuelle : <strong>« ' + ruleFirst + ' »</strong>.';
+                    alertEl.classList.remove('d-none');
+                }
+            }
+
+            updateQuickRulePattern();
+
+            var modalEl = document.getElementById('quickRuleModal');
+            bsQuickRuleModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsQuickRuleModalInstance.show();
+        }
+
+        function submitQuickRule(event) {
+            event.preventDefault();
+            var name = document.getElementById('qrRuleName').value.trim();
+            var catId = document.getElementById('qrTargetCategoryId').value;
+            var keyword = document.getElementById('qrKeyword').value.trim();
+            var matchType = document.getElementById('qrMatchType').value;
+            var pattern = convertKeywordToRegex(keyword, matchType);
+
+            if (!name) {
+                alert('Veuillez renseigner un nom pour la règle.');
+                return;
+            }
+            if (!keyword) {
+                alert('Veuillez renseigner au moins un mot-clé ou texte recherché.');
+                return;
+            }
+            if (!catId) {
+                alert('Veuillez sélectionner la catégorie à assigner.');
+                return;
+            }
+
+            var btn = document.getElementById('btnSubmitQuickRule');
+            var originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Création...';
+
+            var qrMerchantVal = document.getElementById('qrTargetMerchantId') ? document.getElementById('qrTargetMerchantId').value : null;
+            var qrNewMerchant = document.getElementById('qrNewMerchantName') ? document.getElementById('qrNewMerchantName').value : null;
+            var payload = {
+                Name: name,
+                Pattern: pattern,
+                TargetCategoryId: catId,
+                TargetMerchantId: qrMerchantVal || null,
+                NewMerchantName: qrNewMerchant || null,
+                TargetBankAccountId: document.getElementById('qrTargetBankAccountId').value || null,
+                Priority: parseInt(document.getElementById('qrPriority').value, 10) || 10,
+                ShiftToNextMonth: document.getElementById('qrShiftToNextMonth').checked,
+                ApplyImmediately: document.getElementById('qrApplyImmediately').checked,
+                OverwriteExisting: document.getElementById('qrOverwriteExisting').checked
+            };
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            fetch(window.location.pathname + '?handler=CreateRuleFromTransaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Erreur HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                if (data.success) {
+                    if (bsQuickRuleModalInstance) bsQuickRuleModalInstance.hide();
+                    var msg = 'Règle "' + data.ruleName + '" créée avec succès !';
+                    if (data.appliedCount > 0) {
+                        msg += '\n' + data.appliedCount + ' opération(s) ont été automatiquement catégorisée(s). La page va se recharger.';
+                        alert(msg);
+                        window.location.reload();
+                    } else {
+                        msg += '\nAucune opération supplémentaire n\'a été modifiée immédiatement.';
+                        alert(msg);
+                    }
+                } else {
+                    alert('Erreur lors de la création de la règle.');
+                }
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                console.error(err);
+                alert('Erreur de communication lors de la création de la règle.');
+            });
+        }
+
+        function toggleAmountMaxInput() {
+            var op = document.getElementById('amountOperatorSelect')?.value;
+            var maxCol = document.getElementById('amountMaxCol');
+            if (maxCol) {
+                if (op === 'between') {
+                    maxCol.classList.remove('d-none');
+                } else {
+                    maxCol.classList.add('d-none');
+                }
+            }
+        }
+
+        var bsQuickRecurringModalInstance = null;
+        var currentQuickRecurringTxId = null;
+
+        function openQuickRecurringModal(txId) {
+            var row = document.getElementById('tx-row-' + txId);
+            if (!row) return;
+
+            currentQuickRecurringTxId = txId;
+
+            var label = row.dataset.label || '';
+            var rawLabel = row.dataset.rawLabel || '';
+            var amountStr = row.dataset.amount || '';
+            var amountRaw = parseFloat(row.dataset.amountRaw || '0');
+            var day = parseInt(row.dataset.day || '', 10) || null;
+            var catId = row.dataset.catId || '';
+            var accountId = row.dataset.accountId || '';
+
+            // Remplir la section d'origine
+            document.getElementById('qrecSourceLabel').textContent = label;
+            document.getElementById('qrecSourceAmount').textContent = amountStr;
+
+            var rawEl = document.getElementById('qrecSourceRawLabel');
+            if (rawLabel && rawLabel !== label) {
+                rawEl.textContent = 'Libellé brut : ' + rawLabel;
+                rawEl.style.display = 'block';
+            } else {
+                rawEl.style.display = 'none';
+            }
+
+            // Nettoyage intelligent du libellé pour extraire le marchand (ex: "PRLV SEPA NETFLIX COM" -> "NETFLIX")
+            var cleanedPattern = cleanTransactionLabelJs(label, rawLabel);
+            var suggestedName = formatSuggestedNameJs(cleanedPattern);
+
+            document.getElementById('qrecName').value = suggestedName || label;
+            document.getElementById('qrecPattern').value = cleanedPattern || label;
+            document.getElementById('qrecAmount').value = amountRaw > 0 ? amountRaw.toFixed(2) : '';
+            document.getElementById('qrecDay').value = day || '';
+            document.getElementById('qrecFrequency').value = '1';
+            document.getElementById('qrecTolerance').value = '0.05';
+            document.getElementById('qrecCategory').value = catId;
+            document.getElementById('qrecAccount').value = accountId;
+            document.getElementById('qrecNotes').value = '';
+
+            var modalEl = document.getElementById('quickRecurringModal');
+            bsQuickRecurringModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsQuickRecurringModalInstance.show();
+        }
+
+        function cleanTransactionLabelJs(label, rawLabel) {
+            var target = label || rawLabel || '';
+            if (!target) return '';
+            var text = target.toUpperCase();
+            text = text.replace(/^(PRLV|PRELEVEMENT|PRLV SEPA|VIR|VIREMENT|VIR SEPA|PAIEMENT PAR CARTE|CARTE|CB|COTIS|COTISATION)\s+/g, ' ');
+            text = text.replace(/^(DE|DU|POUR)\s+/g, ' ');
+            text = text.replace(/\b\d{1,2}[\/\.\-]\d{1,2}([\/\.\-]\d{2,4})?\b/g, ' ');
+            text = text.replace(/\b\d{4,}\b/g, ' ');
+            text = text.replace(/\b(FACTURE|REF|EMETTEUR|MANDAT|ID|NUM|NO)\b/g, ' ');
+            text = text.replace(/[_\*#:\(\)\[\]]/g, ' ');
+            text = text.replace(/\s+/g, ' ').trim();
+
+            var words = text.split(' ').filter(function(w){ return w.length > 0; });
+            if (words.length === 0) return '';
+            if (words.length >= 2) return words[0] + ' ' + words[1];
+            return words[0];
+        }
+
+        function formatSuggestedNameJs(pattern) {
+            if (!pattern) return '';
+            var parts = pattern.toLowerCase().split(' ').filter(function(p){ return p.length > 0; });
+            for (var i = 0; i < parts.length; i++) {
+                if (parts[i].length > 0) {
+                    parts[i] = parts[i].charAt(0).toUpperCase() + parts[i].slice(1);
+                }
+            }
+            return parts.join(' ');
+        }
+
+        function updateRecurringButtonAppearance(txId, newExpenseName) {
+            var btn = document.getElementById('btn-recurring-tx-' + txId);
+            if (!btn) return;
+
+            var currentCount = parseInt(btn.getAttribute('data-rec-count') || '0', 10);
+            var currentAll = btn.getAttribute('data-rec-all') || '';
+            var allList = currentAll ? currentAll.split(',').map(function(s){ return s.trim(); }).filter(Boolean) : [];
+
+            if (!allList.includes(newExpenseName)) {
+                allList.push(newExpenseName);
+            }
+            var newCount = allList.length;
+
+            btn.setAttribute('data-rec-count', newCount);
+            btn.setAttribute('data-rec-first', allList[0] || newExpenseName);
+            btn.setAttribute('data-rec-all', allList.join(', '));
+
+            // Retirer les anciennes classes de couleur
+            btn.classList.remove('text-secondary', 'opacity-50', 'hover-opacity-100', 'text-success', 'text-warning', 'fw-bold');
+
+            if (newCount === 1) {
+                btn.classList.add('text-success', 'fw-bold');
+                btn.title = "1 charge récurrente correspond : '" + allList[0] + "'. Cliquer pour voir ou modifier.";
+            } else if (newCount > 1) {
+                btn.classList.add('text-warning', 'fw-bold');
+                btn.title = newCount + " charges récurrentes correspondent (" + allList.join(', ') + "). Cliquer pour voir ou modifier.";
+            } else {
+                btn.classList.add('text-secondary', 'opacity-50', 'hover-opacity-100');
+            }
+        }
+
+        function submitQuickRecurring(event) {
+            event.preventDefault();
+            var name = document.getElementById('qrecName').value.trim();
+            var pattern = document.getElementById('qrecPattern').value.trim();
+            var amount = parseFloat(document.getElementById('qrecAmount').value);
+            var day = parseInt(document.getElementById('qrecDay').value, 10) || null;
+            var freq = parseInt(document.getElementById('qrecFrequency').value, 10) || 1;
+            var tolerance = parseFloat(document.getElementById('qrecTolerance').value) || 0.05;
+            var catId = document.getElementById('qrecCategory').value || null;
+            var accountId = document.getElementById('qrecAccount').value || null;
+            var notes = document.getElementById('qrecNotes').value.trim() || null;
+
+            if (!name) {
+                alert('Veuillez renseigner un nom descriptif pour la charge.');
+                return;
+            }
+            if (!pattern) {
+                alert('Veuillez renseigner un motif de rapprochement bancaire.');
+                return;
+            }
+            if (!amount || amount <= 0) {
+                alert('Veuillez renseigner un montant valide.');
+                return;
+            }
+
+            var btn = document.getElementById('btnSubmitQuickRecurring');
+            var originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enregistrement...';
+
+            var payload = {
+                Name: name,
+                Pattern: pattern,
+                ExpectedAmount: amount,
+                ExpectedDayOfMonth: day,
+                Frequency: freq,
+                AmountTolerancePercentage: tolerance,
+                TargetCategoryId: catId,
+                TargetBankAccountId: accountId,
+                Notes: notes
+            };
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+
+            fetch(window.location.pathname + '?handler=CreateRecurringFromTransaction', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Erreur HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function(data) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                if (data.success) {
+                    if (bsQuickRecurringModalInstance) bsQuickRecurringModalInstance.hide();
+
+                    // Mise à jour visuelle immédiate du bouton de l'opération
+                    if (currentQuickRecurringTxId) {
+                        updateRecurringButtonAppearance(currentQuickRecurringTxId, data.expenseName);
+                    }
+
+                    alert('La charge récurrente « ' + data.expenseName + ' » a été enregistrée avec succès !\nVous pouvez la retrouver dans l\'onglet Charges récurrentes.');
+                } else {
+                    alert('Erreur lors de l\'enregistrement de la charge récurrente.');
+                }
+            })
+            .catch(function(err) {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                console.error(err);
+                alert('Erreur de communication lors de l\'enregistrement.');
+            });
+        }
+
+        @{
+            var sbCatOptions = new System.Text.StringBuilder();
+            sbCatOptions.Append($"<option value=\"\">-- {Localizer["Accounts.Uncategorized"]} --</option>");
+            foreach (var parent in Model.ParentCategories)
+            {
+                var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pEn) && !string.IsNullOrWhiteSpace(pEn) ? pEn : parent.Name;
+                sbCatOptions.Append($"<optgroup label=\"{System.Net.WebUtility.HtmlEncode(parentName)}\">");
+                sbCatOptions.Append($"<option value=\"{parent.Id}\">▶ {System.Net.WebUtility.HtmlEncode(parentName)}</option>");
+                foreach (var sub in parent.SubCategories.OrderBy(s => s.Name))
+                {
+                    var subName = Model.CategoryTranslations.TryGetValue(sub.Id, out var sEn) && !string.IsNullOrWhiteSpace(sEn) ? sEn : sub.Name;
+                    sbCatOptions.Append($"<option value=\"{sub.Id}\">&nbsp;&nbsp;&nbsp;• {System.Net.WebUtility.HtmlEncode(subName)}</option>");
+                }
+                sbCatOptions.Append("</optgroup>");
+            }
+            var splitCategoriesHtmlStr = sbCatOptions.ToString();
+        }
+
+        var splitCategoryOptionsHtml = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(splitCategoriesHtmlStr));
+
+        var splitMerchantOptionsHtml = '<option value="">-- @Localizer["Merchants.NoMerchant"] --</option>' +
+            availableMerchants.map(function(m) {
+                return '<option value="' + m.id + '">' + m.name.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</option>';
+            }).join('');
+
+        var bsSplitModalInstance = null;
+        var currentSplitTotalAmount = 0;
+        var currentSplitTxId = null;
+        var splitCurrencySymbol = '€';
+
+        function formatSplitCurrency(amount) {
+            return (amount || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + splitCurrencySymbol;
+        }
+
+        function openSplitModal(txId) {
+            currentSplitTxId = txId;
+            document.getElementById('splitModalTxId').value = txId;
+            var container = document.getElementById('splitLinesContainer');
+            container.innerHTML = '<tr><td colspan="5" class="text-center py-3 text-muted"><span class="spinner-border spinner-border-sm me-1"></span> Chargement...</td></tr>';
+
+            var modalEl = document.getElementById('splitTransactionModal');
+            bsSplitModalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsSplitModalInstance.show();
+
+            var baseUrl = window.location.pathname;
+            fetch(baseUrl + '?handler=TransactionSplits&transactionId=' + encodeURIComponent(txId), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Erreur HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function(data) {
+                if (!data.success) {
+                    alert(data.message || 'Erreur lors du chargement de l\'opération.');
+                    bsSplitModalInstance.hide();
+                    return;
+                }
+
+                currentSplitTotalAmount = data.totalAmount;
+                if (data.currencySymbol) splitCurrencySymbol = data.currencySymbol;
+                var thCur = document.getElementById('splitModalThCurrency');
+                if (thCur) thCur.textContent = splitCurrencySymbol;
+
+                document.getElementById('splitModalTxLabel').textContent = data.label;
+                document.getElementById('splitModalTxDate').textContent = data.date ? data.date.substring(0, 10) : '';
+                var typeSign = (data.type === 1 || data.type === 'Credit' ? '+' : '-');
+                document.getElementById('splitModalTxTotalAmount').textContent = typeSign + formatSplitCurrency(data.totalAmount);
+                document.getElementById('splitModalTxTotalAmount').className = 'fs-5 fw-bold ' + (data.type === 1 || data.type === 'Credit' ? 'text-success' : 'text-dark');
+
+                var btnDelete = document.getElementById('btnDeleteSplits');
+                if (btnDelete) {
+                    btnDelete.style.display = data.isSplit ? 'inline-block' : 'none';
+                }
+
+                container.innerHTML = '';
+                if (data.splits && data.splits.length > 0) {
+                    data.splits.forEach(function(s) {
+                        addSplitLine(s.amount, s.categoryId, s.merchantId, s.notes);
+                    });
+                } else {
+                    var half1 = Math.round((data.totalAmount / 2) * 100) / 100;
+                    var half2 = Math.round((data.totalAmount - half1) * 100) / 100;
+                    var row = document.getElementById('tx-row-' + txId);
+                    var initialCatId = row ? (row.dataset.catId || '') : '';
+                    var initialMerchId = row ? (row.dataset.merchantId || '') : '';
+                    addSplitLine(half1, initialCatId, initialMerchId, '');
+                    addSplitLine(half2, '', '', '');
+                }
+
+                recalculateSplitBalance();
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert('Erreur lors du chargement des informations de l\'opération.');
+                bsSplitModalInstance.hide();
+            });
+        }
+
+        var strSplitRemove = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Transactions.SplitRemove"].Value));
+
+        function addSplitLine(amount, categoryId, merchantId, notes) {
+            var container = document.getElementById('splitLinesContainer');
+            var tr = document.createElement('tr');
+            tr.className = 'split-line-row';
+
+            var valAmount = amount !== undefined && amount !== null ? parseFloat(amount).toFixed(2) : '';
+            var valNotes = notes ? notes.replace(/"/g, '&quot;') : '';
+
+            tr.innerHTML = '<td>' +
+                '<input type="number" step="0.01" min="0.01" class="form-control form-control-sm split-line-amount text-end fw-semibold" value="' + valAmount + '" oninput="recalculateSplitBalance()" placeholder="0.00" required />' +
+                '</td>' +
+                '<td>' +
+                '<select class="form-select form-select-sm split-line-category">' + splitCategoryOptionsHtml + '</select>' +
+                '</td>' +
+                '<td>' +
+                '<select class="form-select form-select-sm split-line-merchant">' + splitMerchantOptionsHtml + '</select>' +
+                '</td>' +
+                '<td>' +
+                '<input type="text" class="form-control form-control-sm split-line-notes" placeholder="Note (optionnelle)..." value="' + valNotes + '" />' +
+                '</td>' +
+                '<td class="text-center">' +
+                '<button type="button" class="btn btn-outline-danger btn-sm p-1" onclick="removeSplitLine(this)" title="' + strSplitRemove + '">' +
+                '<i class="bi bi-trash"></i>' +
+                '</button>' +
+                '</td>';
+
+            container.appendChild(tr);
+
+            if (categoryId) {
+                tr.querySelector('.split-line-category').value = categoryId;
+            }
+            if (merchantId) {
+                tr.querySelector('.split-line-merchant').value = merchantId;
+            }
+
+            recalculateSplitBalance();
+        }
+
+        function removeSplitLine(btn) {
+            var rows = document.querySelectorAll('.split-line-row');
+            if (rows.length <= 2) {
+                alert(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Transactions.SplitMinPartsError"].Value)));
+                return;
+            }
+            btn.closest('tr').remove();
+            recalculateSplitBalance();
+        }
+
+        function recalculateSplitBalance() {
+            var rows = document.querySelectorAll('.split-line-row');
+            var allocated = 0;
+            rows.forEach(function(row) {
+                var amtInput = row.querySelector('.split-line-amount');
+                var val = parseFloat(amtInput?.value) || 0;
+                allocated += val;
+            });
+
+            allocated = Math.round(allocated * 100) / 100;
+            var remaining = Math.round((currentSplitTotalAmount - allocated) * 100) / 100;
+
+            var allocEl = document.getElementById('splitModalAllocatedAmount');
+            if (allocEl) allocEl.textContent = formatSplitCurrency(allocated);
+
+            var remBadge = document.getElementById('splitModalRemainingBadge');
+            var alertEl = document.getElementById('splitBalanceAlert');
+            var saveBtn = document.getElementById('btnSaveSplits');
+
+            var isBalanced = Math.abs(remaining) < 0.005 && rows.length >= 2;
+
+            if (remBadge) {
+                if (Math.abs(remaining) < 0.005) {
+                    remBadge.className = 'badge bg-success text-white px-2 py-1 fs-6';
+                    remBadge.textContent = '0,00 ' + splitCurrencySymbol + ' (Équilibré)';
+                } else if (remaining > 0) {
+                    remBadge.className = 'badge bg-warning text-dark px-2 py-1 fs-6';
+                    remBadge.textContent = '+' + formatSplitCurrency(remaining) + ' restant';
+                } else {
+                    remBadge.className = 'badge bg-danger text-white px-2 py-1 fs-6';
+                    remBadge.textContent = formatSplitCurrency(remaining) + ' (Dépassement)';
+                }
+            }
+
+            if (alertEl) {
+                alertEl.style.display = isBalanced ? 'none' : 'block';
+            }
+
+            if (saveBtn) {
+                saveBtn.disabled = !isBalanced;
+            }
+        }
+
+        function saveSplits() {
+            var rows = document.querySelectorAll('.split-line-row');
+            if (rows.length < 2) {
+                alert(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Transactions.SplitMinPartsError"].Value)));
+                return;
+            }
+
+            var splits = [];
+            var total = 0;
+            var hasInvalidAmount = false;
+
+            rows.forEach(function(r) {
+                var amt = parseFloat(r.querySelector('.split-line-amount')?.value);
+                if (!amt || amt <= 0) {
+                    hasInvalidAmount = true;
+                }
+                var catVal = r.querySelector('.split-line-category')?.value || null;
+                var merchVal = r.querySelector('.split-line-merchant')?.value || null;
+                var noteVal = r.querySelector('.split-line-notes')?.value?.trim() || null;
+
+                total += amt || 0;
+                splits.push({
+                    amount: amt,
+                    categoryId: catVal ? catVal : null,
+                    merchantId: merchVal ? merchVal : null,
+                    notes: noteVal
+                });
+            });
+
+            if (hasInvalidAmount) {
+                alert('Toutes les parts doivent avoir un montant strictement supérieur à 0.');
+                return;
+            }
+
+            total = Math.round(total * 100) / 100;
+            if (Math.abs(total - currentSplitTotalAmount) > 0.01) {
+                alert(@Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Transactions.SplitBalanceError"].Value)));
+                return;
+            }
+
+            var saveBtn = document.getElementById('btnSaveSplits');
+            var origText = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Enregistrement...';
+
+            try {
+                var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                var baseUrl = window.location.pathname;
+                fetch(baseUrl + '?handler=SaveTransactionSplits', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        transactionId: currentSplitTxId,
+                        splits: splits
+                    })
+                })
+                .then(function(res) {
+                    if (!res.ok) {
+                        return res.json().then(function(errData) {
+                            throw new Error(errData.message || ('Erreur HTTP ' + res.status));
+                        }).catch(function(jsonErr) {
+                            if (jsonErr && jsonErr.message && !jsonErr.message.startsWith('Erreur HTTP')) {
+                                throw jsonErr;
+                            }
+                            throw new Error('Erreur HTTP ' + res.status);
+                        });
+                    }
+                    return res.json();
+                })
+                .then(function(data) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = origText;
+                    if (data.success) {
+                        bsSplitModalInstance.hide();
+                        window.location.reload();
+                    } else {
+                        alert(data.message || 'Erreur lors de l\'enregistrement de la ventilation.');
+                    }
+                })
+                .catch(function(err) {
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = origText;
+                    console.error(err);
+                    alert(err.message || 'Erreur lors de l\'enregistrement.');
+                });
+            } catch (err) {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = origText;
+                console.error(err);
+                alert(err.message || 'Erreur lors de l\'enregistrement.');
+            }
+        }
+
+        function removeSplits() {
+            if (!confirm('Voulez-vous vraiment annuler la ventilation et rétablir l\'opération en une seule ligne ?')) {
+                return;
+            }
+
+            var btnDelete = document.getElementById('btnDeleteSplits');
+            btnDelete.disabled = true;
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            var formData = new FormData();
+            formData.append('transactionId', currentSplitTxId);
+
+            var baseUrl = window.location.pathname;
+            fetch(baseUrl + '?handler=RemoveTransactionSplits', {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': token,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            })
+            .then(function(res) {
+                if (!res.ok) throw new Error('Erreur HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function(data) {
+                if (data.success) {
+                    bsSplitModalInstance.hide();
+                    window.location.reload();
+                } else {
+                    btnDelete.disabled = false;
+                    alert(data.message || 'Erreur lors de la suppression de la ventilation.');
+                }
+            })
+            .catch(function(err) {
+                btnDelete.disabled = false;
+                console.error(err);
+                alert('Erreur lors de la communication avec le serveur.');
+            });
+        }
+
+        function changePageSize(size) {
+            var url = new URL(window.location.href);
+            url.searchParams.set('PageSize', size);
+            url.searchParams.set('PageNumber', '1');
+            window.location.href = url.toString();
+        }
+
+        // Initialisation du mode d'affichage et des colonnes personnalisables
+        document.addEventListener('DOMContentLoaded', function() {
+            var savedMode = 'compact';
+            try { savedMode = localStorage.getItem('tx_display_mode') || 'compact'; } catch(e){}
+            setDisplayMode(savedMode);
+
+            var tableColumnsKey = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.DefaultTableKey));
+            var serverConfigJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TableColumnsConfig));
+            if (window.TableColumns) {
+                window.TableColumns.init({
+                    tableId: 'transactionsTable',
+                    tableKey: tableColumnsKey,
+                    serverConfigJson: serverConfigJson,
+                    saveUrl: window.location.pathname + '?handler=SaveColumnsConfig'
+                });
+            }
+        });
+    </script>

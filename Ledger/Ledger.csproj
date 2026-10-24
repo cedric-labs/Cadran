@@ -1,0 +1,80 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>Cadran</AssemblyName>
+    <RootNamespace>Ledger</RootNamespace>
+    <ApplicationIcon>cadran.ico</ApplicationIcon>
+    <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+    <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
+    <PublishIISAssets>false</PublishIISAssets>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Exclusions de fichiers de configuration et d'outils de dev en publication -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+    <Content Update="dotnet-tools.json" CopyToPublishDirectory="Never" />
+    <None Update="dotnet-tools.json" CopyToPublishDirectory="Never" />
+    <!-- Exclusions de fichiers wwwroot inutiles en publication -->
+    <Content Update="wwwroot\**\*.map" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\**\LICENSE*" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\jquery\dist\jquery.js" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\jquery\dist\jquery.slim.*" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\bootstrap\dist\js\bootstrap.js" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\bootstrap\dist\js\bootstrap.esm.*" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\bootstrap\dist\css\bootstrap.css" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.*" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\bootstrap\dist\css\bootstrap-*" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.js" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\bootstrap\dist\js\bootstrap.min.js" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\jquery-validation\dist\additional-methods.*" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\jquery-validation\dist\jquery.validate.js" CopyToPublishDirectory="Never" />
+    <Content Update="wwwroot\lib\jquery-validation-unobtrusive\dist\jquery.validate.unobtrusive.js" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
+  <Target Name="CleanupPublishArtifacts" AfterTargets="Publish">
+    <Delete Files="$(PublishDir)web.config" Condition="Exists('$(PublishDir)web.config')" />
+    <Delete Files="$(PublishDir)aspnetcorev2_inprocess.dll" Condition="Exists('$(PublishDir)aspnetcorev2_inprocess.dll')" />
+    <Delete Files="$(PublishDir)dotnet-tools.json" Condition="Exists('$(PublishDir)dotnet-tools.json')" />
+  </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite.Core" Version="9.0.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="10.35.0.4138">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3mc" Version="2.1.10" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclure les migrations EF Core générées de l'analyse SonarQube -->
+    <Compile Update="Migrations\**\*.cs">
+      <SonarQubeExclude>true</SonarQubeExclude>
+    </Compile>
+    <!-- Exclure les librairies tierces wwwroot/lib de l'analyse SonarQube -->
+    <Content Update="wwwroot\lib\**\*">
+      <SonarQubeExclude>true</SonarQubeExclude>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\default-categories.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="StatementForge" Version="1.0.0" />
+    <PackageReference Include="SqliteForge" Version="1.0.0" />
+    <PackageReference Include="LocaleForge" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>

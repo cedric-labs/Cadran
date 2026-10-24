@@ -1,0 +1,319 @@
+﻿@page "/Accounts/Statuses"
+@model Ledger.Features.Accounts.Pages.StatusesModel
+@{
+    ViewData["Title"] = "Statuts des opérations";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-4 max-w-6xl">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small mb-1">
+                    <li class="breadcrumb-item"><a href="/Accounts" class="text-decoration-none">Comptes</a></li>
+                    <li class="breadcrumb-item"><a href="/Transactions" class="text-decoration-none">Transactions</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Paramètres des statuts</li>
+                </ol>
+            </nav>
+            <h1 class="h3 fw-bold mb-1">
+                <i class="bi bi-tags text-primary me-2"></i>Statuts des opérations
+            </h1>
+            <p class="text-muted small mb-0">
+                Personnalisez les statuts de suivi et de pointage pour vos opérations bancaires (ex: Pointée, En litige, À vérifier, Annulée...).
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openStatusModal()">
+                <i class="bi bi-plus-lg me-1"></i> Nouveau statut
+            </button>
+            <a href="/Transactions" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Retour aux opérations
+            </a>
+        </div>
+    </div>
+
+    <!-- Alertes -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+        </div>
+    }
+
+    <!-- Liste des statuts -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h2 class="h6 fw-bold mb-0">Statuts configurés (@Model.Statuses.Count)</h2>
+            <span class="small text-muted">Ces statuts apparaissent dans les filtres, le pointage et l'édition de chaque opération.</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th style="width: 220px;">Statut</th>
+                        <th>Description</th>
+                        <th style="width: 140px;" class="text-center">Par défaut</th>
+                        <th style="width: 130px;" class="text-center">Opérations</th>
+                        <th style="width: 110px;" class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Statuses)
+                    {
+                        var s = item.Status;
+                        <tr>
+                            <td>
+                                <span class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
+                                      style="background-color: @(s.ColorHex)15; color: @s.ColorHex; border-color: @(s.ColorHex)40 !important; font-size: 0.75rem;">
+                                    <i class="bi @s.IconName"></i>
+                                    <span>@s.Name</span>
+                                </span>
+                                @if (!string.IsNullOrEmpty(item.NameEn))
+                                {
+                                    <span class="text-muted small ms-1" style="font-size: 0.75rem;">(@item.NameEn)</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="small text-muted">@(s.Description ?? "Aucune description")</span>
+                            </td>
+                            <td class="text-center">
+                                @if (s.IsDefault)
+                                {
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                        <i class="bi bi-star-fill me-1"></i> Par défaut
+                                    </span>
+                                }
+                                else
+                                {
+                                    <form method="post" asp-page-handler="SetDefault" asp-route-id="@s.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-link text-muted p-0 text-decoration-none small" title="Définir ce statut comme défaut pour les imports">
+                                            <i class="bi bi-star"></i> Définir
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">
+                                    @item.TransactionCount op.
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-inline-flex gap-1">
+                                    <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2"
+                                             onclick="editStatus('@s.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(s.Name)', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(item.NameEn ?? ""))', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(s.Description ?? ""))', '@s.ColorHex', '@s.IconName', @(s.IsDefault ? "true" : "false"))"
+                                             title="Modifier">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    @if (!s.IsSystem)
+                                    {
+                                        <form method="post" asp-page-handler="Delete" asp-route-id="@s.Id" class="d-inline"
+                                              onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer le statut \'@s.Name\' ?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-0 px-2" title="Supprimer" @(item.TransactionCount > 0 ? "disabled" : "")>
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal d'ajout / modification de statut -->
+<div class="modal fade" id="statusModal" tabindex="-1" aria-labelledby="statusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <form method="post" asp-page-handler="Save" id="statusForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="statusIdInput" name="Input.Id" />
+
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold h6" id="statusModalLabel">
+                        <i class="bi bi-tag-fill text-primary me-2"></i>Nouveau statut
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <!-- Aperçu en direct -->
+                    <div class="p-3 bg-light rounded-3 text-center mb-3 border">
+                        <div class="small text-muted mb-2">Aperçu en direct du badge :</div>
+                        <span id="previewBadge" class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
+                              style="background-color: #3b82f615; color: #3b82f6; border-color: #3b82f640 !important; font-size: 0.75rem;">
+                            <i id="previewIcon" class="bi bi-check-circle"></i>
+                            <span id="previewName">Nouveau statut</span>
+                        </span>
+                    </div>
+
+                    <!-- Nom FR & EN -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold" for="statusNameInput">
+                                <span>🇫🇷</span> Nom (Français) <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="statusNameInput" name="Input.Name" required
+                                   placeholder="Ex : À vérifier, Pointée..." oninput="updateLivePreview()" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold" for="statusNameEnInput">
+                                <span>🇬🇧</span> Nom (English)
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="statusNameEnInput" name="Input.NameEn"
+                                   placeholder="Ex : To verify, Cleared..." />
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="statusDescInput">Description explicative</label>
+                        <input type="text" class="form-control form-control-sm" id="statusDescInput" name="Input.Description"
+                               placeholder="Ex : Opération en attente de justificatif ou contestée" />
+                    </div>
+
+                    <!-- Choix de la couleur -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="statusColorHex">Couleur du badge</label>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <input type="color" class="form-control form-control-color" id="statusColorPicker" value="#3b82f6"
+                                   title="Choisir une couleur" aria-label="Choisir une couleur" onchange="setColor(this.value)" />
+                            <input type="text" class="form-control form-control-sm font-monospace" id="statusColorHex" name="Input.ColorHex"
+                                   value="#3b82f6" style="width: 100px;" aria-label="Code couleur hexadécimal" oninput="setColor(this.value)" />
+                        </div>
+                        <!-- Palette rapide -->
+                        <div class="d-flex gap-2 flex-wrap">
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #198754; width: 24px; height: 24px;" onclick="setColor('#198754')" title="Vert" aria-label="Vert"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #0dcaf0; width: 24px; height: 24px;" onclick="setColor('#0dcaf0')" title="Cyan" aria-label="Cyan"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #3b82f6; width: 24px; height: 24px;" onclick="setColor('#3b82f6')" title="Bleu" aria-label="Bleu"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #6366f1; width: 24px; height: 24px;" onclick="setColor('#6366f1')" title="Indigo" aria-label="Indigo"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #ffc107; width: 24px; height: 24px;" onclick="setColor('#ffc107')" title="Ambre" aria-label="Ambre"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #fd7e14; width: 24px; height: 24px;" onclick="setColor('#fd7e14')" title="Orange" aria-label="Orange"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #dc3545; width: 24px; height: 24px;" onclick="setColor('#dc3545')" title="Rouge" aria-label="Rouge"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #6f42c1; width: 24px; height: 24px;" onclick="setColor('#6f42c1')" title="Violet" aria-label="Violet"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #6c757d; width: 24px; height: 24px;" onclick="setColor('#6c757d')" title="Gris" aria-label="Gris"></button>
+                            <button type="button" class="btn btn-sm p-2 rounded-circle border" style="background-color: #20c997; width: 24px; height: 24px;" onclick="setColor('#20c997')" title="Menthe" aria-label="Menthe"></button>
+                        </div>
+                    </div>
+
+                    <!-- Choix de l'icône -->
+                    <div class="mb-3">
+                        <span class="form-label small fw-semibold d-block mb-1">Icône</span>
+                        <input type="hidden" id="statusIconInput" name="Input.IconName" value="bi-check-circle" />
+                        <div class="d-flex gap-2 flex-wrap p-2 border rounded-3 bg-light" style="max-height: 120px; overflow-y: auto;" id="iconPickerContainer">
+                            @foreach (var icon in new[] {
+                                "bi-check2-all", "bi-check-lg", "bi-check-circle", "bi-hourglass-split", "bi-clock-history",
+                                "bi-question-circle", "bi-exclamation-triangle", "bi-flag-fill", "bi-x-circle", "bi-shield-check",
+                                "bi-eye", "bi-star-fill", "bi-tag", "bi-bookmark-check", "bi-arrow-repeat", "bi-bell",
+                                "bi-receipt", "bi-cash-coin", "bi-credit-card", "bi-wallet2", "bi-briefcase", "bi-pin-angle"
+                            })
+                            {
+                                <button type="button" class="btn btn-sm btn-outline-secondary icon-select-btn p-1" style="width: 34px; height: 34px;"
+                                        data-icon="@icon" onclick="setIcon('@icon')" title="@icon" aria-label="@icon">
+                                    <i class="bi @icon fs-6"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Statut par défaut -->
+                    <div class="form-check form-switch p-2 bg-light rounded-2 border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" id="statusDefaultSwitch" name="Input.IsDefault" value="true">
+                        <label class="form-check-label small fw-semibold" for="statusDefaultSwitch">
+                            Définir comme statut par défaut lors des imports
+                        </label>
+                        <div class="small text-muted ms-4">Les nouvelles opérations importées recevront automatiquement ce statut.</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-check-lg me-1"></i> Enregistrer le statut
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var bsStatusModal = null;
+
+        function updateLivePreview() {
+            var name = document.getElementById('statusNameInput').value.trim() || 'Nouveau statut';
+            var color = document.getElementById('statusColorHex').value || '#3b82f6';
+            var icon = document.getElementById('statusIconInput').value || 'bi-check-circle';
+
+            var previewBadge = document.getElementById('previewBadge');
+            var previewName = document.getElementById('previewName');
+            var previewIcon = document.getElementById('previewIcon');
+
+            previewName.textContent = name;
+            previewBadge.style.backgroundColor = color + '15';
+            previewBadge.style.color = color;
+            previewBadge.style.borderColor = color + '40';
+            previewIcon.className = 'bi ' + icon;
+        }
+
+        function setColor(hex) {
+            if (!hex) return;
+            document.getElementById('statusColorHex').value = hex;
+            document.getElementById('statusColorPicker').value = hex;
+            updateLivePreview();
+        }
+
+        function setIcon(icon) {
+            document.getElementById('statusIconInput').value = icon;
+            document.querySelectorAll('.icon-select-btn').forEach(function(b) {
+                b.classList.remove('btn-primary', 'text-white');
+                b.classList.add('btn-outline-secondary');
+                if (b.getAttribute('data-icon') === icon) {
+                    b.classList.remove('btn-outline-secondary');
+                    b.classList.add('btn-primary', 'text-white');
+                }
+            });
+            updateLivePreview();
+        }
+
+        function openStatusModal() {
+            document.getElementById('statusModalLabel').innerHTML = '<i class="bi bi-tag-fill text-primary me-2"></i>Nouveau statut';
+            document.getElementById('statusIdInput').value = '';
+            document.getElementById('statusNameInput').value = '';
+            document.getElementById('statusNameEnInput').value = '';
+            document.getElementById('statusDescInput').value = '';
+            document.getElementById('statusDefaultSwitch').checked = false;
+            setColor('#3b82f6');
+            setIcon('bi-check-circle');
+
+            var modalEl = document.getElementById('statusModal');
+            bsStatusModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsStatusModal.show();
+        }
+
+        function editStatus(id, name, nameEn, desc, color, icon, isDefault) {
+            document.getElementById('statusModalLabel').innerHTML = '<i class="bi bi-pencil-square text-primary me-2"></i>Modifier le statut';
+            document.getElementById('statusIdInput').value = id;
+            document.getElementById('statusNameInput').value = name;
+            document.getElementById('statusNameEnInput').value = nameEn || '';
+            document.getElementById('statusDescInput').value = desc;
+            document.getElementById('statusDefaultSwitch').checked = isDefault;
+            setColor(color);
+            setIcon(icon);
+
+            var modalEl = document.getElementById('statusModal');
+            bsStatusModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            bsStatusModal.show();
+        }
+    </script>
+}

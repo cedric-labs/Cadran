@@ -1,0 +1,214 @@
+﻿@model string
+@{
+    var selectedIcon = string.IsNullOrWhiteSpace(Model) ? "bi-tag" : Model;
+    var inputName = ViewData["InputName"] as string ?? "Input.IconName";
+    var inputId = ViewData["InputId"] as string ?? "icon-picker-input";
+}
+
+<!-- Composant Réutilisable Icon Picker -->
+<div class="icon-picker-wrapper mb-3" id="icon-picker-component">
+    <span class="form-label small fw-semibold d-block mb-1">Icône visuelle de la catégorie</span>
+
+    <div class="d-flex align-items-center gap-3 mb-2">
+        <!-- Aperçu dynamique en direct -->
+        <div class="border rounded-3 p-3 bg-light d-flex align-items-center justify-content-center shadow-sm"
+             style="width: 56px; height: 56px;" id="icon-preview-box">
+            <i class="bi @selectedIcon fs-3 text-primary" id="icon-preview-glyph"></i>
+        </div>
+        <div>
+            <div class="fw-semibold font-monospace small" id="icon-preview-name">@selectedIcon</div>
+            <button type="button" class="btn btn-outline-secondary btn-sm mt-1" data-bs-toggle="collapse" data-bs-target="#iconPickerCollapse" aria-expanded="false">
+                <i class="bi bi-grid-3x3-gap me-1"></i> Choisir une autre icône
+            </button>
+        </div>
+    </div>
+
+    <!-- Champ masqué lié au modèle Razor -->
+    <input type="hidden" name="@inputName" id="@inputId" value="@selectedIcon" />
+
+    <!-- Palette d'icônes pliable avec recherche en direct -->
+    <div class="collapse mt-2 border rounded-3 p-3 bg-white shadow-sm" id="iconPickerCollapse">
+        <div class="input-group mb-3">
+            <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control form-control-sm" id="icon-search-filter" placeholder="Rechercher par mot-clé (ex: caddie, maison, train, repas)..." aria-label="Rechercher par mot-clé" />
+        </div>
+
+        <div class="icon-picker-grid" style="max-height: 240px; overflow-y: auto;">
+            <div class="row row-cols-6 row-cols-md-8 g-2" id="icon-grid-container">
+                @{
+                    var icons = new (string ClassName, string Label, string Category)[]
+                    {
+                        // Finances & Dépenses
+                        ("bi-wallet2", "portefeuille finance argent", "Finances"),
+                        ("bi-cash-coin", "monnaie pieces especes", "Finances"),
+                        ("bi-credit-card", "carte bancaire paiement", "Finances"),
+                        ("bi-credit-card-2-front", "carte bancaire paiement linxo", "Finances"),
+                        ("bi-piggy-bank", "tirelire epargne economie", "Finances"),
+                        ("bi-receipt", "recette ticket facture", "Finances"),
+                        ("bi-receipt-cutoff", "notes frais ticket depense", "Finances"),
+                        ("bi-check2-square", "cheque validation paiement", "Finances"),
+                        ("bi-coin", "argent de poche pieces monnaie", "Finances"),
+                        ("bi-repeat", "abonnement recurrent forfait", "Finances"),
+                        ("bi-arrow-left-right", "virement transfert avance remboursement", "Finances"),
+                        ("bi-file-earmark-ruled", "pret credit emprunt amortissement", "Finances"),
+                        ("bi-house-check", "pret immobilier emprunt maison", "Finances"),
+                        ("bi-tags", "etiquette soldes promotion", "Finances"),
+                        ("bi-cart3", "caddie courses supermarche alimentation", "Alimentation"),
+                        ("bi-cart-fill", "supermarche caddie epicerie", "Alimentation"),
+                        ("bi-bag-check", "sac shopping achats ecommerce", "Achats"),
+                        ("bi-bag-fill", "vetements habillement mode", "Achats"),
+                        ("bi-basket2", "panier marche epicerie", "Alimentation"),
+
+                        // Logement & Charges
+                        ("bi-house-door", "maison logement loyer", "Logement"),
+                        ("bi-building", "appartement copropriete", "Logement"),
+                        ("bi-lightbulb", "ampoule electricite edf", "Logement"),
+                        ("bi-plug", "electricite energie charge", "Logement"),
+                        ("bi-fire", "chauffage chaudiere gaz poele granules", "Logement"),
+                        ("bi-droplet", "eau abonnement facture assainissement", "Logement"),
+                        ("bi-water", "eau adoucisseur traitement", "Logement"),
+                        ("bi-tools", "bricolage travaux renovation", "Logement"),
+                        ("bi-brush", "peinture decoration jardin travaux", "Logement"),
+                        ("bi-lamp", "meuble mobilier equipement interieur", "Logement"),
+                        ("bi-box-seam", "carton stockage meuble demenagement", "Logement"),
+                        ("bi-wifi", "internet box telephonie livebox freebox", "Logement"),
+
+                        // Transport & Véhicules
+                        ("bi-car-front", "voiture auto vehicule peage", "Transport"),
+                        ("bi-fuel-pump", "carburant essence diesel gasoil station", "Transport"),
+                        ("bi-train-front", "train sncf rer tgv ter", "Transport"),
+                        ("bi-airplane", "avion voyage vol vacance", "Transport"),
+                        ("bi-bus-front", "bus tram metro transport urbain", "Transport"),
+                        ("bi-bicycle", "velo deplacement velov cyclisme", "Transport"),
+                        ("bi-person-badge", "permis auto ecole identite", "Transport"),
+
+                        // Vie Quotidienne, Famille & Repas
+                        ("bi-cup-hot", "cafe machine pause bureau", "Quotidien"),
+                        ("bi-cup-straw", "bar boisson cantine restauration scolaire", "Quotidien"),
+                        ("bi-egg-fried", "restaurant repas cuisine diner midi", "Quotidien"),
+                        ("bi-scissors", "coiffeur esthetique beaute coiffure", "Quotidien"),
+                        ("bi-envelope", "poste courrier colis timbre envoi", "Quotidien"),
+                        ("bi-newspaper", "presse journal tabac magazine revue", "Quotidien"),
+                        ("bi-heart-fill", "don charite caritatif association", "Quotidien"),
+                        ("bi-feather", "animaux chien chat veterinaire animal", "Animaux"),
+                        ("bi-backpack-fill", "enfants ecolier scolarite ecole", "Famille"),
+                        ("bi-mortarboard", "ecole universite scolarite formation etude diplome", "Famille"),
+                        ("bi-journal-bookmark", "fournitures livres etudes classeur", "Famille"),
+                        ("bi-book", "livre lecture cours etude roman", "Culture"),
+
+                        // Santé & Prévoyance
+                        ("bi-heart-pulse", "sante medecin pharmacie", "Sante"),
+                        ("bi-capsule", "medicament soin pharmacie pharmacien", "Sante"),
+                        ("bi-hospital", "hopital clinique medecine urgences", "Sante"),
+                        ("bi-activity", "sante veterinaire pouls examen", "Sante"),
+                        ("bi-bandaid", "pansement masques soins chirurgie blessure", "Sante"),
+                        ("bi-apple", "nutrition dieteticienne sante repas aliment", "Sante"),
+                        ("bi-emoji-smile", "dentiste orthodontiste sourire dents", "Sante"),
+
+                        // Loisirs, Culture & Numérique
+                        ("bi-controller", "jeux video console gaming steam ps5 xbox", "Loisirs"),
+                        ("bi-film", "cinema film streaming netflix disney prime", "Loisirs"),
+                        ("bi-play-btn", "video streaming vod youtube netflix", "Loisirs"),
+                        ("bi-play-circle-fill", "lecture streaming multimedia spotify netflix", "Loisirs"),
+                        ("bi-music-note-beamed", "musique concert spotify deezer", "Loisirs"),
+                        ("bi-tv", "multimedia electronique tv ecran hifi", "Loisirs"),
+                        ("bi-dribbble", "sport club abonnement gym fitness", "Loisirs"),
+                        ("bi-palette", "passion loisir creatif peinture hobby dessin", "Loisirs"),
+                        ("bi-dice-5", "jeux hasard loterie fdj casino", "Loisirs"),
+                        ("bi-ticket-perforated", "sorties spectacles theatre ticket spectacle", "Loisirs"),
+                        ("bi-sun", "detente spa bien etre vacances soleil", "Loisirs"),
+                        ("bi-gift", "cadeau noel anniversaire fete cadeau", "Loisirs"),
+
+                        // Services Pros, Cloud & Tech
+                        ("bi-cloud", "cloud google cloud drive stockage serveur", "Informatique"),
+                        ("bi-github", "github git developpement code dev", "Informatique"),
+                        ("bi-microsoft", "microsoft office 365 windows logiciel", "Informatique"),
+                        ("bi-fingerprint", "adn cyber securite identite auth", "Informatique"),
+                        ("bi-life-preserver", "aide support assistance depannage", "Informatique"),
+                        ("bi-gear", "services reglages maintenance prestation", "Services"),
+
+                        // Revenus, Emploi & Banque
+                        ("bi-briefcase", "travail employeur salaire conseil entreprise", "Revenus"),
+                        ("bi-currency-euro", "salaire virement rentree argent montant", "Revenus"),
+                        ("bi-graph-up-arrow", "bourse dividende investissement rendement titres", "Revenus"),
+                        ("bi-cash-stack", "primes benefices gains tresorerie", "Revenus"),
+                        ("bi-bank", "banque agence compte bancaire frais", "Finances"),
+                        ("bi-file-earmark-text", "conseil juridique avocat contrat document notaire", "Services"),
+                        ("bi-question-diamond", "a categoriser incertain divers question", "Divers"),
+                        ("bi-slash-circle", "hors budget exceptionnel non comptabilise", "Divers")
+                    };
+                }
+
+                @foreach (var icon in icons)
+                {
+                    <div class="col icon-item" data-keywords="@icon.ClassName @icon.Label @icon.Category">
+                        <button type="button"
+                                class="btn btn-outline-light text-dark w-100 p-2 d-flex flex-column align-items-center justify-content-center border icon-btn @(icon.ClassName == selectedIcon ? "border-primary bg-primary-subtle text-primary fw-bold" : "")"
+                                data-icon="@icon.ClassName"
+                                title="@icon.Category: @icon.ClassName"
+                                aria-label="@icon.Category: @icon.ClassName">
+                            <i class="bi @icon.ClassName fs-4"></i>
+                            <span class="small font-monospace" style="font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%;">
+                                @icon.ClassName.Replace("bi-", "")
+                            </span>
+                        </button>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const component = document.getElementById("icon-picker-component");
+        if (!component) return;
+
+        const hiddenInput = document.getElementById("@inputId");
+        const previewGlyph = document.getElementById("icon-preview-glyph");
+        const previewName = document.getElementById("icon-preview-name");
+        const searchInput = document.getElementById("icon-search-filter");
+        const iconButtons = component.querySelectorAll(".icon-btn");
+        const iconItems = component.querySelectorAll(".icon-item");
+
+        // Gestion de la sélection visuelle d'une icône
+        iconButtons.forEach(btn => {
+            btn.addEventListener("click", function () {
+                const iconClass = this.getAttribute("data-icon");
+                hiddenInput.value = iconClass;
+
+                // Mise à jour de l'aperçu
+                previewGlyph.className = "bi " + iconClass + " fs-3 text-primary";
+                previewName.textContent = iconClass;
+
+                // Marquage visuel de la tuile active
+                iconButtons.forEach(b => {
+                    b.classList.remove("border-primary", "bg-primary-subtle", "text-primary", "fw-bold");
+                });
+                this.classList.add("border-primary", "bg-primary-subtle", "text-primary", "fw-bold");
+
+                // Fermeture douce du volet
+                const collapseElement = document.getElementById("iconPickerCollapse");
+                if (window.bootstrap && bootstrap.Collapse) {
+                    const bsCollapse = bootstrap.Collapse.getInstance(collapseElement) || new bootstrap.Collapse(collapseElement, { toggle: false });
+                    bsCollapse.hide();
+                }
+            });
+        });
+
+        // Filtrage en temps réel
+        if (searchInput) {
+            searchInput.addEventListener("input", function () {
+                const term = this.value.toLowerCase().trim();
+                iconItems.forEach(item => {
+                    const keywords = item.getAttribute("data-keywords").toLowerCase();
+                    if (keywords.includes(term)) {
+                        item.classList.remove("d-none");
+                    } else {
+                        item.classList.add("d-none");
+                    }
+                });
+            });
+        }
+    });
+</script>

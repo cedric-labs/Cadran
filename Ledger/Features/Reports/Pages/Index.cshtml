@@ -1,0 +1,1397 @@
+﻿@page "/Reports"
+@model Ledger.Features.Reports.Pages.IndexModel
+@using System.Globalization
+@using System.Text.Json
+@using System.Web
+@using Ledger.Features.Reports.Models
+@inject Microsoft.Extensions.Localization.IStringLocalizer Localizer
+@{
+    ViewData["Title"] = Localizer["Reports.PageTitle"];
+    var culture = CultureInfo.CurrentCulture;
+    var uiCulture = CultureInfo.CurrentUICulture;
+}
+
+<style>
+    .pivot-clickable-cell {
+        cursor: pointer;
+        transition: background-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    .pivot-clickable-cell:hover {
+        background-color: rgba(37, 99, 235, 0.12) !important;
+        text-decoration: underline;
+        box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.3);
+    }
+</style>
+
+<div class="container-fluid px-4 py-3">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-exclamation-octagon-fill fs-5"></i>
+            <div>@TempData["ErrorMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- En-tête de page -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+        <div>
+            <h1 class="h3 fw-bold mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-pie-chart-fill text-primary"></i>
+                <span>@Localizer["Reports.PageTitle"]</span>
+            </h1>
+            <p class="text-muted small mb-0">@Localizer["Reports.PageSubtitle"]</p>
+        </div>
+
+        <!-- Onglets principaux : Tableaux de bord vs TCD -->
+        <ul class="nav nav-pills bg-light p-1 rounded-3 shadow-sm border">
+            <li class="nav-item">
+                <a href="/Reports?tab=dashboards" class="nav-link py-1 px-3 fw-semibold small @(Model.ActiveTab == "dashboards" ? "active" : "text-dark")">
+                    <i class="bi bi-grid-fill me-1"></i> @Localizer["Reports.TabDashboards"]
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/Reports?tab=pivot" class="nav-link py-1 px-3 fw-semibold small @(Model.ActiveTab == "pivot" ? "active" : "text-dark")">
+                    <i class="bi bi-table me-1"></i> @Localizer["Reports.TabPivot"]
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    @if (Model.ActiveTab == "dashboards")
+    {
+        <!-- ================================================================= -->
+        <!-- SOUS-VUE : TABLEAUX DE BORD (GRAPHIQUES & WIDGETS)               -->
+        <!-- ================================================================= -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                @if (Model.Dashboards.Count > 1)
+                {
+                    <div class="btn-group shadow-sm">
+                        @foreach (var d in Model.Dashboards)
+                        {
+                            var isActive = d.Id == Model.SelectedDashboardId;
+                            <a href="/Reports?tab=dashboards&dashboardId=@d.Id" class="btn btn-sm @(isActive ? "btn-primary" : "btn-outline-secondary")">
+                                @d.Name
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <div class="btn-group shadow-sm">
+                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle d-flex align-items-center gap-1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-gear"></i>
+                        <span>@Localizer["Reports.ManageDashboards"]</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                        <li>
+                            <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#newDashboardModal">
+                                <i class="bi bi-folder-plus text-primary me-2"></i> @Localizer["Reports.NewDashboard"]
+                            </button>
+                        </li>
+                        @if (Model.CurrentDashboard != null && !Model.CurrentDashboard.IsDefault)
+                        {
+                            <li>
+                                <form method="post" asp-page-handler="DeleteDashboard">
+                                    <input type="hidden" name="id" value="@Model.CurrentDashboard.Id" />
+                                    <button type="submit" class="dropdown-item text-danger" onclick="return confirm('@Localizer["Reports.ConfirmDeleteDashboard"]');">
+                                        <i class="bi bi-trash me-2"></i> @Localizer["Reports.DeleteCurrentDashboard"]
+                                    </button>
+                                </form>
+                            </li>
+                        }
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <form method="post" asp-page-handler="ResetPresets">
+                                <button type="submit" class="dropdown-item text-warning-emphasis" onclick="return confirm('@Localizer["Reports.ConfirmResetPresets"]');">
+                                    <i class="bi bi-arrow-counterclockwise me-2"></i> @Localizer["Reports.ResetPresetsBtn"]
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
+
+                @if (Model.CurrentDashboard != null)
+                {
+                    <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#addWidgetModal">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>@Localizer["Reports.AddWidget"]</span>
+                    </button>
+                }
+            </div>
+        </div>
+
+        @if (Model.CurrentDashboard != null && !string.IsNullOrWhiteSpace(Model.CurrentDashboard.Description))
+        {
+            <div class="alert alert-light border small text-muted py-2 px-3 mb-4 d-flex align-items-center gap-2">
+                <i class="bi bi-info-circle text-primary"></i>
+                <span>@Model.CurrentDashboard.Description</span>
+            </div>
+        }
+
+        <!-- Grille des widgets -->
+        <div class="row g-3">
+            @if (!Model.WidgetDataList.Any())
+            {
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm py-5 text-center">
+                        <i class="bi bi-grid display-4 text-muted"></i>
+                        <p class="text-muted mt-2 mb-3">@Localizer["Reports.NoWidgetsYet"]</p>
+                        <div>
+                            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addWidgetModal">
+                                <i class="bi bi-plus-lg me-1"></i> @Localizer["Reports.AddWidget"]
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                @foreach (var w in Model.WidgetDataList)
+                {
+                    var colClass = w.WidthCols switch
+                    {
+                        3 => "col-12 col-md-6 col-xl-3",
+                        4 => "col-12 col-md-6 col-xl-4",
+                        6 => "col-12 col-lg-6",
+                        8 => "col-12 col-lg-8",
+                        12 => "col-12",
+                        _ => "col-12 col-lg-6"
+                    };
+
+                    <div class="@colClass">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-header bg-white border-bottom py-2 px-3 d-flex align-items-center justify-content-between">
+                                <h6 class="fw-bold mb-0 text-dark small text-truncate" title="@w.Title">
+                                    @w.Title
+                                </h6>
+                                <div class="dropdown">
+                                    <button class="btn btn-link btn-sm text-muted p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                        <li>
+                                            <form method="post" asp-page-handler="DeleteWidget">
+                                                <input type="hidden" name="widgetId" value="@w.WidgetId" />
+                                                <input type="hidden" name="dashboardId" value="@Model.SelectedDashboardId" />
+                                                <button type="submit" class="dropdown-item text-danger" onclick="return confirm('@Localizer["Reports.ConfirmDeleteWidget"]');">
+                                                    <i class="bi bi-trash me-2"></i> @Localizer["Common.Delete"]
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+
+                            <div class="card-body p-3">
+                                @if (w.WidgetType.StartsWith("Kpi"))
+                                {
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <div>
+                                            <h3 class="fw-bold mb-1" style="color: @(w.KpiColor ?? "#1e293b")">
+                                                @w.KpiFormattedValue
+                                            </h3>
+                                            @if (!string.IsNullOrWhiteSpace(w.KpiSubtext))
+                                            {
+                                                <div class="small text-muted">@w.KpiSubtext</div>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(w.KpiIcon))
+                                        {
+                                            <div class="rounded-circle p-3 d-inline-flex align-items-center justify-content-center"
+                                                 style="background-color: @(w.KpiColor ?? "#3b82f6")15; color: @(w.KpiColor ?? "#3b82f6"); width: 48px; height: 48px;">
+                                                <i class="bi @w.KpiIcon fs-4"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                                else if (w.WidgetType == "RecurringGauges")
+                                {
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="small fw-semibold text-muted">@Localizer["Recurring.TotalDebited"]</span>
+                                            <span class="small fw-bold text-success">@w.RecurringDebited?.ToString("C2", culture)</span>
+                                        </div>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @(w.RecurringProgressPercent ?? 0)%" aria-valuenow="@(w.RecurringProgressPercent ?? 0)" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                                            <span>@(w.RecurringProgressPercent ?? 0)% @Localizer["Recurring.DebitedSoFar"]</span>
+                                            <span>@Localizer["Recurring.TotalExpected"]: <strong>@w.RecurringExpected?.ToString("C2", culture)</strong></span>
+                                        </div>
+                                    </div>
+                                    <div class="p-2 bg-light rounded text-center small text-muted">
+                                        <i class="bi bi-info-circle me-1 text-primary"></i> @w.KpiSubtext
+                                    </div>
+                                }
+                                else if (w.WidgetType == "TopExpensesList")
+                                {
+                                    @if (!w.TableRows.Any())
+                                    {
+                                        <div class="text-center text-muted py-3 small">@Localizer["Common.None"]</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="list-group list-group-flush small">
+                                            @foreach (var row in w.TableRows)
+                                            {
+                                                <div class="list-group-item px-0 py-2 d-flex justify-content-between align-items-center border-0 border-bottom">
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        @if (!string.IsNullOrEmpty(row.ColorHex))
+                                                        {
+                                                            <span class="rounded-circle d-inline-block" style="width: 10px; height: 10px; background-color: @row.ColorHex;"></span>
+                                                        }
+                                                        <div>
+                                                            <div class="fw-semibold text-dark text-truncate" style="max-width: 180px;">@row.Label</div>
+                                                            <div class="text-muted" style="font-size: 0.72rem;">@row.Percentage% • @row.TransactionsCount @Localizer["Recurring.Occurrences"]</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="fw-bold text-danger">
+                                                        @row.Amount.ToString("C2", culture)
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    }
+                                }
+                                else if (!string.IsNullOrEmpty(w.ChartType))
+                                {
+                                    <div style="position: relative; height: 260px; width: 100%;">
+                                        <canvas id="chart-@w.WidgetId"></canvas>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+    else
+    {
+        <!-- ================================================================= -->
+        <!-- SOUS-VUE : TABLEAU CROISÉ DYNAMIQUE (TCD INTERACTIF & SAUVEGARDE) -->
+        <!-- ================================================================= -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body p-3">
+                <form method="get" id="pivotFilterForm">
+                    <input type="hidden" name="tab" value="pivot" />
+                    @if (Model.SavedViewId.HasValue)
+                    {
+                        <input type="hidden" name="savedViewId" value="@Model.SavedViewId" />
+                    }
+
+                    <div class="row g-2 align-items-end">
+                        <!-- Filtre de flux -->
+                        <div class="col-12 col-md-4 col-xl-3">
+                            <label for="flowFilterSelect" class="form-label small fw-bold mb-1 text-secondary">
+                                <i class="bi bi-funnel me-1"></i>@Localizer["Reports.PivotFlowLabel"]
+                            </label>
+                            <select name="FlowFilter" id="flowFilterSelect" aria-label="@Localizer["Reports.PivotFlowLabel"]" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="DebitsOnly" selected="@(Model.PivotQuery.FlowFilter == PivotFlowFilter.DebitsOnly)">@Localizer["Reports.PivotFlowDebitsOnly"]</option>
+                                <option value="RecurringOnly" selected="@(Model.PivotQuery.FlowFilter == PivotFlowFilter.RecurringOnly)">@Localizer["Reports.PivotFlowRecurringOnly"]</option>
+                                <option value="NonRecurringDebitsOnly" selected="@(Model.PivotQuery.FlowFilter == PivotFlowFilter.NonRecurringDebitsOnly)">@Localizer["Reports.PivotFlowNonRecurringDebitsOnly"]</option>
+                                <option value="CreditsOnly" selected="@(Model.PivotQuery.FlowFilter == PivotFlowFilter.CreditsOnly)">@Localizer["Reports.PivotFlowCreditsOnly"]</option>
+                                <option value="All" selected="@(Model.PivotQuery.FlowFilter == PivotFlowFilter.All)">@Localizer["Reports.PivotFlowAll"]</option>
+                            </select>
+                        </div>
+
+                        <!-- Axe en ligne -->
+                        <div class="col-6 col-md-2 col-xl-2">
+                            <label for="rowDimensionSelect" class="form-label small fw-bold mb-1 text-secondary">
+                                <i class="bi bi-list-ul me-1"></i>@Localizer["Reports.PivotRowDimLabel"]
+                            </label>
+                            <select name="RowDimension" id="rowDimensionSelect" aria-label="@Localizer["Reports.PivotRowDimLabel"]" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="Category" selected="@(Model.PivotQuery.RowDimension == PivotRowDimension.Category)">@Localizer["Reports.PivotDimCategory"]</option>
+                                <option value="Merchant" selected="@(Model.PivotQuery.RowDimension == PivotRowDimension.Merchant)">@Localizer["Reports.PivotDimMerchant"]</option>
+                                <option value="Account" selected="@(Model.PivotQuery.RowDimension == PivotRowDimension.Account)">@Localizer["Reports.PivotDimAccount"]</option>
+                            </select>
+                        </div>
+
+                        <!-- Axe en colonne -->
+                        <div class="col-6 col-md-2 col-xl-2">
+                            <label for="columnDimensionSelect" class="form-label small fw-bold mb-1 text-secondary">
+                                <i class="bi bi-layout-three-columns me-1"></i>@Localizer["Reports.PivotColDimLabel"]
+                            </label>
+                            <select name="ColumnDimension" id="columnDimensionSelect" aria-label="@Localizer["Reports.PivotColDimLabel"]" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="Month" selected="@(Model.PivotQuery.ColumnDimension == PivotColumnDimension.Month)">@Localizer["Reports.PivotDimMonth"]</option>
+                                <option value="Quarter" selected="@(Model.PivotQuery.ColumnDimension == PivotColumnDimension.Quarter)">@Localizer["Reports.PivotDimQuarter"]</option>
+                                <option value="Year" selected="@(Model.PivotQuery.ColumnDimension == PivotColumnDimension.Year)">@Localizer["Reports.PivotDimYear"]</option>
+                            </select>
+                        </div>
+
+                        <!-- Métrique -->
+                        <div class="col-6 col-md-2 col-xl-2">
+                            <label for="metricTypeSelect" class="form-label small fw-bold mb-1 text-secondary">
+                                <i class="bi bi-calculator me-1"></i>@Localizer["Reports.PivotMetricLabel"]
+                            </label>
+                            <select name="MetricType" id="metricTypeSelect" aria-label="@Localizer["Reports.PivotMetricLabel"]" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="Sum" selected="@(Model.PivotQuery.MetricType == PivotMetricType.Sum)">@Localizer["Reports.PivotMetricSum"]</option>
+                                <option value="Average" selected="@(Model.PivotQuery.MetricType == PivotMetricType.Average)">@Localizer["Reports.PivotMetricAverage"]</option>
+                                <option value="Count" selected="@(Model.PivotQuery.MetricType == PivotMetricType.Count)">@Localizer["Reports.PivotMetricCount"]</option>
+                            </select>
+                        </div>
+
+                        <!-- Période preset -->
+                        <div class="col-6 col-md-2 col-xl-3">
+                            <label for="periodPresetSelect" class="form-label small fw-bold mb-1 text-secondary">
+                                <i class="bi bi-calendar3 me-1"></i>@Localizer["Reports.PivotPeriodLabel"]
+                            </label>
+                            <select name="PeriodPreset" id="periodPresetSelect" aria-label="@Localizer["Reports.PivotPeriodLabel"]" class="form-select form-select-sm" onchange="toggleCustomDates(this.value); if(this.value!=='Custom') this.form.submit();">
+                                <option value="CurrentYear" selected="@(Model.PivotQuery.PeriodPreset == PivotPeriodPreset.CurrentYear)">@Localizer["Reports.PivotPeriodCurrentYear"]</option>
+                                <option value="Last12Months" selected="@(Model.PivotQuery.PeriodPreset == PivotPeriodPreset.Last12Months)">@Localizer["Reports.PivotPeriodLast12Months"]</option>
+                                <option value="PreviousYear" selected="@(Model.PivotQuery.PeriodPreset == PivotPeriodPreset.PreviousYear)">@Localizer["Reports.PivotPeriodPreviousYear"]</option>
+                                <option value="CurrentMonth" selected="@(Model.PivotQuery.PeriodPreset == PivotPeriodPreset.CurrentMonth)">@Localizer["Reports.PivotPeriodCurrentMonth"]</option>
+                                <option value="Custom" selected="@(Model.PivotQuery.PeriodPreset == PivotPeriodPreset.Custom)">@Localizer["Reports.PivotPeriodCustom"]</option>
+                            </select>
+                        </div>
+
+                        <!-- Plage dates personnalisée (masquée par défaut sauf si Custom) -->
+                        <div class="col-12 col-md-6 col-xl-4 @(Model.PivotQuery.PeriodPreset == PivotPeriodPreset.Custom ? "" : "d-none")" id="customDatesContainer">
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="date" name="StartDate" id="pivotCustomStartDate" aria-label="@Localizer["Reports.PivotStartDate"]" class="form-control form-control-sm" value="@(Model.PivotQuery.StartDate?.ToString("yyyy-MM-dd"))" placeholder="@Localizer["Reports.PivotStartDate"]" />
+                                <span class="text-muted small">à</span>
+                                <input type="date" name="EndDate" id="pivotCustomEndDate" aria-label="@Localizer["Reports.PivotEndDate"]" class="form-control form-control-sm" value="@(Model.PivotQuery.EndDate?.ToString("yyyy-MM-dd"))" placeholder="@Localizer["Reports.PivotEndDate"]" />
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recherche textuelle & Comptes -->
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
+                                <input type="text" name="SearchTerm" id="pivotSearchInput" aria-label="@Localizer["Reports.PivotSearchPlaceholder"]" class="form-control" value="@Model.PivotQuery.SearchTerm" placeholder="@Localizer["Reports.PivotSearchPlaceholder"]" />
+                                <button type="submit" class="btn btn-outline-secondary">@Localizer["Reports.PivotFilterBtn"]</button>
+                            </div>
+                        </div>
+
+                        <!-- Boutons actions TCD & Vues sauvegardées -->
+                        <div class="col-12 col-xl-4 ms-auto text-end d-flex flex-wrap align-items-center justify-content-end gap-2 mt-2 mt-xl-0">
+                            <!-- Menu Vues Sauvegardées -->
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle d-flex align-items-center gap-1 shadow-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-bookmark-star-fill text-warning"></i>
+                                    <span>@(Model.CurrentSavedView?.Name ?? Localizer["Reports.PivotSavedViews"].Value)</span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 small">
+                                    @if (!Model.SavedViews.Any())
+                                    {
+                                        <li class="dropdown-item text-muted disabled">@Localizer["Reports.PivotNoSavedViews"]</li>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var sv in Model.SavedViews)
+                                        {
+                                            <li class="d-flex align-items-center justify-content-between px-2 py-1">
+                                                <a href="/Reports?tab=pivot&savedViewId=@sv.Id" class="text-decoration-none text-dark flex-grow-1 pe-2 text-truncate">
+                                                    @if (sv.IsDefault)
+                                                    {
+                                                        <i class="bi bi-star-fill text-warning me-1"></i>
+                                                    }
+                                                    <strong>@sv.Name</strong>
+                                                </a>
+                                                <form method="post" asp-page-handler="DeletePivotView" class="d-inline" onsubmit="return confirm('@Localizer["Reports.PivotConfirmDeleteView"]');">
+                                                    <input type="hidden" name="id" value="@sv.Id" />
+                                                    <button type="submit" class="btn btn-link btn-sm text-danger p-0" title="@Localizer["Common.Delete"]">
+                                                        <i class="bi bi-x-circle"></i>
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        }
+                                    }
+                                </ul>
+                            </div>
+
+                            <!-- Sauvegarder la vue -->
+                            <button type="button" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#savePivotModal">
+                                <i class="bi bi-floppy"></i>
+                                <span>@Localizer["Reports.PivotSaveViewBtn"]</span>
+                            </button>
+
+                            <!-- Exporter CSV -->
+                            <button type="button" class="btn btn-sm btn-outline-success d-flex align-items-center gap-1 shadow-sm" onclick="exportPivotToCsv()">
+                                <i class="bi bi-file-earmark-spreadsheet"></i>
+                                <span>@Localizer["Reports.PivotExportCsv"]</span>
+                            </button>
+
+                            <a href="/Reports?tab=pivot" class="btn btn-sm btn-light border text-secondary" title="@Localizer["Reports.PivotResetBtn"]">
+                                <i class="bi bi-arrow-counterclockwise"></i>
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        @if (Model.PivotResult != null)
+        {
+            <!-- Information d'analyse -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                <div class="small text-muted d-flex align-items-center gap-2">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                        <i class="bi bi-info-circle me-1"></i>
+                        @string.Format(Localizer["Reports.PivotOperationsAnalyzed"].Value, Model.PivotResult.TotalTransactionsCount, Model.PivotResult.EffectiveStartDate.ToString("d", culture), Model.PivotResult.EffectiveEndDate.ToString("d", culture))
+                    </span>
+                    @if (Model.PivotQuery.RowDimension == PivotRowDimension.Category)
+                    {
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted" onclick="toggleAllSubRows(true)">
+                                <i class="bi bi-plus-square me-1"></i>@Localizer["Reports.PivotExpandAll"]
+                            </button>
+                            <span class="mx-1 text-muted">|</span>
+                            <button type="button" class="btn btn-link btn-sm text-decoration-none p-0 text-muted" onclick="toggleAllSubRows(false)">
+                                <i class="bi bi-dash-square me-1"></i>@Localizer["Reports.PivotCollapseAll"]
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <div class="fw-bold fs-6">
+                    <span class="text-muted me-2">@Localizer["Reports.PivotGrandTotal"] :</span>
+                    <span class="@(Model.PivotQuery.FlowFilter == PivotFlowFilter.CreditsOnly ? "text-success" : "text-danger")">
+                        @Model.PivotResult.GrandTotal.ToString("C2", culture)
+                    </span>
+                </div>
+            </div>
+
+            <!-- Grille Matrice TCD -->
+            <div class="card border-0 shadow-sm overflow-hidden mb-4">
+                <div class="table-responsive" style="max-height: 75vh;">
+                    <table class="table table-hover table-bordered table-sm align-middle mb-0" id="pivotMatrixTable">
+                        <thead class="table-light sticky-top shadow-sm" style="z-index: 2;">
+                            <tr class="text-center align-middle">
+                                <th class="text-start px-3 py-2 bg-light" style="min-width: 220px;">
+                                    @if (Model.PivotQuery.RowDimension == PivotRowDimension.Category)
+                                    {
+                                        <span>@Localizer["Reports.PivotDimCategory"]</span>
+                                    }
+                                    else if (Model.PivotQuery.RowDimension == PivotRowDimension.Account)
+                                    {
+                                        <span>@Localizer["Reports.PivotDimAccount"]</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@Localizer["Reports.PivotDimMerchant"]</span>
+                                    }
+                                </th>
+                                @foreach (var col in Model.PivotResult.Columns)
+                                {
+                                    <th class="px-2 py-2" style="min-width: 110px;">@col.Label</th>
+                                }
+                                <th class="px-3 py-2 bg-light-subtle text-end" style="min-width: 120px;">@Localizer["Reports.PivotTotalCol"]</th>
+                                <th class="px-2 py-2 bg-light-subtle text-end" style="min-width: 100px;">@Localizer["Reports.PivotMonthlyAvgCol"]</th>
+                                <th class="px-2 py-2 bg-light-subtle text-center" style="min-width: 75px;">@Localizer["Reports.PivotShareCol"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.PivotResult.Rows.Any())
+                            {
+                                <tr>
+                                    <td colspan="@(Model.PivotResult.Columns.Count + 4)" class="text-center py-5 text-muted">
+                                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                                        @Localizer["Reports.PivotNoData"]
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var row in Model.PivotResult.Rows)
+                                {
+                                    var hasSubRows = row.SubRows.Any();
+                                    var rowCollapseId = "sub-" + row.RowKey.Replace("-", "");
+
+                                    <tr class="fw-semibold bg-white" data-row-key="@row.RowKey">
+                                        <td class="px-3 py-2 text-start">
+                                            <div class="d-flex align-items-center justify-content-between">
+                                                <div class="d-flex align-items-center gap-2 text-truncate" style="max-width: 250px;">
+                                                    @if (hasSubRows)
+                                                    {
+                                                        <button class="btn btn-link btn-sm p-0 text-secondary subrow-toggle-btn"
+                                                                type="button"
+                                                                onclick="toggleSubRows('@rowCollapseId', this)">
+                                                            <i class="bi bi-chevron-down"></i>
+                                                        </button>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span style="display:inline-block; width:16px;"></span>
+                                                    }
+
+                                                    @if (!string.IsNullOrEmpty(row.ColorHex))
+                                                    {
+                                                        <span class="rounded-circle d-inline-block flex-shrink-0" style="width: 10px; height: 10px; background-color: @row.ColorHex;"></span>
+                                                    }
+                                                    <span class="text-dark text-truncate" title="@row.Label">@row.Label</span>
+                                                </div>
+                                                @if (hasSubRows)
+                                                {
+                                                    <span class="badge bg-light text-muted border ms-2 small">@row.SubRows.Count</span>
+                                                }
+                                            </div>
+                                        </td>
+
+                                         @foreach (var col in Model.PivotResult.Columns)
+                                        {
+                                            var val = row.CellValues.TryGetValue(col.Key, out var v) ? v : 0m;
+                                            var count = row.CellCounts.TryGetValue(col.Key, out var c) ? c : 0;
+                                            var isCredit = row.CellIsCredit.TryGetValue(col.Key, out var ic) && ic;
+                                            var hasAnomaly = row.CellHasAnomalies.TryGetValue(col.Key, out var ha) && ha;
+                                            var heatStyle = GetHeatmapBackground(Math.Abs(val), Model.PivotResult.GrandTotal);
+
+                                            <td class="text-end px-2 py-2 font-monospace @(count > 0 || val != 0 ? "pivot-clickable-cell" : "")"
+                                                style="@heatStyle"
+                                                title="@count op."
+                                                @if (count > 0 || val != 0) { <text>onclick="openCellDetailModal('@Html.Raw(HttpUtility.JavaScriptStringEncode(row.RowKey))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(col.Key))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(row.Label))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(col.Label))')"</text> }>
+                                                @if (count > 0 || val != 0)
+                                                {
+                                                    @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                                    {
+                                                        <span>@val.ToString("N0", culture)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="@(isCredit ? "text-success" : "text-dark")">@(isCredit ? "+" : "-") @Math.Abs(val).ToString("N2", culture)</span>
+                                                    }
+                                                    @if (hasAnomaly)
+                                                    {
+                                                        <i class="bi bi-arrow-left-right text-warning ms-1" title="Flux inversé détecté (ex: remboursement ou dépense atypique)"></i>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted opacity-50">-</span>
+                                                }
+                                            </td>
+                                        }
+
+                                        <!-- Total Ligne -->
+                                        <td class="text-end px-3 py-2 fw-bold font-monospace bg-light-subtle @(row.RowTotal != 0 ? "pivot-clickable-cell" : "")"
+                                            @if (row.RowTotal != 0) { <text>onclick="openCellDetailModal('@Html.Raw(HttpUtility.JavaScriptStringEncode(row.RowKey))', 'ALL', '@Html.Raw(HttpUtility.JavaScriptStringEncode(row.Label))', '@Localizer["Reports.PivotTotalCol"]')"</text> }>
+                                            @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                            {
+                                                <span>@row.RowTotal.ToString("N0", culture)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="@(row.IsIncome ? "text-success" : "text-dark")">@(row.IsIncome ? "+" : "-") @Math.Abs(row.RowTotal).ToString("C2", culture)</span>
+                                            }
+                                        </td>
+
+                                        <!-- Moyenne mensuelle -->
+                                        <td class="text-end px-2 py-2 font-monospace text-secondary bg-light-subtle">
+                                            @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                            {
+                                                <span>@row.MonthlyAverage.ToString("N1", culture)</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@row.MonthlyAverage.ToString("C2", culture)</span>
+                                            }
+                                        </td>
+
+                                        <!-- Part (%) -->
+                                        <td class="text-center px-2 py-2 font-monospace small bg-light-subtle">
+                                            <span class="badge @(row.PercentOfGrandTotal >= 15 ? "bg-danger-subtle text-danger" : "bg-light text-dark")">
+                                                @row.PercentOfGrandTotal%
+                                            </span>
+                                        </td>
+                                    </tr>
+
+                                    <!-- Sous-lignes pour les sous-catégories (Niveau 2) -->
+                                    @if (hasSubRows)
+                                    {
+                                        @foreach (var sub in row.SubRows)
+                                        {
+                                            var hasThirdRows = sub.SubRows.Any();
+                                            var subCollapseId = "sub3-" + sub.RowKey.Replace("-", "").Replace("__", "_");
+
+                                            <tr class="subrow-item @rowCollapseId bg-light text-muted small" data-level="2" data-parent="@rowCollapseId" data-sub-key="@subCollapseId" style="display: table-row;">
+                                                <td class="ps-4 pe-3 py-1 text-start">
+                                                    <div class="d-flex align-items-center justify-content-between">
+                                                        <div class="d-flex align-items-center gap-2 text-truncate" style="max-width: 230px;">
+                                                            @if (hasThirdRows)
+                                                            {
+                                                                <button class="btn btn-link btn-sm p-0 text-muted subrow3-toggle-btn"
+                                                                        type="button"
+                                                                        onclick="toggleLevel3Rows('@subCollapseId', this)">
+                                                                    <i class="bi bi-chevron-down small"></i>
+                                                                </button>
+                                                            }
+                                                            else
+                                                            {
+                                                                <i class="bi bi-arrow-return-right text-muted opacity-50 ms-1"></i>
+                                                            }
+
+                                                            @if (!string.IsNullOrEmpty(sub.ColorHex))
+                                                            {
+                                                                <span class="rounded-circle d-inline-block" style="width: 8px; height: 8px; background-color: @sub.ColorHex;"></span>
+                                                            }
+                                                            <span class="text-secondary text-truncate" title="@sub.Label">@sub.Label</span>
+                                                        </div>
+                                                        @if (hasThirdRows)
+                                                        {
+                                                            <span class="badge bg-white text-muted border ms-2 small" title="@sub.SubRows.Count commerçant(s)">@sub.SubRows.Count</span>
+                                                        }
+                                                    </div>
+                                                </td>
+
+                                                @foreach (var col in Model.PivotResult.Columns)
+                                                {
+                                                    var subVal = sub.CellValues.TryGetValue(col.Key, out var sv) ? sv : 0m;
+                                                    var subCount = sub.CellCounts.TryGetValue(col.Key, out var sc) ? sc : 0;
+                                                    var subIsCredit = sub.CellIsCredit.TryGetValue(col.Key, out var sic) && sic;
+                                                    var subHasAnomaly = sub.CellHasAnomalies.TryGetValue(col.Key, out var sha) && sha;
+
+                                                    <td class="text-end px-2 py-1 font-monospace @(subCount > 0 || subVal != 0 ? "pivot-clickable-cell" : "")"
+                                                        title="@subCount op."
+                                                        @if (subCount > 0 || subVal != 0) { <text>onclick="openCellDetailModal('@Html.Raw(HttpUtility.JavaScriptStringEncode(sub.RowKey))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(col.Key))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(sub.Label))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(col.Label))')"</text> }>
+                                                        @if (subCount > 0 || subVal != 0)
+                                                        {
+                                                            @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                                            {
+                                                                <span>@subVal.ToString("N0", culture)</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="@(subIsCredit ? "text-success" : "text-dark")">@(subIsCredit ? "+" : "-") @Math.Abs(subVal).ToString("N2", culture)</span>
+                                                            }
+                                                            @if (subHasAnomaly)
+                                                            {
+                                                                <i class="bi bi-arrow-left-right text-warning ms-1" title="Flux inversé détecté"></i>
+                                                            }
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted opacity-50">-</span>
+                                                        }
+                                                    </td>
+                                                }
+
+                                                <td class="text-end px-3 py-1 font-monospace text-dark @(sub.RowTotal != 0 ? "pivot-clickable-cell" : "")"
+                                                    @if (sub.RowTotal != 0) { <text>onclick="openCellDetailModal('@Html.Raw(HttpUtility.JavaScriptStringEncode(sub.RowKey))', 'ALL', '@Html.Raw(HttpUtility.JavaScriptStringEncode(sub.Label))', '@Localizer["Reports.PivotTotalCol"]')"</text> }>
+                                                    @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                                    {
+                                                        <span>@sub.RowTotal.ToString("N0", culture)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="@(sub.IsIncome ? "text-success" : "text-dark")">@(sub.IsIncome ? "+" : "-") @Math.Abs(sub.RowTotal).ToString("C2", culture)</span>
+                                                    }
+                                                </td>
+
+                                                <td class="text-end px-2 py-1 font-monospace text-muted">
+                                                    @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                                    {
+                                                        <span>@sub.MonthlyAverage.ToString("N1", culture)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span>@sub.MonthlyAverage.ToString("C2", culture)</span>
+                                                    }
+                                                </td>
+
+                                                <td class="text-center px-2 py-1 font-monospace small">
+                                                    <span class="text-muted">@sub.PercentOfGrandTotal%</span>
+                                                </td>
+                                            </tr>
+
+                                            <!-- Sous-sous-lignes pour les tiers / commerçants (Niveau 3) -->
+                                            @if (hasThirdRows)
+                                            {
+                                                @foreach (var third in sub.SubRows)
+                                                {
+                                                    <tr class="subrow-item subrow-level3 @rowCollapseId @subCollapseId bg-white text-muted small fst-italic" data-level="3" data-parent="@rowCollapseId" data-sub-parent="@subCollapseId" style="display: table-row;">
+                                                        <td class="pe-3 py-1 text-start" style="padding-left: 3.25rem;">
+                                                            <div class="d-flex align-items-center gap-2 text-truncate" style="max-width: 220px;">
+                                                                <i class="bi bi-shop text-muted opacity-50 small"></i>
+                                                                <span class="text-dark text-truncate small" title="@third.Label">@third.Label</span>
+                                                            </div>
+                                                        </td>
+
+                                                        @foreach (var col in Model.PivotResult.Columns)
+                                                        {
+                                                            var thirdVal = third.CellValues.TryGetValue(col.Key, out var tv) ? tv : 0m;
+                                                            var thirdCount = third.CellCounts.TryGetValue(col.Key, out var tc) ? tc : 0;
+                                                            var thirdIsCredit = third.CellIsCredit.TryGetValue(col.Key, out var tic) && tic;
+                                                            var thirdHasAnomaly = third.CellHasAnomalies.TryGetValue(col.Key, out var tha) && tha;
+
+                                                            <td class="text-end px-2 py-1 font-monospace @(thirdCount > 0 || thirdVal != 0 ? "pivot-clickable-cell" : "")"
+                                                                title="@thirdCount op."
+                                                                @if (thirdCount > 0 || thirdVal != 0) { <text>onclick="openCellDetailModal('@Html.Raw(HttpUtility.JavaScriptStringEncode(third.RowKey))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(col.Key))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(third.Label))', '@Html.Raw(HttpUtility.JavaScriptStringEncode(col.Label))')"</text> }>
+                                                                @if (thirdCount > 0 || thirdVal != 0)
+                                                                {
+                                                                    @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                                                    {
+                                                                        <span>@thirdVal.ToString("N0", culture)</span>
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="@(thirdIsCredit ? "text-success" : "text-dark")">@(thirdIsCredit ? "+" : "-") @Math.Abs(thirdVal).ToString("N2", culture)</span>
+                                                                    }
+                                                                    @if (thirdHasAnomaly)
+                                                                    {
+                                                                        <i class="bi bi-arrow-left-right text-warning ms-1" title="Flux inversé détecté"></i>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-muted opacity-50">-</span>
+                                                                }
+                                                            </td>
+                                                        }
+
+                                                        <td class="text-end px-3 py-1 font-monospace text-dark @(third.RowTotal != 0 ? "pivot-clickable-cell" : "")"
+                                                            @if (third.RowTotal != 0) { <text>onclick="openCellDetailModal('@Html.Raw(HttpUtility.JavaScriptStringEncode(third.RowKey))', 'ALL', '@Html.Raw(HttpUtility.JavaScriptStringEncode(third.Label))', '@Localizer["Reports.PivotTotalCol"]')"</text> }>
+                                                            @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                                            {
+                                                                <span>@third.RowTotal.ToString("N0", culture)</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span class="@(third.IsIncome ? "text-success" : "text-dark")">@(third.IsIncome ? "+" : "-") @Math.Abs(third.RowTotal).ToString("C2", culture)</span>
+                                                            }
+                                                        </td>
+
+                                                        <td class="text-end px-2 py-1 font-monospace text-muted">
+                                                            @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                                            {
+                                                                <span>@third.MonthlyAverage.ToString("N1", culture)</span>
+                                                            }
+                                                            else
+                                                            {
+                                                                <span>@third.MonthlyAverage.ToString("C2", culture)</span>
+                                                            }
+                                                        </td>
+
+                                                        <td class="text-center px-2 py-1 font-monospace small">
+                                                            <span class="text-muted">@third.PercentOfGrandTotal%</span>
+                                                        </td>
+                                                    </tr>
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        </tbody>
+                        <tfoot class="table-light fw-bold sticky-bottom shadow-sm" style="z-index: 2;">
+                            <tr class="align-middle">
+                                <td class="px-3 py-2 text-start text-dark">
+                                    <i class="bi bi-sigma me-1"></i> @Localizer["Reports.PivotGrandTotal"]
+                                </td>
+                                @foreach (var col in Model.PivotResult.Columns)
+                                {
+                                    var colVal = Model.PivotResult.ColumnTotals.TryGetValue(col.Key, out var ct) ? ct : 0m;
+                                    <td class="text-end px-2 py-2 font-monospace text-dark">
+                                        @if (colVal > 0)
+                                        {
+                                            @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                            {
+                                                <span>@colVal.ToString("N0", culture)</span>
+                                            }
+                                            else
+                                            {
+                                                <span>@colVal.ToString("N2", culture)</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                }
+                                <td class="text-end px-3 py-2 font-monospace text-danger fs-6 bg-danger-subtle">
+                                    @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                    {
+                                        <span>@Model.PivotResult.GrandTotal.ToString("N0", culture)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@Model.PivotResult.GrandTotal.ToString("C2", culture)</span>
+                                    }
+                                </td>
+                                <td class="text-end px-2 py-2 font-monospace text-dark">
+                                    @{
+                                        var colsCount = Math.Max(1, Model.PivotResult.Columns.Count);
+                                        var avgTotal = Model.PivotResult.GrandTotal / colsCount;
+                                    }
+                                    @if (Model.PivotQuery.MetricType == PivotMetricType.Count)
+                                    {
+                                        <span>@avgTotal.ToString("N1", culture)</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@avgTotal.ToString("C2", culture)</span>
+                                    }
+                                </td>
+                                <td class="text-center px-2 py-2 font-monospace">100%</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+<!-- ================================================================= -->
+<!-- MODALES                                                           -->
+<!-- ================================================================= -->
+
+<!-- Modal Sauvegarder Vue TCD -->
+<div class="modal fade" id="savePivotModal" tabindex="-1" aria-labelledby="savePivotModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="SavePivotView">
+                <input type="hidden" name="SavePivot.SerializedQueryJson" value="@JsonSerializer.Serialize(Model.PivotQuery)" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="savePivotModalLabel">
+                        <i class="bi bi-floppy text-primary me-2"></i>@Localizer["Reports.PivotSaveModalTitle"]
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    @if (Model.CurrentSavedView != null)
+                    {
+                        <div class="mb-3 p-2 bg-light border rounded">
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="radio" name="saveMode" id="saveModeUpdate" value="update" checked
+                                       onchange="document.getElementById('pivotTargetId').value = '@Model.CurrentSavedView.Id'; document.getElementById('pivotNameInput').value = '@Model.CurrentSavedView.Name';">
+                                <label class="form-check-label small fw-semibold" for="saveModeUpdate">
+                                    @string.Format(Localizer["Reports.PivotOverwriteExisting"].Value, Model.CurrentSavedView.Name)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="saveMode" id="saveModeNew" value="new"
+                                       onchange="document.getElementById('pivotTargetId').value = ''; document.getElementById('pivotNameInput').value = '@Model.CurrentSavedView.Name (copie)';">
+                                <label class="form-check-label small" for="saveModeNew">
+                                    @Localizer["Reports.PivotSaveAsNew"]
+                                </label>
+                            </div>
+                        </div>
+                        <input type="hidden" name="SavePivot.Id" id="pivotTargetId" value="@Model.CurrentSavedView.Id" />
+                    }
+                    else
+                    {
+                        <input type="hidden" name="SavePivot.Id" id="pivotTargetId" value="" />
+                    }
+
+                    <div class="mb-3">
+                        <label for="pivotNameInput" class="form-label small fw-bold">@Localizer["Reports.PivotViewName"] <span class="text-danger">*</span></label>
+                        <input type="text" name="SavePivot.Name" id="pivotNameInput" aria-label="@Localizer["Reports.PivotViewName"]" class="form-control form-control-sm" required
+                               value="@(Model.CurrentSavedView?.Name ?? (Model.PivotQuery.FlowFilter == PivotFlowFilter.RecurringOnly ? "Charges récurrentes par catégorie" : "Analyse des dépenses annuelles"))" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="pivotDescInput" class="form-label small fw-bold">@Localizer["Reports.PivotViewDesc"]</label>
+                        <textarea name="SavePivot.Description" id="pivotDescInput" aria-label="@Localizer["Reports.PivotViewDesc"]" class="form-control form-control-sm" rows="2">@(Model.CurrentSavedView?.Description)</textarea>
+                    </div>
+                    <div class="form-check form-switch mb-2">
+                        <input class="form-check-input" type="checkbox" name="SavePivot.IsDefault" id="isDefaultCheck" value="true" @(Model.CurrentSavedView?.IsDefault == true ? "checked" : "")>
+                        <label class="form-check-label small" for="isDefaultCheck">@Localizer["Reports.PivotSetAsDefault"]</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-check-lg me-1"></i>@Localizer["Common.Save"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nouveau Tableau de bord -->
+<div class="modal fade" id="newDashboardModal" tabindex="-1" aria-labelledby="newDashboardModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="CreateDashboard">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="newDashboardModalLabel">
+                        <i class="bi bi-folder-plus text-primary me-2"></i>@Localizer["Reports.NewDashboard"]
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="dashInputName" class="form-label small fw-bold">@Localizer["Reports.DashboardNameLabel"] <span class="text-danger">*</span></label>
+                        <input type="text" asp-for="DashInput.Name" id="dashInputName" aria-label="@Localizer["Reports.DashboardNameLabel"]" class="form-control form-control-sm" placeholder="Ex: Budget Maison 2026" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="dashInputDesc" class="form-label small fw-bold">@Localizer["Reports.DashboardDescLabel"]</label>
+                        <textarea asp-for="DashInput.Description" id="dashInputDesc" aria-label="@Localizer["Reports.DashboardDescLabel"]" class="form-control form-control-sm" rows="2" placeholder="Description facultative..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-sm btn-primary">@Localizer["Common.Save"]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Widget -->
+<div class="modal fade" id="addWidgetModal" tabindex="-1" aria-labelledby="addWidgetModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="SaveWidget">
+                <input type="hidden" asp-for="WidgInput.DashboardId" value="@Model.SelectedDashboardId" />
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold" id="addWidgetModalLabel">
+                        <i class="bi bi-plus-square text-primary me-2"></i>@Localizer["Reports.AddWidget"]
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-8">
+                            <label for="widgInputTitle" class="form-label small fw-bold">@Localizer["Reports.WidgetTitleLabel"] <span class="text-danger">*</span></label>
+                            <input type="text" asp-for="WidgInput.Title" id="widgInputTitle" aria-label="@Localizer["Reports.WidgetTitleLabel"]" class="form-control form-control-sm" placeholder="Ex: Dépenses par catégorie" required />
+                        </div>
+                        <div class="col-12 col-md-4">
+                            <label for="widgInputWidth" class="form-label small fw-bold">@Localizer["Reports.WidgetWidthLabel"]</label>
+                            <select asp-for="WidgInput.WidthCols" id="widgInputWidth" aria-label="@Localizer["Reports.WidgetWidthLabel"]" class="form-select form-select-sm">
+                                <option value="3">@Localizer["Reports.WidthQuarter"]</option>
+                                <option value="4">@Localizer["Reports.WidthThird"]</option>
+                                <option value="6" selected>@Localizer["Reports.WidthHalf"]</option>
+                                <option value="8">@Localizer["Reports.WidthTwoThirds"]</option>
+                                <option value="12">@Localizer["Reports.WidthFull"]</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="widgInputType" class="form-label small fw-bold">@Localizer["Reports.WidgetTypeLabel"] <span class="text-danger">*</span></label>
+                            <select asp-for="WidgInput.WidgetType" id="widgInputType" aria-label="@Localizer["Reports.WidgetTypeLabel"]" class="form-select form-select-sm">
+                                <optgroup label="@Localizer["Reports.OptGroupCharts"]">
+                                    <option value="ChartDoughnutExpenses">@Localizer["Reports.TypeDoughnutExpenses"]</option>
+                                    <option value="ChartDoughnutIncome">@Localizer["Reports.TypeDoughnutIncome"]</option>
+                                    <option value="ChartBarMonthly">@Localizer["Reports.TypeBarMonthly"]</option>
+                                    <option value="ChartLineSavings">@Localizer["Reports.TypeLineSavings"]</option>
+                                </optgroup>
+                                <optgroup label="@Localizer["Reports.OptGroupKpi"]">
+                                    <option value="KpiExpenses">@Localizer["Reports.TypeKpiExpenses"]</option>
+                                    <option value="KpiIncome">@Localizer["Reports.TypeKpiIncome"]</option>
+                                    <option value="KpiSavings">@Localizer["Reports.TypeKpiSavings"]</option>
+                                    <option value="KpiRemainingToLive">@Localizer["Reports.TypeKpiRemainingToLive"]</option>
+                                </optgroup>
+                                <optgroup label="@Localizer["Reports.OptGroupOther"]">
+                                    <option value="RecurringGauges">@Localizer["Reports.TypeRecurringGauges"]</option>
+                                    <option value="TopExpensesList">@Localizer["Reports.TypeTopExpensesList"]</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="widgInputPeriod" class="form-label small fw-bold">@Localizer["Reports.PeriodLabel"]</label>
+                            <select asp-for="WidgInput.Period" id="widgInputPeriod" aria-label="@Localizer["Reports.PeriodLabel"]" class="form-select form-select-sm">
+                                <option value="current_month">@Localizer["Reports.PeriodCurrentMonth"]</option>
+                                <option value="last_month">@Localizer["Reports.PeriodLastMonth"]</option>
+                                <option value="last_3_months">@Localizer["Reports.PeriodLast3Months"]</option>
+                                <option value="last_6_months">@Localizer["Reports.PeriodLast6Months"]</option>
+                                <option value="last_12_months">@Localizer["Reports.PeriodLast12Months"]</option>
+                                <option value="current_year">@Localizer["Reports.PeriodCurrentYear"]</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-sm btn-primary">@Localizer["Common.Save"]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détail des opérations d'une cellule TCD -->
+<div class="modal fade" id="pivotCellDetailModal" tabindex="-1" aria-labelledby="pivotCellDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content shadow">
+            <div class="modal-header border-bottom bg-light py-2 px-3">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-list-columns-reverse text-primary fs-5"></i>
+                    <div>
+                        <h5 class="modal-title fs-6 fw-bold mb-0" id="pivotCellDetailModalLabel">@Localizer["Reports.PivotCellDetailsTitle"]</h5>
+                        <div class="text-muted small" id="pivotCellDetailSubtitle">...</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <!-- État de chargement -->
+                <div id="pivotCellDetailLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary spinner-border-sm mb-2" role="status"></div>
+                    <div class="text-muted small">@Localizer["Reports.PivotCellDetailsLoading"]</div>
+                </div>
+
+                <!-- État vide -->
+                <div id="pivotCellDetailEmpty" class="text-center py-5 d-none">
+                    <i class="bi bi-inbox fs-2 text-muted opacity-50 d-block mb-2"></i>
+                    <div class="text-muted small">@Localizer["Reports.PivotCellDetailsEmpty"]</div>
+                </div>
+
+                <!-- Tableau des transactions -->
+                <div id="pivotCellDetailTableContainer" class="table-responsive d-none">
+                    <table class="table table-sm table-hover align-middle mb-0 font-monospace small">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="px-3 py-2 text-start" style="width: 100px;">@Localizer["Reports.PivotCellDetailsColDate"]</th>
+                                <th class="px-3 py-2 text-start">@Localizer["Reports.PivotCellDetailsColLabel"]</th>
+                                <th class="px-2 py-2 text-start" style="width: 160px;">@Localizer["Reports.PivotCellDetailsColCategory"]</th>
+                                <th class="px-2 py-2 text-start" style="width: 140px;">@Localizer["Reports.PivotCellDetailsColAccount"]</th>
+                                <th class="px-3 py-2 text-end" style="width: 120px;">@Localizer["Reports.PivotCellDetailsColAmount"]</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pivotCellDetailTableBody">
+                            <!-- Rempli par JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light py-2 px-3 justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small">@Localizer["Reports.PivotCellDetailsTotal"] :</span>
+                    <span class="fw-bold font-monospace fs-6" id="pivotCellDetailTotalAmount">-</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">@Localizer["Common.Close"]</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public static string GetHeatmapBackground(decimal value, decimal grandTotal)
+    {
+        if (value <= 0 || grandTotal <= 0) return string.Empty;
+        var ratio = value / grandTotal;
+        if (ratio > 0.15m) return "background-color: rgba(239, 68, 68, 0.15);";
+        if (ratio > 0.08m) return "background-color: rgba(245, 158, 11, 0.12);";
+        if (ratio > 0.03m) return "background-color: rgba(59, 130, 246, 0.08);";
+        return string.Empty;
+    }
+}
+
+@section Scripts {
+    <script src="~/lib/chart.umd.min.js"></script>
+
+    <script>
+        function toggleCustomDates(value) {
+            var container = document.getElementById('customDatesContainer');
+            if (container) {
+                if (value === 'Custom') {
+                    container.classList.remove('d-none');
+                } else {
+                    container.classList.add('d-none');
+                }
+            }
+        }
+
+        function toggleSubRows(className, btn) {
+            var rows = document.querySelectorAll('.' + className);
+            var isHidden = false;
+            rows.forEach(function (r) {
+                if (r.style.display === 'none') {
+                    // Si on réaffiche la ligne parente de niveau 2, on l'affiche.
+                    // Si c'est un niveau 3, on vérifie si son parent niveau 2 est ouvert ou fermé
+                    if (r.getAttribute('data-level') === '3') {
+                        var subParentClass = r.getAttribute('data-sub-parent');
+                        var subParentRow = document.querySelector('.' + className + '[data-sub-key="' + subParentClass + '"]');
+                        var subBtn = subParentRow ? subParentRow.querySelector('.subrow3-toggle-btn i') : null;
+                        if (!subBtn || subBtn.classList.contains('bi-chevron-down')) {
+                            r.style.display = 'table-row';
+                        }
+                    } else {
+                        r.style.display = 'table-row';
+                    }
+                } else {
+                    r.style.display = 'none';
+                    isHidden = true;
+                }
+            });
+
+            if (btn) {
+                var icon = btn.querySelector('i');
+                if (icon) {
+                    icon.className = isHidden ? 'bi bi-chevron-right' : 'bi bi-chevron-down';
+                }
+            }
+        }
+
+        function toggleLevel3Rows(subClassName, btn) {
+            var rows = document.querySelectorAll('.' + subClassName);
+            var isHidden = false;
+            rows.forEach(function (r) {
+                if (r.style.display === 'none') {
+                    r.style.display = 'table-row';
+                } else {
+                    r.style.display = 'none';
+                    isHidden = true;
+                }
+            });
+
+            if (btn) {
+                var icon = btn.querySelector('i');
+                if (icon) {
+                    icon.className = isHidden ? 'bi bi-chevron-right small' : 'bi bi-chevron-down small';
+                }
+            }
+        }
+
+        function toggleAllSubRows(expand) {
+            var rows = document.querySelectorAll('.subrow-item');
+            rows.forEach(function (r) {
+                r.style.display = expand ? 'table-row' : 'none';
+            });
+            var btns = document.querySelectorAll('.subrow-toggle-btn i');
+            btns.forEach(function (i) {
+                i.className = expand ? 'bi bi-chevron-down' : 'bi bi-chevron-right';
+            });
+            var btns3 = document.querySelectorAll('.subrow3-toggle-btn i');
+            btns3.forEach(function (i) {
+                i.className = expand ? 'bi bi-chevron-down small' : 'bi bi-chevron-right small';
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('@uiCulture.Name', { style: 'currency', currency: 'EUR' }).format(amount);
+        }
+
+        function openCellDetailModal(rowKey, colKey, rowLabel, colLabel) {
+            var modalEl = document.getElementById('pivotCellDetailModal');
+            if (!modalEl) return;
+
+            var modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            var subtitleEl = document.getElementById('pivotCellDetailSubtitle');
+            var loadingEl = document.getElementById('pivotCellDetailLoading');
+            var emptyEl = document.getElementById('pivotCellDetailEmpty');
+            var tableContainerEl = document.getElementById('pivotCellDetailTableContainer');
+            var tableBodyEl = document.getElementById('pivotCellDetailTableBody');
+            var totalEl = document.getElementById('pivotCellDetailTotalAmount');
+
+            // Afficher le titre et mettre l'état en chargement
+            subtitleEl.innerText = (rowLabel || '') + (colLabel ? ' • ' + colLabel : '');
+            loadingEl.classList.remove('d-none');
+            emptyEl.classList.add('d-none');
+            tableContainerEl.classList.add('d-none');
+            tableBodyEl.innerHTML = '';
+            totalEl.innerText = '-';
+            totalEl.className = 'fw-bold font-monospace fs-6';
+
+            modal.show();
+
+            // Construire les paramètres de requête en reprenant les filtres du formulaire actuel
+            var form = document.getElementById('pivotFilterForm');
+            var urlParams = new URLSearchParams(form ? new FormData(form) : '');
+            urlParams.set('handler', 'CellTransactions');
+            urlParams.set('rowKey', rowKey);
+            urlParams.set('colKey', colKey);
+            urlParams.set('rowLabel', rowLabel || '');
+            urlParams.set('colLabel', colLabel || '');
+
+            fetch('/Reports?' + urlParams.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function (res) {
+                if (!res.ok) throw new Error('Erreur HTTP ' + res.status);
+                return res.json();
+            })
+            .then(function (data) {
+                loadingEl.classList.add('d-none');
+                if (!data || !data.transactions || data.transactions.length === 0) {
+                    emptyEl.classList.remove('d-none');
+                    subtitleEl.innerText = (data ? data.rowLabel : rowLabel) + ' • ' + (data ? data.columnLabel : colLabel) + ' (0 op.)';
+                    totalEl.innerText = formatCurrency(0);
+                    return;
+                }
+
+                subtitleEl.innerText = (data.rowLabel || rowLabel) + ' • ' + (data.columnLabel || colLabel) + ' (' + data.count + ' op.)';
+                totalEl.innerText = formatCurrency(data.totalAmount);
+                totalEl.className = 'fw-bold font-monospace fs-6 ' + (data.totalAmount < 0 ? 'text-danger' : 'text-success');
+
+                var html = '';
+                data.transactions.forEach(function (tx) {
+                    var isExpense = tx.amount < 0;
+                    var amountClass = isExpense ? 'text-danger' : 'text-success';
+                    var categoryColor = tx.categoryColorHex || tx.categoryColor || '#94a3b8';
+                    var formattedDate = tx.date ? new Date(tx.date).toLocaleDateString('@culture.Name') : '';
+                    var isCredit = tx.type === 1 || tx.type === 'Credit';
+                    var typeBadge = isCredit
+                        ? '<span class="badge bg-success-subtle text-success me-2">Crédit</span>'
+                        : '<span class="badge bg-danger-subtle text-danger me-2">Débit</span>';
+                    var anomalyBadge = tx.isAnomaly
+                        ? '<span class="badge bg-warning-subtle text-warning-emphasis ms-2" title="Flux inversé / incohérence"><i class="bi bi-arrow-left-right me-1"></i>Flux inversé</span>'
+                        : '';
+
+                    html += '<tr>' +
+                        '<td class="px-3 py-2 text-start text-muted text-nowrap">' + escapeHtml(formattedDate) + '</td>' +
+                        '<td class="px-3 py-2 text-start text-dark">' +
+                            '<div class="d-flex align-items-center">' +
+                                typeBadge +
+                                '<span class="fw-semibold text-truncate" style="max-width: 200px;" title="' + escapeHtml(tx.label) + '">' + escapeHtml(tx.label) + '</span>' +
+                                anomalyBadge +
+                            '</div>' +
+                            (tx.rawLabel && tx.rawLabel !== tx.label ? '<div class="text-muted small text-truncate opacity-75 ms-1" style="max-width: 260px;" title="' + escapeHtml(tx.rawLabel) + '">' + escapeHtml(tx.rawLabel) + '</div>' : '') +
+                        '</td>' +
+                        '<td class="px-2 py-2 text-start text-secondary text-truncate" style="max-width: 160px;" title="' + escapeHtml(tx.categoryName) + '">' +
+                            '<span class="rounded-circle d-inline-block me-1" style="width: 8px; height: 8px; background-color: ' + categoryColor + ';"></span>' +
+                            escapeHtml(tx.categoryName || '-') +
+                        '</td>' +
+                        '<td class="px-2 py-2 text-start text-muted text-truncate" style="max-width: 140px;" title="' + escapeHtml(tx.bankAccountName || tx.accountName) + '">' +
+                            escapeHtml(tx.bankAccountName || tx.accountName || '-') +
+                        '</td>' +
+                        '<td class="px-3 py-2 text-end fw-bold font-monospace ' + amountClass + '">' +
+                            formatCurrency(tx.amount) +
+                        '</td>' +
+                    '</tr>';
+                });
+
+                tableBodyEl.innerHTML = html;
+                tableContainerEl.classList.remove('d-none');
+            })
+            .catch(function (err) {
+                console.error('Erreur chargement détails cellule TCD:', err);
+                loadingEl.classList.add('d-none');
+                emptyEl.classList.remove('d-none');
+            });
+        }
+
+        function exportPivotToCsv() {
+            var table = document.getElementById('pivotMatrixTable');
+            if (!table) return;
+
+            var rows = table.querySelectorAll('tr');
+            var csv = [];
+
+            rows.forEach(function (row) {
+                // Si la ligne est masquée, on ne l'exporte pas
+                if (row.style.display === 'none') return;
+
+                var cols = row.querySelectorAll('th, td');
+                var rowData = [];
+                cols.forEach(function (col) {
+                    var text = col.innerText.replace(/(\r\n|\n|\r)/gm, ' ').replace(/\s+/g, ' ').trim();
+                    text = text.replace(/"/g, '""');
+                    rowData.push('"' + text + '"');
+                });
+                csv.push(rowData.join(';'));
+            });
+
+            var csvContent = "\uFEFF" + csv.join("\r\n");
+            var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            var link = document.createElement("a");
+            var url = URL.createObjectURL(blob);
+            link.setAttribute("href", url);
+            link.setAttribute("download", "Cadran_TCD_" + new Date().toISOString().slice(0, 10) + ".csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            // Configuration générale Chart.js
+            Chart.defaults.font.family = getComputedStyle(document.body).getPropertyValue('--app-font-family') || 'system-ui, sans-serif';
+            Chart.defaults.color = '#64748b';
+
+            @if (Model.ActiveTab == "dashboards")
+            {
+                @foreach (var w in Model.WidgetDataList.Where(x => !string.IsNullOrEmpty(x.ChartType)))
+                {
+                    var chartDataJson = JsonSerializer.Serialize(new
+                    {
+                        labels = w.Labels,
+                        datasets = w.Datasets.Select(ds => new
+                        {
+                            label = ds.Label,
+                            data = ds.Data,
+                            backgroundColor = ds.BackgroundColor,
+                            borderColor = ds.BorderColor,
+                            borderWidth = ds.BorderWidth,
+                            fill = ds.Fill,
+                            tension = ds.Tension
+                        })
+                    });
+
+                    <text>
+                    (function() {
+                        var ctx = document.getElementById('chart-@w.WidgetId');
+                        if (ctx) {
+                            var chartType = '@w.ChartType';
+                            var chartData = @Html.Raw(chartDataJson);
+
+                            var options = {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: chartType === 'doughnut' ? 'right' : 'top',
+                                        labels: {
+                                            boxWidth: 12,
+                                            font: { size: 11 }
+                                        }
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                var val = context.parsed.y !== undefined ? context.parsed.y : context.parsed;
+                                                return (context.dataset.label ? context.dataset.label + ': ' : '') + new Intl.NumberFormat('@uiCulture.Name', { style: 'currency', currency: 'EUR' }).format(val);
+                                            }
+                                        }
+                                    }
+                                }
+                            };
+
+                            if (chartType === 'doughnut') {
+                                options.cutout = '65%';
+                            } else if (chartType === 'bar' || chartType === 'line') {
+                                options.scales = {
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: { color: '#f1f5f9' },
+                                        ticks: {
+                                            callback: function(value) {
+                                                return new Intl.NumberFormat('@uiCulture.Name', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(value);
+                                            }
+                                        }
+                                    },
+                                    x: {
+                                        grid: { display: false }
+                                    }
+                                };
+                            }
+
+                            new Chart(ctx, {
+                                type: chartType,
+                                data: chartData,
+                                options: options
+                            });
+                        }
+                    })();
+                    </text>
+                }
+            }
+        });
+    </script>
+}

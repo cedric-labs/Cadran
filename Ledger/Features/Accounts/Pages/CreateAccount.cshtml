@@ -1,0 +1,113 @@
+﻿@page "/Accounts/CreateAccount"
+@model Ledger.Features.Accounts.Pages.CreateAccountModel
+@{
+    ViewData["Title"] = "Ajouter un compte bancaire";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center py-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <div class="d-flex align-items-center mb-4">
+                    <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-3 me-3">
+                        <i class="bi bi-bank fs-3"></i>
+                    </div>
+                    <div>
+                        <h1 class="h4 mb-0">Nouveau compte bancaire</h1>
+                        <p class="text-muted small mb-0">Renseignez les détails du compte pour démarrer le suivi</p>
+                    </div>
+                </div>
+
+                <form method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.ExistingBankId" class="form-label small fw-semibold"></label>
+                        <select asp-for="Input.ExistingBankId" class="form-select">
+                            <option value="">-- Choisir une banque enregistrée --</option>
+                            @foreach (var bank in Model.AvailableBanks)
+                            {
+                                <option value="@bank.Id">@bank.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.NewBankName" class="form-label small fw-semibold"></label>
+                        <input asp-for="Input.NewBankName" class="form-control" placeholder="Ex: BoursoBank, BNP Paribas, Revolut..." />
+                    </div>
+
+                    <hr class="my-4 text-muted" />
+
+                    <div class="mb-3">
+                        <label asp-for="Input.AccountName" class="form-label small fw-semibold"></label>
+                        <input asp-for="Input.AccountName" class="form-control" placeholder="Ex: Compte Courant Principal, Livret A..." />
+                        <span asp-validation-for="Input.AccountName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label asp-for="Input.CustomAccountTypeId" class="form-label small fw-semibold mb-0">Type de compte</label>
+                                <a href="/Accounts/Types" class="small text-primary text-decoration-none" title="Gérer ou créer d'autres types de comptes">
+                                    <i class="bi bi-gear me-1"></i>Gérer les types
+                                </a>
+                            </div>
+                            <select asp-for="Input.CustomAccountTypeId" class="form-select">
+                                @foreach (var type in Model.AvailableAccountTypes)
+                                {
+                                    <option value="@type.Id">@type.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.Currency" class="form-label small fw-semibold">Devise</label>
+                            <select asp-for="Input.Currency" class="form-select">
+                                @foreach (var curr in Model.AvailableCurrencies)
+                                {
+                                    <option value="@curr.Code">@curr.FlagEmoji @curr.DisplayName</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.Iban" class="form-label small fw-semibold"></label>
+                            <input asp-for="Input.Iban" class="form-control font-monospace" placeholder="FR76 1234 5678 9012 3456 7890 123" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Input.OfxAccountId" class="form-label small fw-semibold">
+                                Identifiant OFX (&lt;ACCTID&gt;)
+                                <i class="bi bi-info-circle text-muted ms-1" title="Numéro de compte présent dans la balise <ACCTID> des fichiers OFX exportés par votre banque pour l'affectation automatique."></i>
+                            </label>
+                            <input asp-for="Input.OfxAccountId" class="form-control font-monospace" placeholder="Ex: 01234567890, 00012345678..." />
+                            <span class="form-text small text-muted">Permet la détection automatique du compte lors de l'import OFX.</span>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Input.InitialBalance" class="form-label small fw-semibold"></label>
+                        <div class="input-group">
+                            <input asp-for="Input.InitialBalance" class="form-control" type="number" step="0.01" />
+                            <span class="input-group-text">€</span>
+                        </div>
+                        <span class="form-text small text-muted">Solde constaté avant le premier relevé importé.</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="/Accounts" class="btn btn-outline-secondary">Annuler</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2 me-1"></i> Créer le compte
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

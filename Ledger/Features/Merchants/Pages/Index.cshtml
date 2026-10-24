@@ -1,0 +1,390 @@
+﻿@page "/Merchants"
+@model Ledger.Features.Merchants.Pages.IndexModel
+@{
+    ViewData["Title"] = Localizer["Merchants.Title"];
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-3">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="/Transactions" class="btn btn-outline-secondary btn-sm" title="@Localizer["Nav.Transactions"]">
+                    <i class="bi bi-arrow-left"></i>
+                </a>
+                <h1 class="h3 fw-bold mb-0">@Localizer["Merchants.Title"]</h1>
+            </div>
+            <p class="text-muted small mb-0 mt-1">@Localizer["Merchants.Subtitle"]</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary btn-sm" onclick="openCreateModal()">
+                <i class="bi bi-plus-lg me-1"></i> @Localizer["Merchants.NewMerchant"]
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show small py-2 px-3 shadow-sm border-0 mb-3" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show small py-2 px-3 shadow-sm border-0 mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close py-2" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Barre de recherche & Statistiques -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <div class="row g-2 align-items-center justify-content-between">
+                <div class="col-md-5">
+                    <form method="get" id="searchForm">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" name="SearchTerm" id="searchInput" value="@Model.SearchTerm" class="form-control border-start-0" placeholder="@Localizer["Merchants.SearchPlaceholder"]" aria-label="@Localizer["Merchants.SearchPlaceholder"]" />
+                            @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                            {
+                                <button type="button" class="btn btn-outline-secondary" aria-label="@Localizer["Common.Clear"]" onclick="document.getElementById('searchInput').value=''; document.getElementById('searchForm').submit();">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            }
+                            <button type="submit" class="btn btn-outline-secondary">@Localizer["Common.Filter"]</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-auto text-muted small d-flex gap-3 align-items-center">
+                    <div>
+                        <i class="bi bi-shop text-primary me-1"></i>
+                        <span class="fw-bold text-dark">@Model.Merchants.Count</span> @Localizer["Merchants.Title"]
+                    </div>
+                    <div>
+                        <i class="bi bi-receipt text-success me-1"></i>
+                        <span class="fw-bold text-dark">@Model.Merchants.Sum(m => m.TransactionCount)</span> @Localizer["Merchants.OperationsCount"]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau des Marchands -->
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-uppercase small" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                    <tr>
+                        <th style="width: 50px;" class="text-center">#</th>
+                        <th>@Localizer["Merchants.MerchantName"]</th>
+                        <th>@Localizer["Merchants.DefaultCategory"]</th>
+                        <th class="text-center" style="width: 140px;">@Localizer["Merchants.OperationsCount"]</th>
+                        <th class="text-end pe-3" style="width: 150px;">@Localizer["Common.Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model.Merchants.Count == 0)
+                    {
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="bi bi-shop fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                <span class="fw-semibold">@Localizer["Merchants.NoMerchantsFound"]</span>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="openCreateModal()">
+                                        <i class="bi bi-plus-lg me-1"></i> @Localizer["Merchants.NewMerchant"]
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var item in Model.Merchants)
+                        {
+                            var m = item.Merchant;
+                            <tr>
+                                <td class="text-center">
+                                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center"
+                                         style="width: 32px; height: 32px; background-color: @(m.ColorHex ?? "#6366f1")18; color: @(m.ColorHex ?? "#6366f1");">
+                                        <i class="bi @(m.IconName ?? "bi-shop") fs-6"></i>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="fw-bold text-dark">@m.Name</div>
+                                    <div class="text-muted font-monospace small" style="font-size: 0.72rem;">@m.NormalizedName</div>
+                                </td>
+                                <td>
+                                    @if (m.DefaultCategory != null)
+                                    {
+                                        var catName = Model.CategoryTranslations.TryGetValue(m.DefaultCategory.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : m.DefaultCategory.Name;
+                                        <span class="badge rounded-pill border" style="background-color: @(m.DefaultCategory.ColorHex)15; color: @m.DefaultCategory.ColorHex; border-color: @(m.DefaultCategory.ColorHex)40 !important;">
+                                            <i class="bi @m.DefaultCategory.IconName me-1"></i> @catName
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">-- @Localizer["Common.None"] --</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (item.TransactionCount > 0)
+                                    {
+                                        <a href="/Transactions?SearchTerm=@Uri.EscapeDataString(m.Name)" class="badge bg-primary-subtle text-primary border border-primary-subtle text-decoration-none px-2 py-1" title="Voir les opérations associées">
+                                            <i class="bi bi-receipt me-1"></i> @item.TransactionCount
+                                        </a>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted border px-2 py-1">0</span>
+                                    }
+                                </td>
+                                <td class="text-end pe-3">
+                                    <div class="btn-group btn-group-sm">
+                                        <button type="button" class="btn btn-outline-secondary" title="@Localizer["Common.Edit"]" aria-label="@Localizer["Common.Edit"]"
+                                                onclick="openEditModal('@m.Id', '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(m.Name))', '@(m.DefaultCategoryId?.ToString() ?? "")', '@m.IconName', '@m.ColorHex')">
+                                            <i class="bi bi-pencil"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" title="@Localizer["Merchants.MergeMerchant"]" aria-label="@Localizer["Merchants.MergeMerchant"]"
+                                                onclick="openMergeModal('@m.Id', '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(m.Name))', @item.TransactionCount)">
+                                            <i class="bi bi-intersect"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger" title="@Localizer["Common.Delete"]" aria-label="@Localizer["Common.Delete"]"
+                                                onclick="openDeleteModal('@m.Id', '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(m.Name))', @item.TransactionCount)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Création / Modification -->
+<div class="modal fade" id="merchantModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-light py-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-shop fs-5"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-0 text-dark" id="merchantModalTitle">@Localizer["Merchants.NewMerchant"]</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="Save">
+                <input type="hidden" id="modalMerchantId" name="Input.Id" value="" />
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="modalMerchantName">
+                            @Localizer["Merchants.MerchantName"] <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="modalMerchantName" name="Input.Name" required placeholder="Ex: Lidl, TotalEnergies, Amazon, Netflix..." />
+                        <div class="form-text text-muted" style="font-size: 0.72rem;">
+                            La recherche est insensible à la casse et aux espaces.
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="modalDefaultCategory">
+                            @Localizer["Merchants.DefaultCategory"]
+                        </label>
+                        <select class="form-select form-select-sm" id="modalDefaultCategory" name="Input.DefaultCategoryId">
+                            <option value="">-- @Localizer["Common.None"] --</option>
+                            @foreach (var parent in Model.ParentCategories)
+                            {
+                                var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pEn) && !string.IsNullOrWhiteSpace(pEn) ? pEn : parent.Name;
+                                <optgroup label="📁 @parentName.ToUpper()">
+                                    <option value="@parent.Id">▶ @parentName</option>
+                                    @foreach (var cat in parent.SubCategories.OrderBy(c => c.Name))
+                                    {
+                                        var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cEn) && !string.IsNullOrWhiteSpace(cEn) ? cEn : cat.Name;
+                                        <option value="@cat.Id">&nbsp;&nbsp;&nbsp;• @catName</option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                        <div class="form-text text-muted" style="font-size: 0.72rem;">
+                            Sera automatiquement proposée lors de l'attribution de ce tiers à une opération.
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold" for="modalColorHex">Couleur</label>
+                            <input type="color" class="form-control form-control-color w-100" id="modalColorHex" name="Input.ColorHex" value="#6366f1" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold" for="modalIconName">Icône</label>
+                            <input type="text" class="form-control form-control-sm" id="modalIconName" name="Input.IconName" value="bi-shop" placeholder="ex: bi-shop, bi-cart" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="bi bi-check-lg me-1"></i> @Localizer["Common.Save"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Fusion de marchands -->
+<div class="modal fade" id="mergeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-light py-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-warning bg-opacity-10 text-warning p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-intersect fs-5"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-0 text-dark">@Localizer["Merchants.MergeMerchant"]</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="Merge">
+                <input type="hidden" id="mergeSourceId" name="sourceId" value="" />
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 px-3 small border-0 rounded-3 mb-3">
+                        <i class="bi bi-info-circle me-1"></i>
+                        @Localizer["Merchants.MergeHelp"]
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="text-muted small fw-semibold text-uppercase">Tiers source à fusionner :</div>
+                        <div class="fw-bold fs-6 text-dark mt-1" id="mergeSourceName"></div>
+                        <div class="text-muted small" id="mergeSourceCount"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="mergeTargetSelect">
+                            Fusionner vers le tiers cible : <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="mergeTargetSelect" name="targetId" required>
+                            <option value="">@Localizer["Merchants.SelectMerchant"]</option>
+                            @foreach (var item in Model.Merchants)
+                            {
+                                <option value="@item.Merchant.Id" class="opt-merchant-@item.Merchant.Id">
+                                    @item.Merchant.Name (@item.TransactionCount opérations)
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-warning btn-sm text-dark fw-bold">
+                        <i class="bi bi-intersect me-1"></i> @Localizer["Merchants.MergeMerchant"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-danger bg-opacity-10 py-3 border-bottom border-danger-subtle">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-danger text-white p-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="bi bi-trash fs-6"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-0 text-danger">@Localizer["Merchants.DeleteMerchant"]</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" asp-page-handler="Delete">
+                <input type="hidden" id="deleteMerchantId" name="id" value="" />
+                <div class="modal-body p-4">
+                    <p class="mb-2" id="deleteConfirmText"></p>
+                    <div class="text-muted small">
+                        Les opérations associées ne seront pas supprimées : leur référence de tiers sera simplement remise à vide.
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-danger btn-sm">
+                        <i class="bi bi-trash me-1"></i> @Localizer["Common.Delete"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var bsMerchantModal = null;
+        var bsMergeModal = null;
+        var bsDeleteModal = null;
+
+        function openCreateModal() {
+            document.getElementById('modalMerchantId').value = '';
+            document.getElementById('modalMerchantName').value = '';
+            document.getElementById('modalDefaultCategory').value = '';
+            document.getElementById('modalColorHex').value = '#6366f1';
+            document.getElementById('modalIconName').value = 'bi-shop';
+            document.getElementById('merchantModalTitle').textContent = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Localizer["Merchants.NewMerchant"].Value))';
+
+            var el = document.getElementById('merchantModal');
+            bsMerchantModal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+            bsMerchantModal.show();
+        }
+
+        function openEditModal(id, name, defaultCatId, iconName, colorHex) {
+            document.getElementById('modalMerchantId').value = id;
+            document.getElementById('modalMerchantName').value = name;
+            document.getElementById('modalDefaultCategory').value = defaultCatId || '';
+            document.getElementById('modalColorHex').value = colorHex || '#6366f1';
+            document.getElementById('modalIconName').value = iconName || 'bi-shop';
+            document.getElementById('merchantModalTitle').textContent = '@Html.Raw(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(Localizer["Merchants.EditMerchant"].Value))';
+
+            var el = document.getElementById('merchantModal');
+            bsMerchantModal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+            bsMerchantModal.show();
+        }
+
+        function openMergeModal(id, name, txCount) {
+            document.getElementById('mergeSourceId').value = id;
+            document.getElementById('mergeSourceName').textContent = name;
+            document.getElementById('mergeSourceCount').textContent = txCount + ' opération(s) associées';
+
+            // Masquer l'option de soi-même dans le select cible
+            var select = document.getElementById('mergeTargetSelect');
+            select.value = '';
+            for (var i = 0; i < select.options.length; i++) {
+                var opt = select.options[i];
+                if (opt.value === id) {
+                    opt.style.display = 'none';
+                } else {
+                    opt.style.display = '';
+                }
+            }
+
+            var el = document.getElementById('mergeModal');
+            bsMergeModal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+            bsMergeModal.show();
+        }
+
+        function openDeleteModal(id, name, txCount) {
+            document.getElementById('deleteMerchantId').value = id;
+            document.getElementById('deleteConfirmText').textContent = 'Êtes-vous sûr de vouloir supprimer le tiers « ' + name + ' » ? (' + txCount + ' opérations actuellement associées)';
+
+            var el = document.getElementById('deleteModal');
+            bsDeleteModal = bootstrap.Modal.getInstance(el) || new bootstrap.Modal(el);
+            bsDeleteModal.show();
+        }
+    </script>
+}

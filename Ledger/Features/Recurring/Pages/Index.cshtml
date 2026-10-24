@@ -1,0 +1,868 @@
+﻿@page "/Recurring"
+@model Ledger.Features.Recurring.Pages.IndexModel
+@using Ledger.Features.Recurring.Entities
+@using Ledger.Features.Recurring.Models
+@using System.Globalization
+@using System.Text.Encodings.Web
+@inject Microsoft.Extensions.Localization.IStringLocalizer Localizer
+@{
+    ViewData["Title"] = Localizer["Recurring.PageTitle"];
+    var culture = CultureInfo.CurrentCulture;
+    var uiCulture = CultureInfo.CurrentUICulture;
+    var currentMonthName = new DateTime(Model.SelectedYear, Model.SelectedMonth, 1, 0, 0, 0, DateTimeKind.Utc).ToString("MMMM yyyy", uiCulture);
+    currentMonthName = char.ToUpperInvariant(currentMonthName[0]) + currentMonthName[1..];
+
+    var prevMonthDate = new DateTime(Model.SelectedYear, Model.SelectedMonth, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-1);
+    var nextMonthDate = new DateTime(Model.SelectedYear, Model.SelectedMonth, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
+}
+
+<div class="container-fluid px-4 py-3">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center gap-2 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>@TempData["SuccessMessage"]</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- En-tête avec sélecteur de mois & actions -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1 d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-repeat text-primary"></i>
+                <span>@Localizer["Recurring.PageTitle"]</span>
+            </h1>
+            <p class="text-muted small mb-0">@Localizer["Recurring.PageSubtitle"]</p>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            <div class="btn-group shadow-sm">
+                <a href="/Recurring?year=@prevMonthDate.Year&month=@prevMonthDate.Month" class="btn btn-outline-secondary btn-sm" title="@Localizer["Recurring.PreviousMonth"]">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                <span class="btn btn-outline-secondary btn-sm fw-semibold disabled text-dark px-3">
+                    <i class="bi bi-calendar3 me-1 text-primary"></i> @currentMonthName
+                </span>
+                <a href="/Recurring?year=@nextMonthDate.Year&month=@nextMonthDate.Month" class="btn btn-outline-secondary btn-sm" title="@Localizer["Recurring.NextMonth"]">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+
+            <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-sm" data-bs-toggle="modal" data-bs-target="#editModal" onclick="openCreateModal()">
+                <i class="bi bi-plus-lg"></i>
+                <span>@Localizer["Recurring.NewExpense"]</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bannière KPIs Synthèse Mensuelle & Reste à vivre -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm border-start border-primary border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small fw-semibold text-uppercase">@Localizer["Recurring.TotalExpected"]</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-circle">
+                            <i class="bi bi-calendar-check fs-6"></i>
+                        </span>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-dark">@Model.Summary.TotalExpected.ToString("C2", culture)</h3>
+                    <div class="small text-muted">@Model.Summary.Items.Count @Localizer["Recurring.ExpensesCount"]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm border-start border-success border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small fw-semibold text-uppercase">@Localizer["Recurring.TotalDebited"]</span>
+                        <span class="badge bg-success bg-opacity-10 text-success p-2 rounded-circle">
+                            <i class="bi bi-check2-circle fs-6"></i>
+                        </span>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-success">@Model.Summary.TotalDebited.ToString("C2", culture)</h3>
+                    <div class="progress mt-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @Model.Summary.ProgressPercentage%" aria-valuenow="@Model.Summary.ProgressPercentage" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div class="small text-muted mt-1">@Model.Summary.ProgressPercentage% @Localizer["Recurring.DebitedSoFar"]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm border-start border-warning border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small fw-semibold text-uppercase">@Localizer["Recurring.TotalPending"]</span>
+                        <span class="badge bg-warning bg-opacity-10 text-warning p-2 rounded-circle">
+                            <i class="bi bi-hourglass-split fs-6"></i>
+                        </span>
+                    </div>
+                    <h3 class="fw-bold mb-1 text-warning">@Model.Summary.TotalPending.ToString("C2", culture)</h3>
+                    <div class="small text-muted">@Model.Summary.Items.Count(i => i.Status == RecurringMonthStatus.Pending) @Localizer["Recurring.PendingCount"]</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 shadow-sm border-start @(Model.Summary.EstimatedRemainingToLive >= 0 ? "border-info" : "border-danger") border-4">
+                <div class="card-body p-3">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="text-muted small fw-semibold text-uppercase">@Localizer["Recurring.RemainingToLive"]</span>
+                        <span class="badge @(Model.Summary.EstimatedRemainingToLive >= 0 ? "bg-info bg-opacity-10 text-info" : "bg-danger bg-opacity-10 text-danger") p-2 rounded-circle">
+                            <i class="bi bi-wallet2 fs-6"></i>
+                        </span>
+                    </div>
+                    <h3 class="fw-bold mb-1 @(Model.Summary.EstimatedRemainingToLive >= 0 ? "text-primary" : "text-danger")">
+                        @Model.Summary.EstimatedRemainingToLive.ToString("C2", culture)
+                    </h3>
+                    <div class="small text-muted">
+                        @Localizer["Recurring.IncomeBasis"]: @Model.Summary.TotalIncome.ToString("C0", culture)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Boîte de détection automatique des candidats récurrents -->
+    @if (Model.Candidates.Any())
+    {
+        <div class="card border-0 shadow-sm mb-4 bg-light border-start border-primary border-4">
+            <div class="card-body p-3">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-primary text-white p-2 rounded-circle">
+                            <i class="bi bi-magic fs-6"></i>
+                        </span>
+                        <div>
+                            <h6 class="fw-bold mb-0">@string.Format(Localizer["Recurring.DetectionTitle"].Value, Model.Candidates.Count)</h6>
+                            <span class="small text-muted">@Localizer["Recurring.DetectionSubtitle"]</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" 
+                            id="toggleCandidatesBtn" data-bs-toggle="collapse" data-bs-target="#candidatesCollapse" 
+                            aria-expanded="true" aria-controls="candidatesCollapse">
+                        <i class="bi bi-chevron-up" id="toggleCandidatesIcon"></i>
+                        <span id="toggleCandidatesText">@Localizer["Common.Hide"]</span>
+                    </button>
+                </div>
+
+                <div class="collapse show" id="candidatesCollapse">
+                    <div class="table-responsive mt-3">
+                    <table class="table table-hover table-sm align-middle bg-white rounded-3 shadow-sm border">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>@Localizer["Recurring.SuggestedName"]</th>
+                                <th>@Localizer["Recurring.Pattern"]</th>
+                                <th>@Localizer["Recurring.Confidence"]</th>
+                                <th>@Localizer["Recurring.Cadence"]</th>
+                                <th>@Localizer["Recurring.ExpectedAmount"]</th>
+                                <th>@Localizer["Recurring.Category"]</th>
+                                <th class="text-end">@Localizer["Common.Actions"]</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            @foreach (var c in Model.Candidates)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@c.SuggestedName</td>
+                                    <td><code>@c.Pattern</code></td>
+                                    <td>
+                                        <span class="badge @(c.ConfidenceScore >= 80 ? "bg-success" : "bg-primary")">
+                                            @c.ConfidenceScore% (@c.OccurrencesCount @Localizer["Recurring.Occurrences"])
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @{
+                                            var freqLabel = c.Frequency switch
+                                            {
+                                                RecurringFrequency.Monthly => Localizer["Recurring.FreqMonthly"].Value,
+                                                RecurringFrequency.Quarterly => Localizer["Recurring.FreqQuarterly"].Value,
+                                                RecurringFrequency.Annual => Localizer["Recurring.FreqAnnual"].Value,
+                                                _ => Localizer["Recurring.FreqBiannual"].Value
+                                            };
+                                        }
+                                        @freqLabel
+                                        @if (c.ExpectedDayOfMonth.HasValue)
+                                        {
+                                            <span class="text-muted">(@Localizer["Recurring.AroundDay"] @c.ExpectedDayOfMonth)</span>
+                                        }
+                                    </td>
+                                    <td class="fw-bold text-dark">@c.LastAmount.ToString("C2", culture)</td>
+                                    <td>
+                                        @if (c.SuggestedCategoryId.HasValue && !string.IsNullOrEmpty(c.SuggestedCategoryName))
+                                        {
+                                            <span class="badge" style="background-color: @(c.SuggestedCategoryColor ?? "#6c757d"); color: #fff;">
+                                                @if (!string.IsNullOrEmpty(c.SuggestedCategoryIcon))
+                                                {
+                                                    <i class="bi @c.SuggestedCategoryIcon me-1"></i>
+                                                }
+                                                @(Model.CategoryTranslations.TryGetValue(c.SuggestedCategoryId.Value, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : c.SuggestedCategoryName)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        @if (c.IsAlreadyConfigured)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle py-1 px-2" title="@Localizer["Recurring.AlreadyConfigured"]">
+                                                <i class="bi bi-check-circle-fill me-1"></i> @Localizer["Recurring.AlreadyConfigured"]
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <div class="d-inline-flex gap-1 align-items-center">
+                                                <form method="post" asp-page-handler="ConfirmCandidate" class="d-inline candidate-confirm-form">
+                                                    <input type="hidden" name="pattern" value="@c.Pattern" />
+                                                    <input type="hidden" name="suggestedName" value="@c.SuggestedName" />
+                                                    <input type="hidden" name="amount" value="@c.LastAmount" />
+                                                    <input type="hidden" name="day" value="@c.ExpectedDayOfMonth" />
+                                                    <input type="hidden" name="frequency" value="@((int)c.Frequency)" />
+                                                    <input type="hidden" name="categoryId" value="@c.SuggestedCategoryId" />
+                                                    <input type="hidden" name="bankAccountId" value="@c.BankAccountId" />
+                                                    <input type="hidden" name="year" value="@Model.SelectedYear" />
+                                                    <input type="hidden" name="month" value="@Model.SelectedMonth" />
+                                                    <button type="submit" class="btn btn-outline-success btn-sm py-1 px-2" title="@Localizer["Recurring.ConfirmCandidateBtn"]">
+                                                        <i class="bi bi-check-lg me-1"></i> @Localizer["Recurring.ConfirmCandidateBtn"]
+                                                    </button>
+                                                </form>
+
+                                                <form method="post" asp-page-handler="IgnoreCandidate" class="d-inline candidate-ignore-form" onsubmit="return confirm('@JavaScriptEncoder.Default.Encode(string.Format(Localizer["Recurring.ConfirmIgnoreCandidatePrompt"].Value, c.SuggestedName))');">
+                                                    <input type="hidden" name="pattern" value="@c.Pattern" />
+                                                    <input type="hidden" name="year" value="@Model.SelectedYear" />
+                                                    <input type="hidden" name="month" value="@Model.SelectedMonth" />
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm py-1 px-2" title="@Localizer["Recurring.IgnoreCandidateBtn"]">
+                                                        <i class="bi bi-eye-slash me-1"></i> @Localizer["Recurring.IgnoreCandidateBtn"]
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Onglets ou Tableau des charges récurrentes du mois -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <h5 class="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+                <i class="bi bi-receipt-cutoff text-primary"></i>
+                <span>@Localizer["Recurring.ExpensesForMonthTitle"] (@currentMonthName)</span>
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <span id="recurringFilterCounter" class="badge bg-light text-dark border">
+                    @Model.Summary.Items.Count @Localizer["Recurring.ConfiguredExpenses"]
+                </span>
+            </div>
+        </div>
+
+        @if (Model.Summary.Items.Any())
+        {
+            <!-- Barre de filtres de recherche et de sélection -->
+            <div class="p-3 bg-light border-bottom">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-md-4 col-lg-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white border-end-0 text-muted">
+                                <i class="bi bi-search"></i>
+                            </span>
+                            <input type="text" id="recurringSearchInput" class="form-control border-start-0" placeholder="@Localizer["Recurring.FilterSearchPlaceholder"]" aria-label="@Localizer["Recurring.FilterSearchPlaceholder"]" />
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-3 col-lg-2">
+                        <select id="recurringStatusFilter" class="form-select form-select-sm" aria-label="@Localizer["Recurring.FilterStatusAll"]">
+                            <option value="">@Localizer["Recurring.FilterStatusAll"]</option>
+                            <option value="debited">@Localizer["Recurring.StatusDebited"]</option>
+                            <option value="pending">@Localizer["Recurring.StatusPending"]</option>
+                            <option value="overdue">@Localizer["Recurring.StatusOverdue"]</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3 col-lg-3">
+                        <select id="recurringCategoryFilter" class="form-select form-select-sm" aria-label="@Localizer["Recurring.FilterCategoryAll"]">
+                            <option value="">@Localizer["Recurring.FilterCategoryAll"]</option>
+                            @foreach (var cat in Model.AvailableCategories)
+                            {
+                                var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : cat.Name;
+                                <option value="@cat.Id">@catName</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2 col-lg-3">
+                        <select id="recurringAccountFilter" class="form-select form-select-sm" aria-label="@Localizer["Recurring.FilterAccountAll"]">
+                            <option value="">@Localizer["Recurring.FilterAccountAll"]</option>
+                            @foreach (var acc in Model.AvailableAccounts)
+                            {
+                                <option value="@acc.Id">@acc.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-auto">
+                        <button type="button" id="recurringResetFiltersBtn" class="btn btn-outline-secondary btn-sm" title="@Localizer["Recurring.FilterReset"]" aria-label="@Localizer["Recurring.FilterReset"]">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="card-body p-0">
+            @if (!Model.Summary.Items.Any())
+            {
+                <div class="text-center py-5">
+                    <i class="bi bi-calendar-x display-4 text-muted"></i>
+                    <p class="text-muted mt-2 mb-3">@Localizer["Recurring.NoExpensesConfigured"]</p>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editModal" onclick="openCreateModal()">
+                        <i class="bi bi-plus-lg me-1"></i> @Localizer["Recurring.NewExpense"]
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>@Localizer["Recurring.Status"]</th>
+                                <th>@Localizer["Recurring.ExpenseName"]</th>
+                                <th>@Localizer["Recurring.ExpectedDay"]</th>
+                                <th>@Localizer["Recurring.Category"]</th>
+                                <th>@Localizer["Recurring.Account"]</th>
+                                <th class="text-end">@Localizer["Recurring.ExpectedAmount"]</th>
+                                <th class="text-end">@Localizer["Recurring.ActualDebited"]</th>
+                                <th class="text-end">@Localizer["Common.Actions"]</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small" id="recurringTableBody">
+                            @foreach (var item in Model.Summary.Items)
+                            {
+                                var exp = item.Expense;
+                                var statusVal = item.Status switch
+                                {
+                                    RecurringMonthStatus.Debited => "debited",
+                                    RecurringMonthStatus.Overdue => "overdue",
+                                    _ => "pending"
+                                };
+                                <tr class="recurring-item-row"
+                                    id="recurring-row-@exp.Id"
+                                    data-name="@exp.Name.ToLowerInvariant()"
+                                    data-pattern="@exp.Pattern.ToLowerInvariant()"
+                                    data-status="@statusVal"
+                                    data-category-id="@(exp.TargetCategoryId?.ToString() ?? "")"
+                                    data-account-id="@(exp.TargetBankAccountId?.ToString() ?? "")">
+                                    <td>
+                                        @if (item.Status == RecurringMonthStatus.Debited)
+                                        {
+                                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">
+                                                <i class="bi bi-check2-circle me-1"></i> @Localizer["Recurring.StatusDebited"]
+                                            </span>
+                                        }
+                                        else if (item.Status == RecurringMonthStatus.Overdue)
+                                        {
+                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">
+                                                <i class="bi bi-exclamation-triangle me-1"></i> @Localizer["Recurring.StatusOverdue"]
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">
+                                                <i class="bi bi-hourglass-split me-1"></i> @Localizer["Recurring.StatusPending"]
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="fw-semibold text-dark">@exp.Name</div>
+                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                            <code>@exp.Pattern</code>
+                                            @if (exp.AutoDetected)
+                                            {
+                                                <span class="badge bg-light text-secondary border ms-1" title="@Localizer["Recurring.AutoDetectedBadge"]">
+                                                    <i class="bi bi-robot"></i>
+                                                </span>
+                                            }
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @(exp.ExpectedDayOfMonth.HasValue ? string.Format(Localizer["Recurring.DayFormat"].Value, exp.ExpectedDayOfMonth.Value) : "-")
+                                    </td>
+                                    <td>
+                                        @if (exp.TargetCategory != null)
+                                        {
+                                            <span class="badge" style="background-color: @(exp.TargetCategory.ColorHex ?? "#6c757d"); color: #fff;">
+                                                @if (!string.IsNullOrEmpty(exp.TargetCategory.IconName))
+                                                {
+                                                    <i class="bi @exp.TargetCategory.IconName me-1"></i>
+                                                }
+                                                @(Model.CategoryTranslations.TryGetValue(exp.TargetCategory.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : exp.TargetCategory.Name)
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @(exp.TargetBankAccount?.Name ?? Localizer["Recurring.AnyAccount"].Value)
+                                    </td>
+                                    <td class="text-end fw-semibold text-dark">
+                                        @item.ExpectedAmount.ToString("C2", culture)
+                                    </td>
+                                    <td class="text-end">
+                                        @if (item.ActualDebitedAmount.HasValue)
+                                        {
+                                            <span class="fw-bold @(item.HasPriceDifference ? "text-warning" : "text-success")">
+                                                @item.ActualDebitedAmount.Value.ToString("C2", culture)
+                                            </span>
+                                            @if (item.HasPriceDifference && item.PriceDifference.HasValue)
+                                            {
+                                                <div style="font-size: 0.72rem;" class="@(item.PriceDifference.Value > 0 ? "text-danger" : "text-success")">
+                                                    <i class="bi bi-arrow-up-right"></i> @(item.PriceDifference.Value > 0 ? "+" : "")@item.PriceDifference.Value.ToString("C2", culture)
+                                                </div>
+                                            }
+                                            @if (item.ActualDebitedDate.HasValue)
+                                            {
+                                                <div class="text-muted" style="font-size: 0.72rem;">@item.ActualDebitedDate.Value.ToString("dd/MM/yyyy")</div>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" title="@Localizer["Common.Edit"]"
+                                                    onclick="openEditModal('@exp.Id', '@JavaScriptEncoder.Default.Encode(exp.Name)', '@JavaScriptEncoder.Default.Encode(exp.Pattern)', '@exp.ExpectedAmount.ToString("0.00", CultureInfo.InvariantCulture)', '@(exp.ExpectedDayOfMonth?.ToString() ?? "")', '@((int)exp.Frequency)', '@(exp.TargetCategoryId?.ToString() ?? "")', '@(exp.TargetBankAccountId?.ToString() ?? "")', '@exp.AmountTolerancePercentage.ToString(CultureInfo.InvariantCulture)', '@JavaScriptEncoder.Default.Encode(exp.Notes ?? "")', '@exp.IsActive')">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger btn-sm" title="@Localizer["Common.Delete"]"
+                                                    onclick="confirmDelete('@exp.Id', '@JavaScriptEncoder.Default.Encode(exp.Name)')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div id="noMatchingRecurringMessage" class="text-center py-4 d-none text-muted">
+                        <i class="bi bi-funnel text-secondary fs-3 d-block mb-2"></i>
+                        <span>@Localizer["Recurring.NoFilteredExpenses"]</span>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajout / Modification Charge Récurrente -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="Save" id="editExpenseForm">
+                <input type="hidden" name="year" value="@Model.SelectedYear" />
+                <input type="hidden" name="month" value="@Model.SelectedMonth" />
+                <input type="hidden" asp-for="Input.Id" id="expenseId" />
+
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold" id="editModalLabel">
+                        <i class="bi bi-arrow-repeat text-primary me-2"></i>
+                        <span id="modalTitleText">@Localizer["Recurring.ModalNewTitle"]</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label asp-for="Input.Name" for="expenseName" class="form-label small fw-semibold">@Localizer["Recurring.NameLabel"] *</label>
+                        <input asp-for="Input.Name" id="expenseName" class="form-control" placeholder="ex: Netflix, Loyer, EDF, Box Fibre" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Pattern" for="expensePattern" class="form-label small fw-semibold">@Localizer["Recurring.PatternLabel"] *</label>
+                        <input asp-for="Input.Pattern" id="expensePattern" class="form-control" placeholder="ex: NETFLIX, FREE TELECOM, EDF" required />
+                        <div class="form-text small">@Localizer["Recurring.PatternHelp"]</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="Input.ExpectedAmount" for="expenseAmount" class="form-label small fw-semibold">@Localizer["Recurring.ExpectedAmount"] (€) *</label>
+                            <input asp-for="Input.ExpectedAmount" id="expenseAmount" type="number" step="0.01" class="form-control" required />
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="Input.ExpectedDayOfMonth" for="expenseDay" class="form-label small fw-semibold">@Localizer["Recurring.ExpectedDay"] (1-31)</label>
+                            <input asp-for="Input.ExpectedDayOfMonth" id="expenseDay" type="number" min="1" max="31" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="Input.Frequency" for="expenseFrequency" class="form-label small fw-semibold">@Localizer["Recurring.Frequency"]</label>
+                            <select asp-for="Input.Frequency" id="expenseFrequency" class="form-select">
+                                <option value="1">@Localizer["Recurring.FreqMonthly"]</option>
+                                <option value="2">@Localizer["Recurring.FreqQuarterly"]</option>
+                                <option value="3">@Localizer["Recurring.FreqBiannual"]</option>
+                                <option value="4">@Localizer["Recurring.FreqAnnual"]</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="Input.AmountTolerancePercentage" for="expenseTolerance" class="form-label small fw-semibold">@Localizer["Recurring.Tolerance"]</label>
+                            <select asp-for="Input.AmountTolerancePercentage" id="expenseTolerance" class="form-select">
+                                <option value="0">0% (@Localizer["Recurring.ToleranceStrict"])</option>
+                                <option value="0.05">± 5%</option>
+                                <option value="0.10">± 10%</option>
+                                <option value="0.20">± 20%</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label asp-for="Input.TargetCategoryId" for="expenseCategory" class="form-label small fw-semibold">@Localizer["Recurring.Category"]</label>
+                            <select asp-for="Input.TargetCategoryId" id="expenseCategory" class="form-select">
+                                <option value="">-- @Localizer["Common.None"] --</option>
+                                @foreach (var cat in Model.AvailableCategories)
+                                {
+                                    var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : cat.Name;
+                                    <option value="@cat.Id">@catName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label asp-for="Input.TargetBankAccountId" for="expenseAccount" class="form-label small fw-semibold">@Localizer["Recurring.Account"]</label>
+                            <select asp-for="Input.TargetBankAccountId" id="expenseAccount" class="form-select">
+                                <option value="">-- @Localizer["Recurring.AnyAccount"] --</option>
+                                @foreach (var acc in Model.AvailableAccounts)
+                                {
+                                    <option value="@acc.Id">@acc.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Notes" for="expenseNotes" class="form-label small fw-semibold">@Localizer["Recurring.Notes"]</label>
+                        <input asp-for="Input.Notes" id="expenseNotes" class="form-control" placeholder="ex: Engagement 12 mois, résiliation en sept." />
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="Input.IsActive" id="expenseIsActive" checked>
+                        <label class="form-check-label small fw-semibold" for="expenseIsActive">@Localizer["Recurring.IsActive"]</label>
+                    </div>
+                </div>
+
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-primary btn-sm">@Localizer["Common.Save"]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmation Suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-page-handler="Delete">
+                <input type="hidden" name="year" value="@Model.SelectedYear" />
+                <input type="hidden" name="month" value="@Model.SelectedMonth" />
+                <input type="hidden" name="id" id="deleteExpenseId" />
+
+                <div class="modal-body text-center p-4">
+                    <i class="bi bi-exclamation-triangle text-danger display-5 mb-3"></i>
+                    <h5 class="fw-bold">@Localizer["Common.Confirm"]</h5>
+                    <p class="text-muted small mb-0" id="deleteExpenseMsg"></p>
+                </div>
+                <div class="modal-footer justify-content-center bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-danger btn-sm">@Localizer["Common.Delete"]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function openCreateModal() {
+            document.getElementById('modalTitleText').textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Recurring.ModalNewTitle"].Value));
+            document.getElementById('expenseId').value = '';
+            document.getElementById('expenseName').value = '';
+            document.getElementById('expensePattern').value = '';
+            document.getElementById('expenseAmount').value = '';
+            document.getElementById('expenseDay').value = '';
+            document.getElementById('expenseFrequency').value = '1';
+            document.getElementById('expenseTolerance').value = '0.05';
+            document.getElementById('expenseCategory').value = '';
+            document.getElementById('expenseAccount').value = '';
+            document.getElementById('expenseNotes').value = '';
+            document.getElementById('expenseIsActive').checked = true;
+        }
+
+        function openEditModal(id, name, pattern, amount, day, freq, catId, accId, tolerance, notes, isActive) {
+            document.getElementById('modalTitleText').textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Recurring.ModalEditTitle"].Value));
+            document.getElementById('expenseId').value = id;
+            document.getElementById('expenseName').value = decodeURIComponent(name);
+            document.getElementById('expensePattern').value = decodeURIComponent(pattern);
+            
+            // S'assure que le montant utilise un point décimal pour l'input type="number"
+            const parsedAmount = (amount || '').toString().replace(',', '.');
+            document.getElementById('expenseAmount').value = parsedAmount;
+            
+            document.getElementById('expenseDay').value = day || '';
+            document.getElementById('expenseFrequency').value = freq || '1';
+            
+            // Normalisation de la tolérance (0, 0.05, 0.10, 0.20)
+            const parsedTolerance = parseFloat((tolerance || '0.05').toString().replace(',', '.'));
+            const toleranceSelect = document.getElementById('expenseTolerance');
+            if (!isNaN(parsedTolerance)) {
+                const tolFormatted = parsedTolerance.toFixed(2);
+                const matchingOption = Array.from(toleranceSelect.options).find(opt => 
+                    parseFloat(opt.value).toFixed(2) === tolFormatted || opt.value === parsedTolerance.toString()
+                );
+                toleranceSelect.value = matchingOption ? matchingOption.value : (toleranceSelect.options[1]?.value || '0.05');
+            } else {
+                toleranceSelect.value = '0.05';
+            }
+
+            document.getElementById('expenseCategory').value = catId || '';
+            document.getElementById('expenseAccount').value = accId || '';
+            document.getElementById('expenseNotes').value = decodeURIComponent(notes || '');
+            document.getElementById('expenseIsActive').checked = (isActive === 'True' || isActive === 'true');
+
+            var modal = new bootstrap.Modal(document.getElementById('editModal'));
+            modal.show();
+        }
+
+        function confirmDelete(id, name) {
+            document.getElementById('deleteExpenseId').value = id;
+            document.getElementById('deleteExpenseMsg').innerText = '@Localizer["Recurring.ConfirmDeletePrompt"] ' + decodeURIComponent(name) + ' ?';
+            var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            modal.show();
+        }
+
+        // --- Filtres de recherche et de sélection sur les charges récurrentes ---
+        document.addEventListener('DOMContentLoaded', function () {
+            // Mémoriser la position de scroll avant tout soumission de formulaire classique
+            document.querySelectorAll('form').forEach(function (form) {
+                form.addEventListener('submit', function () {
+                    sessionStorage.setItem('recurring_scroll_pos', window.scrollY.toString());
+                });
+            });
+
+            // Mémoriser l'ID de la charge récurrente éditée pour la cibler après rechargement
+            const editForm = document.getElementById('editExpenseForm');
+            if (editForm) {
+                editForm.addEventListener('submit', function () {
+                    const id = document.getElementById('expenseId')?.value;
+                    if (id) {
+                        sessionStorage.setItem('recurring_last_edited_id', id);
+                    }
+                });
+            }
+
+            // 2. Gestion AJAX fluide pour la confirmation des propositions (sans rechargement complet)
+            document.querySelectorAll('.candidate-confirm-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    const originalHtml = submitBtn.innerHTML;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> @Localizer["Recurring.ConfirmingCandidate"]...';
+
+                    // Sauvegarder la position de défilement au cas où
+                    sessionStorage.setItem('recurring_scroll_pos', window.scrollY.toString());
+
+                    const formData = new FormData(form);
+                    fetch(form.action || window.location.href, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => {
+                        if (response.ok) {
+                            // Recharger en préservant le scroll
+                            window.location.reload();
+                        } else {
+                            form.submit();
+                        }
+                    })
+                    .catch(() => {
+                        form.submit();
+                    });
+                });
+            });
+
+            // 3. Gestion AJAX fluide pour ignorer définitivement une proposition
+            document.querySelectorAll('.candidate-ignore-form').forEach(function (form) {
+                form.addEventListener('submit', function (e) {
+                    // On laisse le confirm() natif s'exécuter
+                    sessionStorage.setItem('recurring_scroll_pos', window.scrollY.toString());
+                });
+            });
+
+            // 4. Logique de filtrage instantané en temps réel avec persistance dans sessionStorage
+            const searchInput = document.getElementById('recurringSearchInput');
+            const statusFilter = document.getElementById('recurringStatusFilter');
+            const categoryFilter = document.getElementById('recurringCategoryFilter');
+            const accountFilter = document.getElementById('recurringAccountFilter');
+            const resetBtn = document.getElementById('recurringResetFiltersBtn');
+            const filterCounter = document.getElementById('recurringFilterCounter');
+            const noMatchingMessage = document.getElementById('noMatchingRecurringMessage');
+            const rows = document.querySelectorAll('.recurring-item-row');
+            const totalCount = rows.length;
+
+            if (totalCount > 0 && searchInput) {
+                function applyFilters() {
+                    const searchVal = (searchInput.value || '').trim().toLowerCase();
+                    const statusVal = statusFilter.value;
+                    const catVal = categoryFilter.value;
+                    const accVal = accountFilter.value;
+
+                    // Mémorisation dans sessionStorage pour préserver l'état après édition/suppression/rechargement
+                    sessionStorage.setItem('recurring_filter_search', searchInput.value || '');
+                    sessionStorage.setItem('recurring_filter_status', statusVal || '');
+                    sessionStorage.setItem('recurring_filter_category', catVal || '');
+                    sessionStorage.setItem('recurring_filter_account', accVal || '');
+
+                    let visibleCount = 0;
+
+                    rows.forEach(function (row) {
+                        const name = row.getAttribute('data-name') || '';
+                        const pattern = row.getAttribute('data-pattern') || '';
+                        const status = row.getAttribute('data-status') || '';
+                        const catId = row.getAttribute('data-category-id') || '';
+                        const accId = row.getAttribute('data-account-id') || '';
+
+                        const matchesSearch = !searchVal || name.includes(searchVal) || pattern.includes(searchVal);
+                        const matchesStatus = !statusVal || status === statusVal;
+                        const matchesCategory = !catVal || catId === catVal;
+                        const matchesAccount = !accVal || accId === accVal;
+
+                        if (matchesSearch && matchesStatus && matchesCategory && matchesAccount) {
+                            row.style.display = '';
+                            visibleCount++;
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+
+                    // Mise à jour du compteur et du message de liste vide
+                    if (filterCounter) {
+                        if (visibleCount === totalCount) {
+                            filterCounter.innerText = totalCount + ' @Localizer["Recurring.ConfiguredExpenses"]';
+                        } else {
+                            filterCounter.innerText = visibleCount + ' / ' + totalCount + ' @Localizer["Recurring.ConfiguredExpenses"]';
+                        }
+                    }
+
+                    if (noMatchingMessage) {
+                        if (visibleCount === 0) {
+                            noMatchingMessage.classList.remove('d-none');
+                        } else {
+                            noMatchingMessage.classList.add('d-none');
+                        }
+                    }
+                }
+
+                // Restauration des filtres depuis sessionStorage au chargement
+                const savedSearch = sessionStorage.getItem('recurring_filter_search');
+                const savedStatus = sessionStorage.getItem('recurring_filter_status');
+                const savedCategory = sessionStorage.getItem('recurring_filter_category');
+                const savedAccount = sessionStorage.getItem('recurring_filter_account');
+
+                if (savedSearch !== null && savedSearch !== '') searchInput.value = savedSearch;
+                if (savedStatus !== null && savedStatus !== '') statusFilter.value = savedStatus;
+                if (savedCategory !== null && savedCategory !== '') categoryFilter.value = savedCategory;
+                if (savedAccount !== null && savedAccount !== '') accountFilter.value = savedAccount;
+
+                // Application immédiate des filtres restaurés
+                applyFilters();
+
+                searchInput.addEventListener('input', applyFilters);
+                statusFilter.addEventListener('change', applyFilters);
+                categoryFilter.addEventListener('change', applyFilters);
+                accountFilter.addEventListener('change', applyFilters);
+
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', function () {
+                        searchInput.value = '';
+                        statusFilter.value = '';
+                        categoryFilter.value = '';
+                        accountFilter.value = '';
+                        sessionStorage.removeItem('recurring_filter_search');
+                        sessionStorage.removeItem('recurring_filter_status');
+                        sessionStorage.removeItem('recurring_filter_category');
+                        sessionStorage.removeItem('recurring_filter_account');
+                        applyFilters();
+                    });
+                }
+            }
+
+            // 5. Sauvegarde et restauration automatique de la position de scroll et mise en valeur de l'élément édité
+            const lastEditedId = sessionStorage.getItem('recurring_last_edited_id');
+            const savedScrollPos = sessionStorage.getItem('recurring_scroll_pos');
+
+            if (lastEditedId) {
+                sessionStorage.removeItem('recurring_last_edited_id');
+                const row = document.getElementById('recurring-row-' + lastEditedId);
+                if (row && row.style.display !== 'none') {
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    row.classList.add('table-warning');
+                    setTimeout(function () {
+                        row.classList.remove('table-warning');
+                    }, 2500);
+                } else if (savedScrollPos !== null) {
+                    window.scrollTo({
+                        top: parseInt(savedScrollPos, 10),
+                        behavior: 'instant'
+                    });
+                }
+            } else if (savedScrollPos !== null) {
+                window.scrollTo({
+                    top: parseInt(savedScrollPos, 10),
+                    behavior: 'instant'
+                });
+            }
+            sessionStorage.removeItem('recurring_scroll_pos');
+
+            // 6. Mémorisation de l'état ouvert/replié du bloc des suggestions récurrentes
+            const candidatesCollapseEl = document.getElementById('candidatesCollapse');
+            const toggleCandidatesIcon = document.getElementById('toggleCandidatesIcon');
+            const toggleCandidatesText = document.getElementById('toggleCandidatesText');
+            if (candidatesCollapseEl && toggleCandidatesIcon && toggleCandidatesText) {
+                const isHidden = localStorage.getItem('recurring_candidates_collapsed') === 'true';
+                if (isHidden) {
+                    candidatesCollapseEl.classList.remove('show');
+                    toggleCandidatesIcon.className = 'bi bi-chevron-down';
+                    toggleCandidatesText.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Common.Show"].Value));
+                }
+
+                candidatesCollapseEl.addEventListener('hidden.bs.collapse', function () {
+                    localStorage.setItem('recurring_candidates_collapsed', 'true');
+                    toggleCandidatesIcon.className = 'bi bi-chevron-down';
+                    toggleCandidatesText.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Common.Show"].Value));
+                });
+
+                candidatesCollapseEl.addEventListener('shown.bs.collapse', function () {
+                    localStorage.setItem('recurring_candidates_collapsed', 'false');
+                    toggleCandidatesIcon.className = 'bi bi-chevron-up';
+                    toggleCandidatesText.textContent = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Localizer["Common.Hide"].Value));
+                });
+            }
+        });
+    </script>
+}

@@ -1,0 +1,157 @@
+﻿@page "/Imports/CsvProfiles"
+@model Ledger.Features.Imports.Pages.CsvProfilesModel
+@{
+    ViewData["Title"] = Localizer["CsvProfiles.Title"];
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">@Localizer["CsvProfiles.Title"]</h1>
+            <p class="text-muted small mb-0">@Localizer["CsvProfiles.Subtitle"]</p>
+        </div>
+        <div>
+            <a href="/Imports" class="btn btn-outline-secondary btn-sm me-2">
+                <i class="bi bi-arrow-left me-1"></i> @Localizer["CsvProfiles.BackToImports"]
+            </a>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="collapse" data-bs-target="#newProfileCollapse">
+                <i class="bi bi-plus-lg me-1"></i> @Localizer["CsvProfiles.NewProfile"]
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-1"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Formulaire d'ajout de profil (collapsible) -->
+    <div class="collapse mb-4" id="newProfileCollapse">
+        <div class="card shadow-sm border-0 border-primary border-top border-3">
+            <div class="card-body p-4">
+                <h5 class="h6 fw-bold mb-3"><i class="bi bi-gear-fill me-1"></i> @Localizer["CsvProfiles.NewProfileTitle"]</h5>
+                <form method="post" asp-page-handler="Create">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="inputProfileName" class="form-label small fw-semibold">@Localizer["CsvProfiles.ProfileName"]</label>
+                            <input asp-for="Input.Name" id="inputProfileName" class="form-control form-control-sm" placeholder="@Localizer["CsvProfiles.ProfileNamePlaceholder"]" />
+                            <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inputProfileDelimiter" class="form-label small fw-semibold">@Localizer["CsvProfiles.Delimiter"]</label>
+                            <input asp-for="Input.Delimiter" id="inputProfileDelimiter" class="form-control form-control-sm font-monospace text-center" />
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inputProfileDecimalSeparator" class="form-label small fw-semibold">@Localizer["CsvProfiles.DecimalSeparator"]</label>
+                            <input asp-for="Input.DecimalSeparator" id="inputProfileDecimalSeparator" class="form-control form-control-sm font-monospace text-center" />
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inputProfileDateFormat" class="form-label small fw-semibold">@Localizer["CsvProfiles.DateFormat"]</label>
+                            <input asp-for="Input.DateFormat" id="inputProfileDateFormat" class="form-control form-control-sm font-monospace text-center" />
+                        </div>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input asp-for="Input.HasHeader" id="inputProfileHasHeader" class="form-check-input" />
+                        <label asp-for="Input.HasHeader" for="inputProfileHasHeader" class="form-check-label small fw-semibold">@Localizer["CsvProfiles.HasHeader"]</label>
+                    </div>
+
+                    <div class="row g-3 p-3 bg-light rounded-3 mb-3">
+                        <div class="col-12 text-muted small fw-semibold">@Localizer["CsvProfiles.ColumnIndexesTitle"]</div>
+                        <div class="col-md-3">
+                            <label for="inputProfileDateCol" class="form-label small fw-semibold">@Localizer["CsvProfiles.DateColumn"]</label>
+                            <input asp-for="Input.DateColumnIndex" id="inputProfileDateCol" class="form-control form-control-sm" type="number" min="0" />
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inputProfileLabelCol" class="form-label small fw-semibold">@Localizer["CsvProfiles.LabelColumn"]</label>
+                            <input asp-for="Input.LabelColumnIndex" id="inputProfileLabelCol" class="form-control form-control-sm" type="number" min="0" />
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inputProfileAmountCol" class="form-label small fw-semibold">@Localizer["CsvProfiles.AmountColumn"]</label>
+                            <input asp-for="Input.AmountColumnIndex" id="inputProfileAmountCol" class="form-control form-control-sm" type="number" min="0" />
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inputProfileDebitCol" class="form-label small fw-semibold">@Localizer["CsvProfiles.DebitColumn"]</label>
+                            <input asp-for="Input.DebitColumnIndex" id="inputProfileDebitCol" class="form-control form-control-sm" type="number" min="0" />
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inputProfileCreditCol" class="form-label small fw-semibold">@Localizer["CsvProfiles.CreditColumn"]</label>
+                            <input asp-for="Input.CreditColumnIndex" id="inputProfileCreditCol" class="form-control form-control-sm" type="number" min="0" />
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="collapse" data-bs-target="#newProfileCollapse">@Localizer["Common.Cancel"]</button>
+                        <button type="submit" class="btn btn-primary btn-sm ms-2">
+                            <i class="bi bi-save me-1"></i> @Localizer["CsvProfiles.SaveProfile"]
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Liste des profils configurés -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3">
+            <h2 class="h5 fw-bold mb-0">@string.Format(Localizer["CsvProfiles.AvailableProfilesCount"], Model.Profiles.Count)</h2>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light small">
+                    <tr>
+                        <th>@Localizer["CsvProfiles.ProfileName"]</th>
+                        <th>@Localizer["CsvProfiles.Delimiter"]</th>
+                        <th>@Localizer["CsvProfiles.DecimalSeparator"]</th>
+                        <th>@Localizer["CsvProfiles.DateFormat"]</th>
+                        <th>@Localizer["CsvProfiles.ColumnIndexesTitle"]</th>
+                        <th class="text-end">@Localizer["Common.Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Profiles.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted">
+                                <i class="bi bi-sliders fs-3 d-block mb-1"></i>
+                                @Localizer["CsvProfiles.NoProfiles"]
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var p in Model.Profiles)
+                        {
+                            <tr>
+                                <td class="fw-semibold">@p.Name</td>
+                                <td><code class="p-1 bg-light rounded text-dark">@p.Delimiter</code></td>
+                                <td><code class="p-1 bg-light rounded text-dark">@p.DecimalSeparator</code></td>
+                                <td><code class="p-1 bg-light rounded text-dark">@p.DateFormat</code></td>
+                                <td class="small font-monospace">
+                                    @string.Format(Localizer["CsvProfiles.ColSummary"], p.DateColumnIndex, p.LabelColumnIndex, p.AmountColumnIndex?.ToString() ?? Localizer["CsvProfiles.DebitCredit"].Value)
+                                </td>
+                                <td class="text-end">
+                                    <form method="post" asp-page-handler="Delete" asp-route-id="@p.Id" class="d-inline" onsubmit="return confirm('@Localizer["CsvProfiles.DeleteConfirm"]');">
+                                        <button type="submit" class="btn btn-outline-danger btn-sm p-1 px-2" title="@Localizer["Common.Delete"]">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

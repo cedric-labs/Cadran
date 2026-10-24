@@ -1,0 +1,608 @@
+﻿@page "/Imports"
+@model Ledger.Features.Imports.Pages.IndexModel
+@{
+    ViewData["Title"] = Localizer["Imports.Title"];
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">@Localizer["Imports.Title"]</h1>
+            <p class="text-muted small mb-0">@Localizer["Imports.Subtitle"]</p>
+        </div>
+        <a href="/Imports/CsvProfiles" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-sliders me-1"></i> @Localizer["Imports.ConfigureCsv"]
+        </a>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.StatusNotification))
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="bi bi-info-circle me-2"></i> @Model.StatusNotification
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (Model.LastResult != null)
+    {
+        <div class="alert @(Model.LastResult.Success ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4" role="alert">
+            <div class="d-flex align-items-center">
+                <i class="bi @(Model.LastResult.Success ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill") fs-4 me-3"></i>
+                <div class="flex-grow-1">
+                    <h5 class="alert-heading mb-1">@(Model.LastResult.Success ? Localizer["Imports.ImportSuccess"] : Localizer["Imports.ImportFailed"])</h5>
+                    <div>@Model.LastResult.Message</div>
+                    @if (Model.LastResult.Success)
+                    {
+                        <div class="small mt-2">
+                            <span class="badge bg-success me-1">@string.Format(Localizer["Imports.ImportedBadge"], Model.LastResult.TotalImported)</span>
+                            <span class="badge bg-secondary me-1">@string.Format(Localizer["Imports.DuplicatesSkippedBadge"], Model.LastResult.TotalDuplicatesSkipped)</span>
+                            <span class="badge bg-info me-1">@string.Format(Localizer["Imports.AutoCategorizedBadge"], Model.LastResult.TotalAutoCategorized)</span>
+                            @if (Model.LastResult.AutoMatchedByOfx)
+                            {
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-magic me-1"></i>@Localizer["Imports.AutoMatchedAcctId"]</span>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @* --- SECTION D'ATTRIBUTION OU CRÉATION DE COMPTE POUR LE FICHIER OFX --- *@
+    @if (Model.ShowPendingOfxResolution && !string.IsNullOrEmpty(Model.PendingOfxTempFile))
+    {
+        <div class="card shadow-sm border-primary mb-4">
+            <div class="card-header bg-primary text-white py-3 d-flex justify-content-between align-items-center">
+                <h2 class="h5 fw-bold mb-0">
+                    <i class="bi bi-bank me-2"></i>
+                    @Localizer["Imports.PendingOfxTitle"]
+                </h2>
+                @if (!string.IsNullOrEmpty(Model.UnmatchedOfxAcctId))
+                {
+                    <span class="badge bg-light text-primary font-monospace">&lt;ACCTID&gt; : @Model.UnmatchedOfxAcctId</span>
+                }
+            </div>
+            <div class="card-body p-4">
+                <p class="text-dark mb-3">
+                    @if (!string.IsNullOrEmpty(Model.UnmatchedOfxAcctId))
+                    {
+                        @Html.Raw(string.Format(Localizer["Imports.OfxFileContainsAcctId"], $"<strong>{Model.PendingOfxFileName}</strong>", Model.UnmatchedOfxAcctId))
+                    }
+                    else
+                    {
+                        @Html.Raw(string.Format(Localizer["Imports.OfxFileNoMatch"], $"<strong>{Model.PendingOfxFileName}</strong>"))
+                    }
+                    <br />
+                    @Localizer["Imports.OfxResolutionHelp"]
+                </p>
+
+                <div class="row g-4">
+                    <!-- Option 1 : Choisir un compte existant -->
+                    <div class="col-lg-5 border-end">
+                        <div class="p-3 bg-light rounded-3 h-100">
+                            <h3 class="h6 fw-bold mb-2 text-dark">
+                                <i class="bi bi-check2-circle text-success me-1"></i>
+                                @Localizer["Imports.Option1Title"]
+                            </h3>
+                            <p class="text-muted small mb-3">
+                                @Localizer["Imports.Option1Subtitle"]
+                            </p>
+
+                            <form method="post" asp-page-handler="ProcessPendingOfx">
+                                <input type="hidden" name="tempFilePath" value="@Model.PendingOfxTempFile" />
+                                <input type="hidden" name="originalFileName" value="@Model.PendingOfxFileName" />
+                                <input type="hidden" name="detectedOfxAcctId" value="@Model.UnmatchedOfxAcctId" />
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold" for="chosenAccountSelect">@Localizer["Imports.TargetBankAccount"]</label>
+                                    <select name="chosenAccountId" id="chosenAccountSelect" class="form-select" required>
+                                        <option value="">@Localizer["Imports.SelectExistingAccountPlaceholder"]</option>
+                                        @foreach (var acc in Model.AvailableAccounts)
+                                        {
+                                            <option value="@acc.Id">
+                                                @acc.Bank?.Name - @acc.Name @(string.IsNullOrEmpty(acc.OfxAccountId) ? "" : $" (OFX: {acc.OfxAccountId})")
+                                            </option>
+                                        }
+                                    </select>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(Model.UnmatchedOfxAcctId))
+                                {
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="associateOfxIdToAccount" id="chkAssociateOfx" value="true" checked />
+                                        <label class="form-check-label small" for="chkAssociateOfx">
+                                            @Html.Raw(string.Format(Localizer["Imports.SaveOfxIdCheckbox"], $"<strong class=\"font-monospace\">{Model.UnmatchedOfxAcctId}</strong>"))
+                                        </label>
+                                    </div>
+                                }
+
+                                <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                    <i class="bi bi-box-arrow-in-down me-1"></i> @Localizer["Imports.ImportIntoAccount"]
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Option 2 : Créer un nouveau compte et importer -->
+                    <div class="col-lg-7">
+                        <div class="p-3 border rounded-3 bg-white h-100">
+                            <h3 class="h6 fw-bold mb-2 text-primary">
+                                <i class="bi bi-plus-circle text-primary me-1"></i>
+                                @Localizer["Imports.Option2Title"]
+                            </h3>
+                            <p class="text-muted small mb-3">
+                                @Localizer["Imports.Option2Subtitle"]
+                            </p>
+
+                            <form method="post" asp-page-handler="CreateAccountAndImport">
+                                <input type="hidden" name="tempFilePath" value="@Model.PendingOfxTempFile" />
+                                <input type="hidden" name="originalFileName" value="@Model.PendingOfxFileName" />
+                                <input type="hidden" name="detectedOfxAcctId" value="@Model.UnmatchedOfxAcctId" />
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold" for="optExistingBankSelect">@Localizer["Imports.ExistingBank"]</label>
+                                        <select name="existingBankId" class="form-select form-select-sm" id="optExistingBankSelect">
+                                            <option value="">@Localizer["Imports.SelectBankPlaceholder"]</option>
+                                            @foreach (var bank in Model.AvailableBanks)
+                                            {
+                                                <option value="@bank.Id">@bank.Name</option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold" for="newBankNameInput">@Localizer["Imports.OrNewBank"]</label>
+                                        <input type="text" name="newBankName" id="newBankNameInput" class="form-control form-control-sm" placeholder="@Localizer["Imports.NewBankPlaceholder"]" />
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-7">
+                                        <label class="form-label small fw-semibold" for="accountNameInput">@Localizer["Imports.AccountName"]</label>
+                                        <input type="text" name="accountName" id="accountNameInput" class="form-control form-control-sm" 
+                                               value="@(System.IO.Path.GetFileNameWithoutExtension(Model.PendingOfxFileName ?? "Nouveau compte"))" required />
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label small fw-semibold" for="customAccountTypeIdSelect">@Localizer["Imports.AccountType"]</label>
+                                        <select name="customAccountTypeId" id="customAccountTypeIdSelect" class="form-select form-select-sm">
+                                            @foreach (var type in Model.AvailableAccountTypes)
+                                            {
+                                                <option value="@type.Id" selected="@(type.Name.Contains("Livret", StringComparison.OrdinalIgnoreCase) || type.Code == "Savings")">
+                                                    @type.Name
+                                                </option>
+                                            }
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="row g-2 mb-3 align-items-center">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-semibold" for="initialBalanceInput">@Localizer["Imports.InitialBalance"]</label>
+                                        <input type="number" step="0.01" name="initialBalance" id="initialBalanceInput" class="form-control form-control-sm" value="0.00" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="small text-muted pt-3">
+                                            @if (!string.IsNullOrEmpty(Model.UnmatchedOfxAcctId))
+                                            {
+                                                <span>@string.Format(Localizer["Imports.OfxAcctIdPreset"], Model.UnmatchedOfxAcctId)</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">
+                                    <i class="bi bi-magic me-1"></i> @Localizer["Imports.CreateAccountAndImport"]
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* --- SECTION D'ARBITRAGE DES DOUBLONS POTENTIELS --- *@
+    @if (Model.LastResult?.SuspectedDuplicates != null && Model.LastResult.SuspectedDuplicates.Any())
+    {
+        <div class="card shadow-sm border-warning mb-4">
+            <div class="card-header bg-warning-subtle text-dark py-3 d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="h5 fw-bold mb-0 text-dark">
+                        <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                        @string.Format(Localizer["Imports.ArbitrationTitle"], Model.LastResult.SuspectedDuplicates.Count)
+                    </h2>
+                    <span class="small text-muted">@Localizer["Imports.ArbitrationDesc"]</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <form method="post" asp-page-handler="ConfirmDuplicates">
+                    <input type="hidden" name="batchId" value="@Model.LastResult.BatchId" />
+                    <input type="hidden" name="bankAccountId" value="@Model.Input.BankAccountId" />
+                    <input type="hidden" name="serializedDuplicates" value="@Model.SerializedSuspectedDuplicates" />
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light small">
+                                <tr>
+                                    <th style="width: 40px;" class="text-center">
+                                        <input type="checkbox" id="selectAllDuplicates" class="form-check-input" aria-label="@Localizer["Accounts.SelectAll"]" />
+                                    </th>
+                                    <th style="width: 110px;">@Localizer["Common.Date"]</th>
+                                    <th>@Localizer["Imports.FileTransaction"]</th>
+                                    <th>@Localizer["Imports.MatchReason"]</th>
+                                    <th class="text-end" style="width: 130px;">@Localizer["Common.Amount"]</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.LastResult.SuspectedDuplicates)
+                                {
+                                    <tr>
+                                        <td class="text-center">
+                                            <input type="checkbox" id="dup-item-@item.Index" name="selectedIndices" value="@item.Index" class="form-check-input duplicate-item-chk" aria-label="@item.Label" />
+                                        </td>
+                                        <td class="small fw-semibold text-nowrap">@item.Date.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <div class="fw-semibold">@item.Label</div>
+                                            @if (!string.IsNullOrEmpty(item.RawLabel) && item.RawLabel != item.Label)
+                                            {
+                                                <div class="small text-muted font-monospace" style="font-size: 0.75rem;">@item.RawLabel</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-warning-subtle text-dark border border-warning-subtle">
+                                                <i class="bi bi-intersect me-1"></i> @item.ExistingMatchLabel
+                                            </span>
+                                        </td>
+                                        <td class="text-end fw-bold @(item.Type == Accounts.Entities.TransactionType.Credit ? "text-success" : "text-dark")">
+                                            @(item.Type == Accounts.Entities.TransactionType.Credit ? "+" : "-")@item.Amount.ToString("C2")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="p-3 bg-light d-flex justify-content-between align-items-center">
+                        <span class="small text-muted">
+                            <i class="bi bi-info-circle me-1"></i> @Localizer["Imports.UncheckedTransactionsIgnored"]
+                        </span>
+                        <div class="d-flex gap-2">
+                            <a href="/Imports" class="btn btn-outline-secondary btn-sm">
+                                <i class="bi bi-x-circle me-1"></i> @Localizer["Imports.IgnoreAllSuspects"]
+                            </a>
+                            <button type="submit" class="btn btn-warning btn-sm fw-bold">
+                                <i class="bi bi-check-circle me-1"></i> @Localizer["Imports.ImportCheckedDuplicates"]
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h2 class="h5 fw-bold mb-3"><i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>@Localizer["Imports.UploadStatement"]</h2>
+
+                    <form method="post" enctype="multipart/form-data">
+                        <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.BankAccountId" for="inputBankAccountId" class="form-label small fw-semibold">
+                                @Localizer["Imports.TargetAccount"]
+                                <span class="badge bg-light text-secondary border ms-1" style="font-weight: normal; font-size: 0.7rem;">@Localizer["Imports.TargetAccountAuto"]</span>
+                            </label>
+                            <select asp-for="Input.BankAccountId" id="inputBankAccountId" class="form-select">
+                                <option value="">@Localizer["Imports.SelectAccountPlaceholder"]</option>
+                                @foreach (var acc in Model.AvailableAccounts)
+                                {
+                                    <option value="@acc.Id">
+                                        @acc.Bank?.Name - @acc.Name @(string.IsNullOrEmpty(acc.OfxAccountId) ? "" : $" [OFX: {acc.OfxAccountId}]")
+                                    </option>
+                                }
+                            </select>
+                            <span asp-validation-for="Input.BankAccountId" class="text-danger small"></span>
+                            <span class="form-text small text-muted">@Localizer["Imports.OfxAcctIdNote"]</span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.File" for="inputFileUpload" class="form-label small fw-semibold">@Localizer["Imports.BankFileCsvOfx"]</label>
+                            <div class="input-group">
+                                <label class="btn btn-outline-secondary btn-sm d-flex align-items-center mb-0" for="inputFileUpload">
+                                    <i class="bi bi-folder2-open me-1"></i> @Localizer["Imports.ChooseFile"]
+                                </label>
+                                <span class="form-control form-control-sm text-truncate text-muted bg-light" id="fileNameDisplay">@Localizer["Imports.NoFileChosen"]</span>
+                                <input asp-for="Input.File" type="file" id="inputFileUpload" class="d-none" accept=".csv,.ofx,.qfx,.txt,.tsv" aria-label="@Localizer["Imports.BankFileCsvOfx"]" onchange="document.getElementById('fileNameDisplay').textContent = this.files[0] ? this.files[0].name : '@Localizer["Imports.NoFileChosen"]';" />
+                            </div>
+                            <span asp-validation-for="Input.File" class="text-danger small"></span>
+                            <span class="form-text small text-muted">@Localizer["Imports.FormatsAcceptedDesc"]</span>
+                        </div>
+
+                        <div class="mb-4">
+                            <label asp-for="Input.CsvProfileId" for="inputCsvProfileId" class="form-label small fw-semibold">@Localizer["Imports.CsvMappingProfileOptional"]</label>
+                            <select asp-for="Input.CsvProfileId" id="inputCsvProfileId" class="form-select">
+                                <option value="">@Localizer["Imports.DefaultProfilePlaceholder"]</option>
+                                @foreach (var prof in Model.AvailableProfiles)
+                                {
+                                    <option value="@prof.Id">@string.Format(Localizer["Imports.CsvDelimiterOption"], prof.Name, prof.Delimiter)</option>
+                                }
+                            </select>
+                            <span class="form-text small text-muted">@Localizer["Imports.CsvIgnoredIfOfx"]</span>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 py-2">
+                            <i class="bi bi-upload me-1"></i> @Localizer["Imports.StartImport"]
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white py-3">
+                    <h2 class="h5 fw-bold mb-0">@string.Format(Localizer["Imports.RecentBatchesCount"], Model.RecentBatches.Count)</h2>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light small">
+                            <tr>
+                                <th>@Localizer["Common.Date"]</th>
+                                <th>@Localizer["Imports.File"]</th>
+                                <th>@Localizer["Common.Account"]</th>
+                                <th>Format</th>
+                                <th class="text-end">@Localizer["Imports.Added"]</th>
+                                <th class="text-center" style="width: 50px;">@Localizer["Common.Actions"]</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!Model.RecentBatches.Any())
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center py-4 text-muted">
+                                        <i class="bi bi-clock-history fs-3 d-block mb-1"></i>
+                                        @Localizer["Imports.NoHistoryAvailable"]
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var batch in Model.RecentBatches)
+                                {
+                                    <tr>
+                                        <td class="small">@batch.CreatedAtUtc.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td class="font-monospace small">@batch.FileName</td>
+                                        <td>@batch.BankAccount?.Name</td>
+                                        <td><span class="badge bg-secondary-subtle text-secondary">@batch.Format</span></td>
+                                        <td class="text-end fw-bold text-success">+@batch.TotalImported</td>
+                                        <td class="text-center">
+                                            <form method="post" asp-page-handler="DeleteBatch" class="d-inline" onsubmit="return confirm('@Localizer["Imports.DeleteBatchConfirm"]');">
+                                                <input type="hidden" name="batchId" value="@batch.Id" />
+                                                <button type="submit" class="btn btn-link text-danger p-0" title="@Localizer["Common.Delete"]">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* --- SECTION DE DÉTECTION ET NETTOYAGE DES DOUBLONS EXISTANTS SUR UN COMPTE --- *@
+    <div class="card shadow-sm border-0 mt-4">
+        <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="h5 fw-bold mb-1">
+                    <i class="bi bi-shield-check text-info me-2"></i>@Localizer["Imports.DeduplicateTitle"]
+                </h2>
+                <p class="text-muted small mb-0">
+                    @Localizer["Imports.DeduplicateSubtitle"]
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-dark border">
+                    <i class="bi bi-calendar-check me-1 text-primary"></i>@string.Format(Localizer["Imports.ToleranceBadge"], Model.ConfiguredToleranceDays)
+                </span>
+                <a href="/Settings/Appearance" class="btn btn-sm btn-outline-secondary" title="@Localizer["Imports.AdjustTolerance"]">
+                    <i class="bi bi-gear me-1"></i>@Localizer["Imports.AdjustTolerance"]
+                </a>
+            </div>
+        </div>
+        <div class="card-body pt-0">
+            <form method="post" asp-page-handler="FindDuplicates" class="row g-2 align-items-center mb-3">
+                <div class="col-md-6 col-lg-5">
+                    <select name="deduplicateAccountId" aria-label="@Localizer["Imports.SelectAccountToAnalyze"]" class="form-select" required>
+                        <option value="">@Localizer["Imports.SelectAccountToAnalyze"]</option>
+                        @foreach (var acc in Model.AvailableAccounts)
+                        {
+                            <option value="@acc.Id" selected="@(Model.SelectedDeduplicateAccountId == acc.Id)">
+                                @acc.Bank?.Name - @acc.Name
+                            </option>
+                        }
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-info">
+                        <i class="bi bi-search me-1"></i> @Localizer["Imports.DeduplicateAnalyze"]
+                    </button>
+                </div>
+            </form>
+
+            @if (Model.ExistingDuplicates != null)
+            {
+                @if (Model.ExistingDuplicates.Count == 0)
+                {
+                    <div class="alert alert-success d-flex align-items-center mb-0">
+                        <i class="bi bi-check-circle-fill fs-4 me-2"></i>
+                        <div>
+                            @Localizer["Imports.NoDuplicatesFound"]
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    var totalRedundant = Model.ExistingDuplicates.Sum(g => g.Transactions.Count - 1);
+                    <div class="alert alert-warning mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <strong>@string.Format(Localizer["Imports.DuplicateGroupsDetected"], Model.ExistingDuplicates.Count)</strong> (@string.Format(Localizer["Imports.RedundantOpsDetected"], totalRedundant)).
+                                <div class="small text-muted mt-1">
+                                    @Localizer["Imports.DeduplicateInstructions"]
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form method="post" asp-page-handler="DeleteDuplicates">
+                        <input type="hidden" name="deduplicateAccountId" value="@Model.SelectedDeduplicateAccountId" />
+
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnSelectAllRedundant">
+                                    <i class="bi bi-check2-all me-1"></i> @Localizer["Imports.PrecheckRedundant"]
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="btnUncheckAllRedundant">
+                                    <i class="bi bi-square me-1"></i> @Localizer["Imports.UncheckAll"]
+                                </button>
+                            </div>
+                            <button type="submit" class="btn btn-sm btn-danger fw-bold" onclick="return confirm('@Localizer["Imports.ConfirmDeleteDuplicates"]');">
+                                <i class="bi bi-trash me-1"></i> @Localizer["Imports.DeleteSelectedDuplicates"]
+                            </button>
+                        </div>
+
+                        <div class="table-responsive border rounded-3">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light small">
+                                    <tr>
+                                        <th style="width: 45px;" class="text-center">@Localizer["Imports.DelShort"]</th>
+                                        <th style="width: 110px;">@Localizer["Common.Date"]</th>
+                                        <th>@Localizer["Imports.LabelReference"]</th>
+                                        <th>@Localizer["Imports.CategoryStatus"]</th>
+                                        <th class="text-end" style="width: 120px;">@Localizer["Common.Amount"]</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var grp in Model.ExistingDuplicates)
+                                    {
+                                        <tr class="table-secondary">
+                                            <td colspan="5" class="py-1 px-3 small fw-bold text-dark">
+                                                <i class="bi bi-collection me-1"></i>
+                                                @string.Format(Localizer["Imports.GroupHeader"], grp.Date.ToString("dd/MM/yyyy"), (grp.Type == Accounts.Entities.TransactionType.Credit ? "+" : "-") + grp.Amount.ToString("C2"), grp.Transactions.Count)
+                                            </td>
+                                        </tr>
+                                        for (int idx = 0; idx < grp.Transactions.Count; idx++)
+                                        {
+                                            var tx = grp.Transactions[idx];
+                                            var isRedundantByDefault = idx > 0;
+                                            <tr class="@(isRedundantByDefault ? "bg-warning-subtle" : "")">
+                                                <td class="text-center">
+                                                    <input type="checkbox" name="transactionIdsToDelete" id="tx-delete-@tx.Id" value="@tx.Id" class="form-check-input existing-dup-chk" checked="@isRedundantByDefault" aria-label="@tx.Label" />
+                                                </td>
+                                                <td class="small fw-semibold text-nowrap">@tx.Date.ToString("dd/MM/yyyy")</td>
+                                                <td>
+                                                    <div class="fw-semibold">
+                                                        @tx.Label
+                                                        @if (idx == 0)
+                                                        {
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle ms-1" style="font-size: 0.65rem;">@Localizer["Imports.KeptByDefault"]</span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" style="font-size: 0.65rem;">@string.Format(Localizer["Imports.DuplicateNum"], idx)</span>
+                                                        }
+                                                    </div>
+                                                    @if (!string.IsNullOrEmpty(tx.RawLabel) && tx.RawLabel != tx.Label)
+                                                    {
+                                                        <div class="small text-muted font-monospace" style="font-size: 0.72rem;">@tx.RawLabel</div>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(tx.Reference))
+                                                    {
+                                                        <div class="small text-secondary font-monospace" style="font-size: 0.72rem;">@string.Format(Localizer["Imports.BankRefPrefix"], tx.Reference)</div>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    <div class="small">
+                                                        @if (tx.Category != null)
+                                                        {
+                                                            var catName = Model.CategoryTranslations.TryGetValue(tx.Category.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : tx.Category.Name;
+                                                            <span class="badge bg-light text-dark border">
+                                                                <i class="bi bi-tag me-1"></i>@catName
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted font-monospace" style="font-size: 0.75rem;">@Localizer["Transactions.Uncategorized"]</span>
+                                                        }
+                                                    </div>
+                                                </td>
+                                                <td class="text-end fw-bold @(tx.Type == Accounts.Entities.TransactionType.Credit ? "text-success" : "text-dark")">
+                                                    @(tx.Type == Accounts.Entities.TransactionType.Credit ? "+" : "-")@tx.Amount.ToString("C2")
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var selectAll = document.getElementById('selectAllDuplicates');
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    var checkboxes = document.querySelectorAll('.duplicate-item-chk');
+                    checkboxes.forEach(function (cb) {
+                        cb.checked = selectAll.checked;
+                    });
+                });
+            }
+
+            var btnSelectAll = document.getElementById('btnSelectAllRedundant');
+            if (btnSelectAll) {
+                btnSelectAll.addEventListener('click', function () {
+                    var checkboxes = document.querySelectorAll('.existing-dup-chk');
+                    checkboxes.forEach(function (cb) {
+                        cb.checked = true;
+                    });
+                });
+            }
+
+            var btnUncheckAll = document.getElementById('btnUncheckAllRedundant');
+            if (btnUncheckAll) {
+                btnUncheckAll.addEventListener('click', function () {
+                    var checkboxes = document.querySelectorAll('.existing-dup-chk');
+                    checkboxes.forEach(function (cb) {
+                        cb.checked = false;
+                    });
+                });
+            }
+
+            // Réinitialiser le champ fichier et l'affichage après soumission pour permettre un nouvel import consécutif
+            var uploadForm = document.querySelector('form[enctype="multipart/form-data"]');
+            var fileInput = document.getElementById('inputFileUpload');
+            var fileNameDisplay = document.getElementById('fileNameDisplay');
+            if (uploadForm && fileInput && fileNameDisplay) {
+                // Si la page vient de recharger avec un résultat, réinitialiser le sélecteur
+                fileInput.value = '';
+            }
+        });
+    </script>
+}

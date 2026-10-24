@@ -1,0 +1,75 @@
+﻿# **Feuille de Route Stratégique et Fonctionnelle (Matrice MoSCoW)**
+
+# **Synthèse de la Priorisation**
+
+Cette feuille de route définit la priorisation fonctionnelle pour le développement d'une application de gestion de finances personnelles adoptant une architecture souveraine "Local-First" et "Privacy-First". En s'appuyant sur la méthodologie MoSCoW, elle arbitre entre les composants indispensables du moteur comptable, les fonctionnalités à forte valeur ajoutée, les extensions futures et les choix d'exclusion délibérés visant à préserver la sécurité, la souveraineté des données et l'ergonomie.
+
+---
+
+# **Matrice MoSCoW**
+
+| Fonctionnalité | Description détaillée | Priorité (MoSCoW) | Statut d'implémentation |
+| :--- | :--- | :--- | :--- |
+| **Binaire Auto-portant (Single Executable)** | Distribution sous forme d'un fichier exécutable unique (comprenant le serveur web HTTP Kestrel, l'interface précompilée, et la librairie SQLite). Zéro dépendance technique requise (pas de Node.js, Python, ou Docker à installer). L'ouverture lance l'application et ouvre le navigateur par défaut sur `http://127.0.0.1:PORT`. | **Must have** | 🟡 **Partiel** (Application autonome Kestrel/SQLite en .NET 9 sans dépendance externe ; packaging final en single-file exécutable prêt pour publication). |
+| **Moteur "Zero-Based Budgeting"** | Logique comptable stricte imposant l'assignation totale du revenu disponible. Interface avec zones claires ("À assigner", "Enveloppes de dépenses", "Fonds de réserve"). Actions de couverture inter-enveloppes facilitées par le glisser-déposer. Les soldes se reportent dynamiquement de mois en mois. | **Must have** | 🟡 **Partiel** (Enveloppes budgétaires mensuelles par catégorie avec calcul Dépensé / Alloué / Restant existantes ; vue consolidée "À assigner" avec glisser-déposer inter-enveloppes à finaliser). |
+| **Sécurisation de l'Interface Locale (Anti-CSRF & En-têtes)** | Blindage du serveur local par la liaison exclusive à 127.0.0.1. Implémentation systématique de jetons CSRF pour toutes les mutations de la base (formulaires et requêtes AJAX JSON), validation stricte de l'en-tête Origin, attribut SameSite=Lax/Strict aux cookies de session locale, et en-têtes de sécurité (CSP, X-Frame-Options, X-Content-Type-Options). | **Must have** | ✅ **Existe** |
+| **Générateur de Sauvegardes Atomiques (VACUUM INTO)** | Mécanisme de création de clichés (snapshots) de la base de données. Utilisation de l'instruction VACUUM INTO de SQLite pour garantir la défragmentation et l'intégration des opérations en cours dans le fichier -wal sans bloquer l'écriture, créant un export .db certifié incorruptible à télécharger et restaurer par l'utilisateur. | **Must have** | ✅ **Existe** |
+| **Parsers Déterministes (CAMT.053, OFX, QIF)** | Ingestion native et silencieuse des standards bancaires structurés. L'analyse des fichiers XML et structurés se fait en local via une logique de mapping automatique, permettant une intégration des flux SEPA sans l'intervention de l'utilisateur. | **Must have** | ✅ **Existe** |
+| **Assistant d'Importation CSV avec Mémorisation** | Outil d'ingestion visuelle pour les relevés au format brut. L'utilisateur associe les colonnes de son relevé bancaire (Date, Montant, Débit/Crédit, Libellé) à l'application. La signature structurelle du fichier est enregistrée localement pour automatiser les imports futurs du même compte. | **Must have** | ✅ **Existe** |
+| **Filtre Cryptographique Anti-Doublons** | Génération systématique d'un hachage SHA-256 combinant [ID_Compte + Date_Valeur + Montant_Exact + Libellé_Nettoyé] pour chaque entrée de fichier. Blocage silencieux des transactions répliquées pour tolérer les imports de fichiers se chevauchant dans le temps et maintenir la réconciliation parfaite. | **Must have** | ✅ **Existe** |
+| **Saisie Manuelle Ultra-Véloce et Splits** | Interface optimisée pour la navigation rapide et réactive. Auto-complétion de la catégorie basée sur l'historique du bénéficiaire saisi. Gestion intégrée des opérations divisées (splits) forçant l'équilibre mathématique strict entre le montant total de la transaction et la somme des ventilations, avec catégorie, tiers et notes par ligne. | **Must have** | ✅ **Existe** |
+| **Gestionnaire de Tiers / Bénéficiaires (Merchants)** | Module dédié à la gestion des commerçants et bénéficiaires. Association manuelle ou automatique aux opérations et ventilations, normalisation des libellés bancaires, création rapide à la volée depuis les formulaires et intégration étroite avec le moteur de règles. | **Must have** | ✅ **Existe** |
+| **Module des Charges Récurrentes & Reste à Vivre** | Détection algorithmique d'abonnements et charges régulières (Netflix, EDF, loyers, etc.) sur 12 mois avec cadence temporelle, gestion multi-contrats par palier de montants, tolérance de variation (`AmountTolerancePercentage`), suivi mensuel (Débité, En attente, En retard) et calcul du reste à vivre dès le 1er du mois. Filtres instantanés persistants en session. | **Must have** | ✅ **Existe** |
+| **Module d'Automatisation par Règles Lexicales** | Moteur de règles heuristiques déterministes pré et post-importation ("SI libellé contient/commence par/finit par X, ou motif regex, et montant entre Y et Z, ALORS fixer la catégorie à A, le tiers à B, et optionnellement décaler le mois budgétaire"). Gestion des priorités d'exécution et application rétroactive immédiate. | **Must have** | ✅ **Existe** (Initialement classé en Could have, le moteur est déjà pleinement opérationnel et central dans Cadran). |
+| **Gestionnaire Idempotent de Schéma SQLite** | Système d'exécution de migrations lisant automatiquement la variable PRAGMA user_version et s'appuyant sur EF Core. Met à jour le schéma de la base de données de manière transactionnelle lors de l'application d'une nouvelle version, garantissant la reprise après erreur lors de coupures inopinées. | **Should have** | ✅ **Existe** |
+| **Génération de Rapports Analytiques Déportés** | Tableaux de bord de flux de trésorerie, suivi de l'évolution du patrimoine et tendances historiques calculés via des requêtes SQL pré-agrégées et visualisés avec Chart.js, assurant une fluidité de rendu dans le navigateur sans verrouiller longuement la base SQLite transactionnelle. | **Should have** | ✅ **Existe** |
+| **Tableaux Croisés Dynamiques (TCD / Pivot Reports)** | Moteur analytique multidimensionnel configurable avec axes croisés (comptes, catégories, tiers, type de flux, charges fixes vs variables), agrégation dynamique en mémoire et export tabulaire CSV pour une analyse poussée des dépenses et revenus. | **Should have** | ✅ **Existe** |
+| **Date Budgétaire d'Imputation & Décalage de Mois (`BudgetDate`)** | Capacité de dissocier la date comptable réelle d'une opération de sa date budgétaire d'imputation (ex: salaire versé le 28-30 du mois imputé directement sur le budget du mois M+1). Intégré aux synthèses, au suivi des enveloppes et au moteur de règles. | **Should have** | ✅ **Existe** |
+| **Statuts de Transaction Personnalisables (`CustomStatus`)** | Définition de statuts métier sur mesure (libellé, icône Bootstrap Icons, couleur hexadécimale) en complément des statuts bancaires standards (Pointé, Rapproché, En cours), avec mise à jour unitaire et par lot (batch update) sur les transactions. | **Should have** | ✅ **Existe** |
+| **Sécurité d'Accès : Authentification Forte 2FA / MFA (TOTP)** | Protection locale renforcée par mot de passe et deuxième facteur TOTP (Google Authenticator, Aegis, Ente Auth) avec génération de QR code et de codes de récupération d'urgence, assurant la confidentialité des finances sur une machine partagée. | **Should have** | ✅ **Existe** |
+| **Internationalisation & Localisation Hybride (i18n)** | Architecture multilingue (Français, Anglais, etc.) combinant fichiers JSON pour les libellés d'interface (`JsonStringLocalizerFactory`) et traduction dynamique en base pour les entités métier (catégories, types). Sélecteur de langue persistant dans les préférences. | **Should have** | ✅ **Existe** |
+| **Catalogue de Catégories par Défaut Réinitialisable** | Chargement d'une arborescence catégorielle complète dès l'initialisation de la base (avec icônes et codes couleurs), enrichie d'une option de rechargement sécurisé sans doublon ni écrasement des modifications utilisateur en cas de réinitialisation souhaitée. | **Should have** | ✅ **Existe** |
+| **Intelligence Artificielle Embarquée (TF-IDF + Naive Bayes)** | Modèle d'apprentissage automatique léger intégré au binaire, analysant mathématiquement le poids des mots (TF-IDF) et catégorisant probabilistement les nouveaux libellés (Naive Bayes). Entraînement asynchrone instantané en mémoire locale à chaque correction apportée par l'utilisateur. | **Should have** | ⏳ **Non implémenté** (Le moteur de règles déterministes et la détection d'échéances récurrentes couvrent actuellement l'essentiel des besoins d'automatisation). |
+| **Appel au Don Discret et Contextualisé** | Bouton "Soutenir le projet" ou "Payer un café" intégré de manière non bloquante dans l'interface (paramètres de configuration ou écrans de synthèse), externalisant le paiement vers un service tiers sans collecte de données personnelles. | **Should have** | ⏳ **Non implémenté** |
+| **Types de Comptes Personnalisables (`CustomAccountTypes`)** | Possibilité pour l'utilisateur de définir et de catégoriser des natures de comptes personnalisées (Courant, Épargne, Crypto, PEA, Titres, Espèces, etc.) avec leurs caractéristiques spécifiques. | **Could have** | ✅ **Existe** |
+| **Personnalisation Visuelle de l'UI (Polices & Colonnes)** | Sélection et injection dynamique des polices typographiques (`UiFonts`), support du thème sombre/clair, et personnalisation avec mémorisation de l'agencement et de la visibilité des colonnes dans les tableaux d'opérations. | **Could have** | ✅ **Existe** |
+| **Support Multi-Devises avec Taux Global** | Attribuer une devise native à chaque compte de trésorerie, et implémenter un taux de conversion périodique (saisi manuellement ou via une API de taux publique optionnelle) afin d'afficher la balance consolidée des enveloppes budgétaires dans une devise unique de référence. | **Could have** | 🟡 **Partiel** (Devise et symbole monétaire configurables par compte bancaire et globalement via `CurrencyService` ; conversion automatique consolidée multi-devises avec table de taux de change non implémentée). |
+| **Chiffrement Global de la Base de Données (SQLCipher)** | Application de bibliothèques cryptographiques (SQLite3 Multiple Ciphers / SQLCipher) pour le chiffrement AES-256 transparent de l'intégralité du fichier .db au repos. Clé dérivée d'une phrase de passe maître portable (Windows, Linux, macOS), écran de déverrouillage au démarrage, mise en cache sécurisée optionnelle sur l'appareil et interface de gestion (rekey, déchiffrement). | **Could have** | ✅ **Existe** |
+| **Connecteurs d'Open Banking (Plaid, Tink, etc.)** | Synchronisation automatique en interfaçant l'application avec des agrégateurs de données bancaires. Expose les données à des acteurs commerciaux, multiplie les erreurs d'API et les frictions de connexion multifacteur. Antithèse absolue de la philosophie "Local-First". | **Won't have** | 🚫 **Exclu par conception** |
+| **Outils de Télémétrie et Analyse de Comportement** | Intégration de balises de suivi cloud (Analytics, Mixpanel) pour mesurer l'utilisation des boutons et le taux de conversion. Enfreint formellement le contrat moral du "Privacy-First" et augmente la surface d'attaque du front-end via l'intégration de scripts tiers. | **Won't have** | 🚫 **Exclu par conception** |
+| **Gestion Complexe des Rôles (RBAC) et SSO** | Architecture d'authentification incluant des niveaux d'administrateurs, des invitations par email, ou la gestion de locataires (multi-tenant) via OpenID. Complexité injustifiée et alourdissement significatif du binaire pour un usage souverain mono-utilisateur ou familial sur le même écran. | **Won't have** | 🚫 **Exclu par conception** |
+
+---
+
+# **Structuration des Jalons**
+
+## **Exigences Critiques (Must Have)**
+
+Les fonctionnalités **Must Have** constituent le cœur d'exécution minimal viable et souverain :
+- **Intégrité et sécurité locale** : Liaison 127.0.0.1, protection stricte contre le CSRF (tokens antiforgery sur requêtes standards et AJAX JSON), sauvegardes SQLite incorruptibles et isolées.
+- **Ingestion déterministe** : Parsers universels (OFX, QIF, CAMT.053) et assistant CSV à mémorisation avec hachage SHA-256 anti-doublons.
+- **Comptabilité et saisie** : Gestion multi-comptes, gestion des tiers (commerçants), saisie fluide et ventilation d'opérations (splits) mathématiquement équilibrées.
+- **Pilotage budgétaire et récurrences** : Enveloppes budgétaires mensuelles, moteur de règles déterministes d'automatisation, détection algorithmique des échéances et calcul prévisionnel du reste à vivre.
+
+## **Valeur Ajoutée (Should Have)**
+
+Les éléments **Should Have** apportent le confort, l'analyse moderne et la personnalisation avancée :
+- **Analytique & Visualisation** : Tableaux de bord graphiques réactifs (Chart.js) et moteur de tableaux croisés dynamiques (TCD / Pivot) multidimensionnel sans blocage de base.
+- **Gestion temporelle flexible** : Date budgétaire d'imputation (`BudgetDate`) permettant d'anticiper ou décaler les opérations (salaires de fin de mois).
+- **Sécurité et souveraineté** : Authentification forte locale à deux facteurs (2FA TOTP), migrations de schéma SQLite résilientes et idempotentes.
+- **Expérience utilisateur** : Statuts d'opérations personnalisés avec codes couleurs et icônes, internationalisation hybride (i18n), catalogue de départ complet et réinitialisable sans écrasement.
+- **Extensions à venir** : Catégorisation probabiliste locale par Machine Learning (TF-IDF + Naive Bayes) et bouton de soutien/don discret.
+
+## **Orientations Futures (Could Have)**
+
+Les options **Could Have** étendent les fonctionnalités vers des cas d'usage spécialisés :
+- **Personnalisation fine** : Types de comptes bancaires sur mesure (`CustomAccountTypes`), polices typographiques sélectionnables, personnalisation de l'affichage des colonnes de données.
+- **Multi-devises avancé** : Consolidation et conversion dynamique multi-devises basée sur des taux de change historiques.
+- **Sécurité renforcée au repos** : Chiffrement intégral de la base de données SQLite via SQLCipher (AES-256).
+
+## **Frontières du Produit (Won't Have)**
+
+Les exclusions **Won't Have** posent un cadre ferme et inaltérable :
+- **Confidentialité absolue** : Refus de toute télémétrie, traceur ou script tiers distant.
+- **Souveraineté des données** : Aucun agrégateur bancaire cloud (Open Banking) imposant de transmettre des identifiants bancaires à des tiers.
+- **Légèreté logicielle** : Pas de complexité multi-tenant, de gestion de rôles d'entreprise (RBAC) ou de dépendances lourdes (Docker, Node.js, Python).

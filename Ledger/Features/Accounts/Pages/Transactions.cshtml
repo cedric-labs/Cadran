@@ -1,0 +1,827 @@
+﻿@page "/Transactions"
+@model Ledger.Features.Accounts.Pages.TransactionsModel
+@using Ledger.Features.Accounts.Entities
+@{
+    ViewData["Title"] = Localizer["Transactions.Title"];
+    Layout = "_Layout";
+    var activeCurrency = Model.AccountId.HasValue ? Model.AvailableAccounts.FirstOrDefault(a => a.Id == Model.AccountId.Value)?.Currency : null;
+}
+
+<div class="container-fluid py-3">
+    <!-- En-tête -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 fw-bold mb-1">@Localizer["Transactions.Title"]</h1>
+            <p class="text-muted small mb-0">@Localizer["Transactions.Subtitle"]</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/Imports" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-cloud-upload me-1"></i> @Localizer["Dashboard.ImportStatement"]
+            </a>
+            <a href="/RulesEngine" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-lightning-charge me-1"></i> @Localizer["Nav.Rules"]
+            </a>
+            <a href="/Accounts/Statuses" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-tags me-1"></i> @Localizer["Nav.Statuses"]
+            </a>
+            <a href="/Merchants" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-shop me-1"></i> @Localizer["Nav.Merchants"]
+            </a>
+        </div>
+    </div>
+
+    <!-- Barre de filtres de recherche -->
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-3">
+            <form method="get" id="filterForm">
+                <input type="hidden" name="PageNumber" value="1" />
+                <input type="hidden" name="PageSize" value="@Model.EffectivePageSize" />
+                <!-- Ligne principale : recherche, période, bouton toggle avancés, boutons d'action -->
+                <div class="row g-2 align-items-end">
+                    <div class="col-xl-4 col-lg-5 col-md-6">
+                        <label class="form-label small fw-semibold mb-1" for="searchTermInput">
+                            <i class="bi bi-search me-1"></i>@Localizer["Accounts.TextSearch"]
+                        </label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" name="SearchTerm" id="searchTermInput" value="@Model.SearchTerm" class="form-control" placeholder="@Localizer["Accounts.SearchPlaceholder"]" />
+                            @if (!string.IsNullOrWhiteSpace(Model.SearchTerm))
+                            {
+                                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('searchTermInput').value=''; document.getElementById('filterForm').submit();" title="@Localizer["Common.Close"]">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-lg-3 col-md-6">
+                        <label class="form-label small fw-semibold mb-1 d-flex align-items-center justify-content-between" for="periodSelect">
+                            <span><i class="bi bi-calendar3 me-1"></i>@Localizer["Accounts.Period"]</span>
+                            @if (Model.StartDate.HasValue && Model.EndDate.HasValue && Model.Period == "current-month" && Model.SalaryMonthStartDay > 1)
+                            {
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-normal" style="font-size: 0.7rem;" title="Mois budgétaire du @Model.SalaryMonthStartDay au @(Model.SalaryMonthStartDay - 1)">
+                                    <i class="bi bi-wallet2 me-1"></i>@Model.StartDate.Value.ToString("dd/MM") au @Model.EndDate.Value.ToString("dd/MM")
+                                </span>
+                            }
+                        </label>
+                        <select name="Period" id="periodSelect" class="form-select form-select-sm">
+                            <option value="current-month" selected="@(Model.Period == "current-month" ? "selected" : null)">
+                                @Localizer["Accounts.CurrentMonth"] @(Model.SalaryMonthStartDay > 1 ? $"(dès le {Model.SalaryMonthStartDay})" : "")
+                            </option>
+                            <option value="two-weeks" selected="@(Model.Period == "two-weeks" ? "selected" : null)">@Localizer["Accounts.TwoWeeks"]</option>
+                            <option value="last-month" selected="@(Model.Period == "last-month" ? "selected" : null)">@Localizer["Accounts.LastMonth"]</option>
+                            <option value="three-months" selected="@(Model.Period == "three-months" ? "selected" : null)">@Localizer["Accounts.ThreeMonths"]</option>
+                            <option value="six-months" selected="@(Model.Period == "six-months" ? "selected" : null)">@Localizer["Accounts.SixMonths"]</option>
+                            <option value="all" selected="@(Model.Period == "all" ? "selected" : null)">@Localizer["Accounts.AllDates"]</option>
+                            <option value="custom" selected="@(Model.Period == "custom" ? "selected" : null)">@Localizer["Accounts.CustomPeriod"]</option>
+                        </select>
+                    </div>
+
+                    <div class="col-xl-5 col-lg-4 col-md-12 d-flex justify-content-between align-items-center flex-wrap gap-2 pt-1 pt-md-0">
+                        <button type="button" class="btn btn-sm @(Model.ActiveFilterCriteriaCount > 0 ? "btn-outline-primary active" : "btn-outline-secondary") d-inline-flex align-items-center gap-1"
+                                id="btnToggleAdvancedFilters"
+                                data-bs-toggle="collapse"
+                                data-bs-target="#advancedFiltersCollapse"
+                                aria-expanded="@(Model.ActiveFilterCriteriaCount > 0 ? "true" : "false")"
+                                aria-controls="advancedFiltersCollapse">
+                            <i class="bi bi-sliders"></i>
+                            <span>@Localizer["Accounts.AdvancedFilters"]</span>
+                            @if (Model.ActiveFilterCriteriaCount > 0)
+                            {
+                                <span class="badge bg-primary text-white ms-1 rounded-pill">@Model.ActiveFilterCriteriaCount</span>
+                            }
+                        </button>
+
+                        <div class="d-flex align-items-center gap-1 ms-auto">
+                            <button type="submit" class="btn btn-primary btn-sm px-3 text-nowrap" title="@Localizer["Common.Filter"]">
+                                <i class="bi bi-funnel-fill me-1"></i>@Localizer["Common.Filter"]
+                            </button>
+                            <a href="/Transactions" class="btn btn-outline-secondary btn-sm px-2" title="@Localizer["Accounts.ResetFilters"]">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>@Localizer["Accounts.ResetFilters"]
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panneau rétractable des filtres avancés (Bootstrap Collapse) -->
+                <div class="collapse @(Model.ActiveFilterCriteriaCount > 0 ? "show" : "") mt-3 pt-3 border-top" id="advancedFiltersCollapse">
+                    <div class="row g-3">
+                        <!-- Compte bancaire -->
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                            <label for="txFilterAccountId" class="form-label small fw-semibold mb-1">
+                                <i class="bi bi-bank me-1"></i>@Localizer["Common.Bank"]
+                            </label>
+                            <select name="AccountId" id="txFilterAccountId" aria-label="@Localizer["Common.Bank"]" class="form-select form-select-sm">
+                                <option value="">@Localizer["Dashboard.YourAccounts"]</option>
+                                @foreach (var acc in Model.AvailableAccounts)
+                                {
+                                    <option value="@acc.Id" selected="@(Model.AccountId == acc.Id ? "selected" : null)">
+                                        @acc.Bank?.Name - @acc.Name
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Catégorie -->
+                        <div class="col-xl-3 col-lg-4 col-md-6">
+                            <label for="txFilterCategoryId" class="form-label small fw-semibold mb-1">
+                                <i class="bi bi-tag me-1"></i>@Localizer["Common.Category"]
+                            </label>
+                            <select name="CategoryId" id="txFilterCategoryId" aria-label="@Localizer["Common.Category"]" class="form-select form-select-sm">
+                                <option value="">@Localizer["Accounts.AllCategories"]</option>
+                                <option value="@Guid.Empty" selected="@(Model.CategoryId == Guid.Empty ? "selected" : null)">@Localizer["Accounts.Uncategorized"]</option>
+                                @foreach (var parent in Model.ParentCategories)
+                                {
+                                    var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pEn) && !string.IsNullOrWhiteSpace(pEn) ? pEn : parent.Name;
+                                    <optgroup label="📁 @parentName.ToUpper()">
+                                        <option value="@parent.Id" selected="@(Model.CategoryId == parent.Id ? "selected" : null)">
+                                            ▶ @Localizer["Common.All"] : @parentName
+                                        </option>
+                                        @foreach (var cat in parent.SubCategories.OrderBy(c => c.Name))
+                                        {
+                                            var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cEn) && !string.IsNullOrWhiteSpace(cEn) ? cEn : cat.Name;
+                                            <option value="@cat.Id" selected="@(Model.CategoryId == cat.Id ? "selected" : null)">
+                                                &nbsp;&nbsp;&nbsp;• @catName
+                                            </option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Type d'opération -->
+                        <div class="col-xl-2 col-lg-4 col-md-6">
+                            <label for="txFilterTypeId" class="form-label small fw-semibold mb-1">
+                                <i class="bi bi-arrow-left-right me-1"></i>@Localizer["Accounts.DirectionType"]
+                            </label>
+                            <select name="Type" id="txFilterTypeId" aria-label="@Localizer["Accounts.DirectionType"]" class="form-select form-select-sm">
+                                <option value="">@Localizer["Accounts.AllDebitsCredits"]</option>
+                                <option value="Debit" selected="@(Model.Type == Ledger.Features.Accounts.Entities.TransactionType.Debit ? "selected" : null)">@Localizer["Accounts.DebitsOnly"]</option>
+                                <option value="Credit" selected="@(Model.Type == Ledger.Features.Accounts.Entities.TransactionType.Credit ? "selected" : null)">@Localizer["Accounts.CreditsOnly"]</option>
+                            </select>
+                        </div>
+
+                        <!-- Règles d'affectation -->
+                        <div class="col-xl-4 col-lg-6 col-md-6">
+                            <label for="txFilterRuleId" class="form-label small fw-semibold mb-1">
+                                <i class="bi bi-lightning-charge me-1"></i>@Localizer["Accounts.RuleCoverage"]
+                            </label>
+                            <select name="RuleFilter" id="txFilterRuleId" aria-label="@Localizer["Accounts.RuleCoverage"]" class="form-select form-select-sm">
+                                <option value="all" selected="@(string.IsNullOrEmpty(Model.RuleFilter) || Model.RuleFilter == "all" ? "selected" : null)">@Localizer["Accounts.AllOperations"]</option>
+                                <option value="none" selected="@(Model.RuleFilter == "none" ? "selected" : null)">🚫 @Localizer["Accounts.NoRule"]</option>
+                                <option value="single" selected="@(Model.RuleFilter == "single" ? "selected" : null)">✅ @Localizer["Accounts.SingleRule"]</option>
+                                <option value="multiple" selected="@(Model.RuleFilter == "multiple" ? "selected" : null)">⚠️ @Localizer["Accounts.MultipleRules"]</option>
+                            </select>
+                        </div>
+
+                        <!-- Charges récurrentes -->
+                        <div class="col-xl-4 col-lg-6 col-md-6">
+                            <label for="txFilterRecurringId" class="form-label small fw-semibold mb-1">
+                                <i class="bi bi-arrow-repeat me-1"></i>@Localizer["Accounts.RecurringCoverage"]
+                            </label>
+                            <select name="RecurringFilter" id="txFilterRecurringId" aria-label="@Localizer["Accounts.RecurringCoverage"]" class="form-select form-select-sm">
+                                <option value="all" selected="@(string.IsNullOrEmpty(Model.RecurringFilter) || Model.RecurringFilter == "all" ? "selected" : null)">@Localizer["Accounts.AllOperations"]</option>
+                                <option value="none" selected="@(Model.RecurringFilter == "none" ? "selected" : null)">@Localizer["Accounts.NoRecurring"]</option>
+                                <option value="any" selected="@(Model.RecurringFilter == "any" ? "selected" : null)">@Localizer["Accounts.AnyRecurring"]</option>
+                                <option value="single" selected="@(Model.RecurringFilter == "single" ? "selected" : null)">@Localizer["Accounts.SingleRecurring"]</option>
+                                <option value="multiple" selected="@(Model.RecurringFilter == "multiple" ? "selected" : null)">@Localizer["Accounts.MultipleRecurring"]</option>
+                                @if (Model.AvailableRecurringExpenses.Any())
+                                {
+                                    <optgroup label="@Localizer["Accounts.SpecificRecurringGroup"]">
+                                        @foreach (var exp in Model.AvailableRecurringExpenses)
+                                        {
+                                            <option value="@exp.Id" selected="@(Model.RecurringFilter == exp.Id.ToString() ? "selected" : null)">
+                                                • @exp.Name
+                                            </option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Filtre sur le montant -->
+                        <div class="col-xl-6 col-lg-6 col-md-12">
+                            <label for="amountOperatorSelect" class="form-label small fw-semibold mb-1">
+                                <i class="bi bi-cash me-1"></i>@Localizer["Accounts.AmountFilter"]
+                            </label>
+                            <div class="row g-1 align-items-center">
+                                <div class="col-md-5">
+                                    <select name="AmountOperator" id="amountOperatorSelect" aria-label="@Localizer["Accounts.AmountFilter"]" class="form-select form-select-sm" onchange="toggleAmountMaxInput()">
+                                        <option value="" selected="@(string.IsNullOrEmpty(Model.AmountOperator) ? "selected" : null)">@Localizer["Accounts.AllAmounts"]</option>
+                                        <option value="gt" selected="@(Model.AmountOperator == "gt" ? "selected" : null)">@Localizer["Accounts.GreaterThan"]</option>
+                                        <option value="gte" selected="@(Model.AmountOperator == "gte" ? "selected" : null)">@Localizer["Accounts.GreaterThanOrEqual"]</option>
+                                        <option value="lt" selected="@(Model.AmountOperator == "lt" ? "selected" : null)">@Localizer["Accounts.LessThan"]</option>
+                                        <option value="lte" selected="@(Model.AmountOperator == "lte" ? "selected" : null)">@Localizer["Accounts.LessThanOrEqual"]</option>
+                                        <option value="eq" selected="@(Model.AmountOperator == "eq" ? "selected" : null)">@Localizer["Accounts.EqualTo"]</option>
+                                        <option value="between" selected="@(Model.AmountOperator == "between" ? "selected" : null)">@Localizer["Accounts.Between"]</option>
+                                    </select>
+                                </div>
+                                <div class="col">
+                                    <input type="number" step="0.01" name="AmountValue" id="amountValueInput" aria-label="@Localizer["Common.Amount"] (€)" value="@(Model.AmountValue?.ToString(System.Globalization.CultureInfo.InvariantCulture))" class="form-control form-control-sm" placeholder="@Localizer["Common.Amount"] (€)" />
+                                </div>
+                                <div class="col @(Model.AmountOperator == "between" ? "" : "d-none")" id="amountMaxCol">
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-light">@Localizer["Accounts.And"]</span>
+                                        <input type="number" step="0.01" name="AmountMaxValue" id="amountMaxValueInput" aria-label="Max (€)" value="@(Model.AmountMaxValue?.ToString(System.Globalization.CultureInfo.InvariantCulture))" class="form-control" placeholder="Max (€)" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Dates personnalisées (Du / Au) -->
+                        <div class="col-xl-6 col-lg-6 col-md-12">
+                            <label for="startDateInput" class="form-label small fw-semibold mb-1">
+                                <i class="bi bi-calendar-range me-1"></i>@Localizer["Accounts.CustomDates"]
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <input type="date" name="StartDate" id="startDateInput" aria-label="@Localizer["Accounts.CustomDates"]" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+                                <span class="input-group-text bg-light">@Localizer["Accounts.To"]</span>
+                                <input type="date" name="EndDate" id="endDateInput" aria-label="@Localizer["Accounts.To"]" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+                            </div>
+                        </div>
+
+                        <!-- Incohérences de flux uniquement (flux inversés) -->
+                        <div class="col-12 border-top pt-2 mt-2">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="anomalyOnlySwitch" name="AnomalyOnly" value="true" @(Model.AnomalyOnly ? "checked" : "") />
+                                <label class="form-check-label small fw-semibold text-dark" for="anomalyOnlySwitch">
+                                    <i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Incohérences de flux uniquement (ex: Débit sur catégorie de revenu ou Crédit sur dépense)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Synthèse financière compacte des filtres sélectionnés -->
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-xl-5 g-2 mb-3">
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-primary border-3 py-2 px-2 px-xxl-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-truncate" style="font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.5px;">@Localizer["Accounts.OperationsCount"]</div>
+                        <div class="fw-bold text-primary mt-0" style="font-size: 1.05rem;">@Model.TotalCount</div>
+                    </div>
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-none d-sm-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="bi bi-list-check" style="font-size: 0.85rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-danger border-3 py-2 px-2 px-xxl-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-truncate" style="font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.5px;">@Localizer["Accounts.Expenses"]</div>
+                        <div class="fw-bold text-danger mt-0" style="font-size: 1.05rem;">-@Model.TotalDebits.ToCurrency(activeCurrency, Model.ShowKpiCents)</div>
+                    </div>
+                    <div class="rounded-circle bg-danger bg-opacity-10 text-danger p-2 d-none d-sm-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="bi bi-arrow-down-right" style="font-size: 0.85rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-success border-3 py-2 px-2 px-xxl-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-truncate" style="font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.5px;">@Localizer["Accounts.SalariesActivity"]</div>
+                        <div class="fw-bold text-success mt-0" style="font-size: 1.05rem;">+@Model.SalaryCredits.ToCurrency(activeCurrency, Model.ShowKpiCents)</div>
+                    </div>
+                    <div class="rounded-circle bg-success bg-opacity-10 text-success p-2 d-none d-sm-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="bi bi-cash-stack" style="font-size: 0.85rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-info border-3 py-2 px-2 px-xxl-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-truncate" style="font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.5px;">@Localizer["Accounts.OtherIncomes"]</div>
+                        <div class="fw-bold text-info mt-0" style="font-size: 1.05rem;">+@Model.OtherCredits.ToCurrency(activeCurrency, Model.ShowKpiCents)</div>
+                    </div>
+                    <div class="rounded-circle bg-info bg-opacity-10 text-info p-2 d-none d-sm-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="bi bi-arrow-left-right" style="font-size: 0.85rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card shadow-sm border-0 border-start border-@(Model.NetTotal >= 0 ? "success" : "warning") border-3 py-2 px-2 px-xxl-3 bg-white h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small text-truncate" style="font-size: 0.70rem; text-transform: uppercase; letter-spacing: 0.5px;">@Localizer["Accounts.NetBalance"]</div>
+                        <div class="fw-bold @(Model.NetTotal >= 0 ? "text-success" : "text-danger") mt-0" style="font-size: 1.05rem;">
+                            @(Model.NetTotal >= 0 ? "+" : "")@Model.NetTotal.ToCurrency(activeCurrency, Model.ShowKpiCents)
+                        </div>
+                    </div>
+                    <div class="rounded-circle bg-@(Model.NetTotal >= 0 ? "success" : "danger") bg-opacity-10 text-@(Model.NetTotal >= 0 ? "success" : "danger") p-2 d-none d-sm-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                        <i class="bi bi-calculator" style="font-size: 0.85rem;"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tableau de l'historique complet -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <h2 class="h5 fw-bold mb-0">@string.Format(Localizer["Accounts.OperationsDisplayed"], Model.Transactions.Count)</h2>
+                @if (Model.TotalPages > 1)
+                {
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                        Page @Model.PageNumber / @Model.TotalPages (@Model.TotalCount @Localizer["Accounts.SelectedOperations"])
+                    </span>
+                }
+                else if (Model.TotalCount > Model.Transactions.Count)
+                {
+                    <span class="badge bg-light text-muted border">@string.Format(Localizer["Accounts.LimitedToRecent"], Model.Transactions.Count)</span>
+                }
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="btnColumnsDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="@Localizer["Accounts.Columns"]">
+                        <i class="bi bi-layout-three-columns me-1"></i> @Localizer["Accounts.Columns"]
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2 px-1" id="columnsDropdownMenu" aria-labelledby="btnColumnsDropdown" style="min-width: 230px; font-size: 0.82rem; z-index: 1055;">
+                        <!-- Rempli dynamiquement par table-columns.js -->
+                    </ul>
+                </div>
+                <div class="btn-group btn-group-sm" role="group" aria-label="Mode">
+                    <button type="button" class="btn btn-outline-secondary btn-display-mode" id="btnModeCompact" onclick="setDisplayMode('compact')" title="@Localizer["Accounts.CompactMode"]">
+                        <i class="bi bi-list-task me-1"></i> @Localizer["Accounts.CompactMode"]
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-display-mode" id="btnModeComfort" onclick="setDisplayMode('comfort')" title="@Localizer["Accounts.ComfortMode"]">
+                        <i class="bi bi-view-list me-1"></i> @Localizer["Accounts.ComfortMode"]
+                    </button>
+                </div>
+                <a href="/Accounts/Statuses" class="btn btn-outline-secondary btn-sm" title="@Localizer["Nav.Statuses"]">
+                    <i class="bi bi-tags me-1"></i> @Localizer["Nav.Statuses"]
+                </a>
+            </div>
+        </div>
+        <!-- Barre d'actions groupées (visible dès qu'une sélection existe) -->
+        <div id="bulkActionsBar" class="p-2 px-3 bg-primary bg-opacity-10 border-top border-bottom d-none d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary text-white" id="selectedCountBadge">0</span>
+                <span class="small fw-semibold text-dark">@Localizer["Accounts.SelectedOperations"]</span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <span class="small text-muted me-1">@Localizer["Accounts.SetStatusTo"]</span>
+                @foreach (var s in Model.AvailableStatuses)
+                {
+                    var sName = Model.StatusTranslations.TryGetValue(s.Id, out var sTr) && !string.IsNullOrWhiteSpace(sTr) ? sTr : s.Name;
+                    <button type="button" class="btn btn-sm py-1 px-2 border" 
+                            style="background-color: @(s.ColorHex)15; color: @s.ColorHex; border-color: @(s.ColorHex)40 !important;"
+                            onclick="applyBulkStatus('@s.Id')">
+                        <i class="bi @s.IconName me-1"></i> @sName
+                    </button>
+                }
+                <button type="button" class="btn btn-sm btn-outline-secondary py-1 px-2" onclick="clearSelection()">
+                    @Localizer["Accounts.Unselect"]
+                </button>
+            </div>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 table-compact" id="transactionsTable">
+                <thead class="table-light small">
+                    <tr>
+                        <th style="width: 38px;" class="text-center" data-col-key="select" data-col-label="@Localizer["Accounts.SelectAll"]" data-col-reorderable="false" data-col-hideable="false">
+                            <input type="checkbox" class="form-check-input" id="selectAllCheckbox" onchange="toggleSelectAll(this.checked)" title="@Localizer["Accounts.SelectAll"]" aria-label="@Localizer["Accounts.SelectAll"]" />
+                        </th>
+                        <th style="width: 110px;" data-col-key="date" data-col-label="@Localizer["Common.Date"]" data-col-reorderable="true" data-col-hideable="true">@Localizer["Common.Date"]</th>
+                        <th data-col-key="account" data-col-label="@Localizer["Common.Account"]" data-col-reorderable="true" data-col-hideable="true">@Localizer["Common.Account"]</th>
+                        <th data-col-key="label" data-col-label="@Localizer["Common.Label"]" data-col-reorderable="true" data-col-hideable="false">@Localizer["Common.Label"]</th>
+                        <th data-col-key="category" data-col-label="@Localizer["Common.Category"]" data-col-reorderable="true" data-col-hideable="true">@Localizer["Common.Category"]</th>
+                        <th style="width: 125px;" data-col-key="status" data-col-label="@Localizer["Common.Status"]" data-col-reorderable="true" data-col-hideable="true">@Localizer["Common.Status"]</th>
+                        <th class="text-end" style="width: 140px;" data-col-key="amount" data-col-label="@Localizer["Common.Amount"]" data-col-reorderable="true" data-col-hideable="true">@Localizer["Common.Amount"]</th>
+                        <th class="text-center" style="width: 110px; min-width: 110px;" data-col-key="actions" data-col-label="@Localizer["Common.Actions"]" data-col-reorderable="true" data-col-hideable="true">@Localizer["Common.Actions"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.Transactions.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                                @Localizer["Accounts.NoTransactionsMatch"]
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var t in Model.Transactions)
+                        {
+                            var hasExtraDetails = (!string.IsNullOrEmpty(t.RawLabel) && t.RawLabel != t.Label) || !string.IsNullOrEmpty(t.Reference);
+                            Model.RuleMatches.TryGetValue(t.Id, out var rMatchInfo);
+                            var rCount = rMatchInfo?.MatchCount ?? 0;
+                            var rFirstRule = rMatchInfo?.FirstRuleName ?? "";
+                            var rAllRules = string.Join(" | ", rMatchInfo?.MatchingRuleNames ?? new List<string>());
+
+                            <tr id="tx-row-@t.Id"
+                                data-tx-id="@t.Id"
+                                data-account-id="@t.BankAccountId"
+                                data-cat-id="@(t.CategoryId?.ToString() ?? "")"
+                                data-label="@t.Label"
+                                data-raw-label="@(t.RawLabel ?? "")"
+                                data-amount="@t.Amount.ToCurrency(t.BankAccount?.Currency)"
+                                data-amount-raw="@t.Amount.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                data-day="@t.Date.Day"
+                                data-type="@t.Type"
+                                data-status="@t.Status"
+                                data-status-id="@(t.CustomStatusId?.ToString() ?? "")"
+                                data-date="@t.Date.ToString("yyyy-MM-dd")"
+                                data-budget-date="@(t.BudgetDate?.ToString("yyyy-MM-dd") ?? "")"
+                                data-notes="@(t.Notes ?? "")"
+                                data-merchant-id="@(t.MerchantId?.ToString() ?? "")"
+                                data-merchant-name="@(t.Merchant?.Name ?? "")"
+                                data-rule-count="@rCount"
+                                data-rule-first="@rFirstRule"
+                                data-rule-all="@rAllRules">
+                                <td class="text-center" data-col-key="select">
+                                    <input type="checkbox" class="form-check-input tx-select-check" id="tx-select-@t.Id" value="@t.Id" onchange="onTransactionSelectChange()" aria-label="@t.Label" />
+                                </td>
+                                <td class="small text-nowrap fw-semibold" data-col-key="date">
+                                    <div>@t.Date.ToString("dd/MM/yyyy")</div>
+                                    <div id="budget-badge-@t.Id">
+                                        @if (t.BudgetDate.HasValue && (t.BudgetDate.Value.Year != t.Date.Year || t.BudgetDate.Value.Month != t.Date.Month))
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size: 0.65rem;" title="Comptabilisé sur le budget de @t.BudgetDate.Value.ToString("MMMM yyyy")">
+                                                <i class="bi bi-calendar-event me-1"></i> Budget @t.BudgetDate.Value.ToString("MM/yyyy")
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td data-col-key="account">
+                                    @if (t.BankAccount != null)
+                                    {
+                                        <a href="/Accounts/Details/@t.BankAccountId" class="badge text-decoration-none bg-light text-dark border">
+                                            @(t.BankAccount.Bank?.Name ?? "Banque") - @t.BankAccount.Name
+                                        </a>
+                                    }
+                                </td>
+                                <td data-col-key="label">
+                                    <div class="d-flex align-items-center flex-wrap gap-2">
+                                        <span class="fw-semibold">@t.Label</span>
+                                        @if (t.Merchant != null)
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle tx-merchant-badge-@t.Id" style="font-size: 0.72rem;">
+                                                <i class="bi bi-shop me-1"></i>@t.Merchant.Name
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle tx-merchant-badge-@t.Id d-none" style="font-size: 0.72rem;">
+                                                <i class="bi bi-shop me-1"></i><span class="merchant-name-text"></span>
+                                            </span>
+                                        }
+                                        @if (hasExtraDetails)
+                                        {
+                                            <button type="button" class="tx-detail-btn" id="btn-toggle-@t.Id"
+                                                    onclick="toggleTxDetails('@t.Id')" title="Afficher/masquer les détails bruts">
+                                                <i class="bi bi-caret-down-fill tx-detail-icon-@t.Id"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                    <div id="tx-details-panel-@t.Id" class="tx-details-panel mt-1" style="display: none;">
+                                        @if (!string.IsNullOrEmpty(t.RawLabel) && t.RawLabel != t.Label)
+                                        {
+                                            <div class="text-muted font-monospace" style="font-size: 0.72rem;">@t.RawLabel</div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(t.Reference))
+                                        {
+                                            <span class="badge bg-secondary-subtle text-secondary font-monospace" style="font-size: 0.65rem;">Ref: @t.Reference</span>
+                                        }
+                                    </div>
+                                    <div id="notes-badge-@t.Id" class="mt-1">
+                                        @if (!string.IsNullOrWhiteSpace(t.Notes))
+                                        {
+                                            <div class="small text-dark bg-warning-subtle border border-warning-subtle rounded px-2 py-1 d-inline-flex align-items-center gap-1 cursor-pointer" 
+                                                 role="button" tabindex="0"
+                                                 onclick="openCategoryModal('@t.Id')"
+                                                 title="Cliquer pour modifier la note" style="font-size: 0.78rem;">
+                                                <i class="bi bi-sticky-fill text-warning"></i>
+                                                <span class="note-text">@t.Notes</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </td>
+                                <td data-col-key="category">
+                                    @{
+                                        var isAnomaly = (t.Type == TransactionType.Debit && t.Category?.IsIncome == true) || 
+                                                        (t.Type == TransactionType.Credit && t.Category != null && !t.Category.IsIncome);
+                                    }
+                                    <div class="d-flex align-items-center flex-wrap gap-1">
+                                        <button type="button" 
+                                                class="btn btn-sm p-0 border-0 bg-transparent text-start"
+                                                onclick="openCategoryModal('@t.Id')"
+                                                title="Modifier la catégorie de cette opération">
+                                            @if (t.Category != null)
+                                            {
+                                                var catName = Model.CategoryTranslations.TryGetValue(t.Category.Id, out var cTr) && !string.IsNullOrWhiteSpace(cTr) ? cTr : t.Category.Name;
+                                                <span class="badge rounded-pill border category-pill-@t.Id" style="background-color: @(t.Category.ColorHex)15; color: @t.Category.ColorHex; border-color: @(t.Category.ColorHex)40 !important; cursor: pointer;">
+                                                    <i class="bi @t.Category.IconName me-1"></i> @catName
+                                                    <i class="bi bi-pencil-fill ms-1 opacity-50" style="font-size: 0.7em;"></i>
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-light text-muted border category-pill-@t.Id" style="cursor: pointer;">
+                                                    <i class="bi bi-tag me-1"></i> @Localizer["Accounts.Uncategorized"]
+                                                    <i class="bi bi-pencil-fill ms-1 opacity-50" style="font-size: 0.7em;"></i>
+                                                </span>
+                                            }
+                                        </button>
+                                        @if (isAnomaly)
+                                        {
+                                            <i class="bi bi-exclamation-triangle-fill text-warning ms-1" title="Incohérence flux/catégorie : opération en @(t.Type == TransactionType.Debit ? "Débit" : "Crédit") mais catégorie typée comme @(t.Category?.IsIncome == true ? "Revenu" : "Dépense")"></i>
+                                        }
+                                        @if (t.IsSplit)
+                                        {
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-1" title="Opération ventilée en @t.Splits.Count parts">
+                                                <i class="bi bi-diagram-2-fill me-1"></i>@t.Splits.Count parts
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td data-col-key="status">
+                                    @{
+                                        string statusLabel = t.GetStatusDisplayName();
+                                        if (t.CustomStatusId.HasValue && Model.StatusTranslations.TryGetValue(t.CustomStatusId.Value, out var stTrans) && !string.IsNullOrWhiteSpace(stTrans))
+                                        {
+                                            statusLabel = stTrans;
+                                        }
+                                    }
+                                    <div class="dropdown" id="status-dropdown-@t.Id">
+                                        <button class="status-pill-badge status-btn-@t.Id" 
+                                                type="button" data-bs-toggle="dropdown" aria-expanded="false" 
+                                                style="background-color: @(t.GetStatusColorHex())15; color: @t.GetStatusColorHex(); border-color: @(t.GetStatusColorHex())40 !important;"
+                                                title="Cliquer pour changer le statut">
+                                            <i class="bi @t.GetStatusIconClass() status-icon-@t.Id"></i>
+                                            <span class="status-label-@t.Id">@statusLabel</span>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-1" style="font-size: 0.8rem; z-index: 1050;">
+                                            <li class="dropdown-header small text-muted py-1" style="font-size: 0.7rem;">@Localizer["Accounts.SetStatusTo"]</li>
+                                            @foreach (var s in Model.AvailableStatuses)
+                                            {
+                                                var isActive = (t.CustomStatusId == s.Id) || (t.CustomStatusId == null && s.Code == t.Status.ToString());
+                                                var sName = Model.StatusTranslations.TryGetValue(s.Id, out var sTr) && !string.IsNullOrWhiteSpace(sTr) ? sTr : s.Name;
+                                                <li>
+                                                    <button type="button" class="dropdown-item d-flex align-items-center gap-2 py-1 item-status-@s.Id @(isActive ? "active fw-bold" : "")" 
+                                                            onclick="updateTransactionStatus('@t.Id', '@s.Id')">
+                                                        <i class="bi @s.IconName" style="color: @s.ColorHex;"></i> @sName
+                                                    </button>
+                                                </li>
+                                            }
+                                            <li><hr class="dropdown-divider my-1"></li>
+                                            <li>
+                                                <a class="dropdown-item small text-muted d-flex align-items-center gap-2 py-1" href="/Accounts/Statuses">
+                                                    <i class="bi bi-gear"></i> @Localizer["Nav.Statuses"]...
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                                <td class="text-end fw-bold @(t.Type == TransactionType.Credit ? "text-success" : "text-dark")" data-col-key="amount">
+                                    @(t.Type == TransactionType.Credit ? "+" : "-")@t.Amount.ToCurrency(t.BankAccount?.Currency)
+                                </td>
+                                <td class="text-center" data-col-key="actions">
+                                    <div class="d-flex align-items-center justify-content-center gap-1">
+                                        <button type="button" class="btn btn-sm btn-link text-muted p-1 opacity-75 hover-opacity-100"
+                                                onclick="openCategoryModal('@t.Id')"
+                                                title="Modifier l'opération (note, catégorie, budget, statut)">
+                                            <i class="bi bi-pencil-square" style="font-size: 0.95rem;"></i>
+                                        </button>
+                                        @{
+                                            Model.RuleMatches.TryGetValue(t.Id, out var rMatch);
+                                            var mCount = rMatch?.MatchCount ?? 0;
+                                            string ruleBtnClass;
+                                            string ruleBtnIcon;
+                                            string ruleBtnTitle;
+
+                                            if (mCount == 0 || rMatch == null)
+                                            {
+                                                ruleBtnClass = "text-secondary opacity-50 hover-opacity-100";
+                                                ruleBtnIcon = "bi-lightning-charge";
+                                                ruleBtnTitle = "Aucune règle ne correspond à cette opération. Cliquer pour en créer une.";
+                                            }
+                                            else if (mCount == 1)
+                                            {
+                                                ruleBtnClass = "text-success fw-bold";
+                                                ruleBtnIcon = "bi-lightning-charge-fill";
+                                                ruleBtnTitle = $"1 règle correspond déjà : '{rMatch.FirstRuleName}' (Catégorie : {rMatch.FirstCategoryName ?? "Non spécifiée"}). Cliquer pour voir ou créer une autre règle.";
+                                            }
+                                            else
+                                            {
+                                                ruleBtnClass = "text-warning fw-bold";
+                                                ruleBtnIcon = "bi-lightning-charge-fill";
+                                                var rulesListStr = string.Join(", ", rMatch.MatchingRuleNames);
+                                                ruleBtnTitle = $"{mCount} règles correspondent ({rulesListStr}) ! Règle prioritaire : '{rMatch.FirstRuleName}'. Cliquer pour voir ou créer une règle.";
+                                            }
+                                        }
+                                        <button type="button" class="btn btn-sm btn-link @ruleBtnClass p-1"
+                                                onclick="openQuickRuleModal('@t.Id')"
+                                                title="@ruleBtnTitle">
+                                            <i class="bi @ruleBtnIcon" style="font-size: 0.95rem;"></i>
+                                        </button>
+                                        @{
+                                            Model.RecurringMatches.TryGetValue(t.Id, out var recMatch);
+                                            var recCount = recMatch?.MatchCount ?? 0;
+                                            string recBtnClass;
+                                            string recBtnTitle;
+
+                                            if (recCount == 0 || recMatch == null)
+                                            {
+                                                recBtnClass = "text-secondary opacity-50 hover-opacity-100";
+                                                recBtnTitle = Localizer["Transactions.CreateRecurringTitle"].Value;
+                                            }
+                                            else if (recCount == 1)
+                                            {
+                                                recBtnClass = "text-success fw-bold";
+                                                recBtnTitle = string.Format(Localizer["Transactions.RecurringMatchSingle"].Value, recMatch.FirstExpenseName);
+                                            }
+                                            else
+                                            {
+                                                recBtnClass = "text-warning fw-bold";
+                                                var recNamesList = string.Join(", ", recMatch.MatchingExpenseNames);
+                                                recBtnTitle = string.Format(Localizer["Transactions.RecurringMatchMultiple"].Value, recCount, recNamesList);
+                                            }
+                                        }
+                                        <button type="button" class="btn btn-sm btn-link @recBtnClass p-1 btn-recurring-tx btn-recurring-tx-@t.Id"
+                                                id="btn-recurring-tx-@t.Id"
+                                                onclick="openQuickRecurringModal('@t.Id')"
+                                                title="@recBtnTitle"
+                                                data-rec-count="@recCount"
+                                                data-rec-first="@(recMatch?.FirstExpenseName ?? "")"
+                                                data-rec-all="@(string.Join(", ", recMatch?.MatchingExpenseNames ?? new List<string>()))">
+                                            <i class="bi bi-arrow-repeat" style="font-size: 0.95rem;"></i>
+                                        </button>
+
+                                        <!-- Bouton Ventilation / Split -->
+                                        @if (t.IsSplit)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-link text-primary p-1 position-relative btn-split-tx"
+                                                    onclick="openSplitModal('@t.Id')"
+                                                    title="@string.Format(Localizer["Transactions.SplitHoverTitle"].Value, t.Splits.Count)">
+                                                <i class="bi bi-diagram-2-fill" style="font-size: 0.95rem;"></i>
+                                                <span class="badge bg-primary text-white position-absolute top-0 start-100 translate-middle p-1 rounded-circle" style="font-size: 0.55rem; width: 14px; height: 14px; line-height: 7px;">@t.Splits.Count</span>
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-sm btn-link text-secondary p-1 btn-split-tx"
+                                                    onclick="openSplitModal('@t.Id')"
+                                                    title="@Localizer["Transactions.SplitActionTitle"]">
+                                                <i class="bi bi-diagram-2" style="font-size: 0.95rem;"></i>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                            @if (t.IsSplit && t.Splits.Any())
+                            {
+                                @foreach (var s in t.Splits)
+                                {
+                                    var sCatName = Localizer["Accounts.Uncategorized"].Value;
+                                    if (s.Category != null)
+                                    {
+                                        sCatName = Model.CategoryTranslations.TryGetValue(s.Category.Id, out var sct) ? sct : s.Category.Name;
+                                    }
+                                    var sMerchName = s.Merchant?.Name ?? "-";
+                                    <tr class="bg-light-subtle small text-muted fst-italic border-bottom border-light" style="font-size: 0.8rem;">
+                                        <td></td>
+                                        <td colspan="2" class="ps-4">
+                                            <i class="bi bi-arrow-return-right me-1 text-primary"></i>
+                                            <span class="fw-semibold text-dark">Part ventilée :</span>
+                                            @if (!string.IsNullOrWhiteSpace(s.Notes))
+                                            {
+                                                <span class="text-secondary ms-1">(@s.Notes)</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="text-truncate d-inline-block" style="max-width: 140px;" title="@sMerchName">
+                                                <i class="bi bi-shop me-1 text-secondary opacity-75"></i>@sMerchName
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge rounded-pill border" style="background-color: @(s.Category?.ColorHex ?? "#94a3b8")15; color: @(s.Category?.ColorHex ?? "#64748b"); border-color: @(s.Category?.ColorHex ?? "#94a3b8")40 !important;">
+                                                <i class="bi @(s.Category?.IconName ?? "bi-tag") me-1"></i>@sCatName
+                                            </span>
+                                        </td>
+                                        <td></td>
+                                        <td class="text-end fw-semibold @(t.Type == TransactionType.Credit ? "text-success" : "text-dark")">
+                                            @(t.Type == TransactionType.Credit ? "+" : "-")@s.Amount.ToCurrency(t.BankAccount?.Currency)
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                }
+                            }
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.TotalPages > 1 || Model.TotalCount > 0)
+        {
+            <div class="card-footer bg-white py-3 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="small text-muted">
+                    @string.Format(Localizer["Accounts.PaginationSummary"].Value, Model.StartItemIndex, Model.EndItemIndex, Model.TotalCount)
+                </div>
+                <nav aria-label="Pagination des opérations">
+                    <ul class="pagination pagination-sm mb-0">
+                        <!-- Première page -->
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="@(Model.HasPreviousPage ? Model.GetPageUrl(1) : "#")" title="@Localizer["Accounts.FirstPage"]" aria-label="Première page">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </a>
+                        </li>
+                        <!-- Page précédente -->
+                        <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                            <a class="page-link" href="@(Model.HasPreviousPage ? Model.GetPageUrl(Model.PageNumber - 1) : "#")" title="@Localizer["Accounts.PreviousPage"]" aria-label="Page précédente">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+
+                        <!-- Numéros de pages -->
+                        @{
+                            int startPage = Math.Max(1, Model.PageNumber - 2);
+                            int endPage = Math.Min(Model.TotalPages, Model.PageNumber + 2);
+                            if (startPage > 1)
+                            {
+                                <li class="page-item">
+                                    <a class="page-link" href="@Model.GetPageUrl(1)">1</a>
+                                </li>
+                                if (startPage > 2)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                }
+                            }
+                            for (int p = startPage; p <= endPage; p++)
+                            {
+                                var isCurrent = (p == Model.PageNumber);
+                                <li class="page-item @(isCurrent ? "active" : "")">
+                                    @if (isCurrent)
+                                    {
+                                        <span class="page-link fw-bold">@p</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="page-link" href="@Model.GetPageUrl(p)">@p</a>
+                                    }
+                                </li>
+                            }
+                            if (endPage < Model.TotalPages)
+                            {
+                                if (endPage < Model.TotalPages - 1)
+                                {
+                                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                                }
+                                <li class="page-item">
+                                    <a class="page-link" href="@Model.GetPageUrl(Model.TotalPages)">@Model.TotalPages</a>
+                                </li>
+                            }
+                        }
+
+                        <!-- Page suivante -->
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="@(Model.HasNextPage ? Model.GetPageUrl(Model.PageNumber + 1) : "#")" title="@Localizer["Accounts.NextPage"]" aria-label="Page suivante">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        <!-- Dernière page -->
+                        <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                            <a class="page-link" href="@(Model.HasNextPage ? Model.GetPageUrl(Model.TotalPages) : "#")" title="@Localizer["Accounts.LastPage"]" aria-label="Dernière page">
+                                <i class="bi bi-chevron-double-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="small text-muted mb-0" for="pageSizeSelect">@Localizer["Accounts.PerPage"]</label>
+                    <select id="pageSizeSelect" class="form-select form-select-sm" style="width: auto;" onchange="changePageSize(this.value)">
+                        @foreach (var size in new[] { 25, 50, 100, 250 })
+                        {
+                            <option value="@size" selected="@(Model.EffectivePageSize == size ? "selected" : null)">@size</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+
+<partial name="~/Features/Accounts/Pages/_TransactionOperationsModals.cshtml" model="Model" />
+
+<!-- Modal Scinder l'opération (Ventilation) -->
+<div class="modal fade" id="splitTransactionModal" tabindex="-1" aria-labelledby="splitTransactionModalLabel" aria-hidden="true">
+    <partial name="~/Features/Accounts/Pages/_SplitTransactionModalContent.cshtml" model="Model" />
+</div>
+
+@section Scripts {
+    <partial name="~/Features/Accounts/Pages/_TransactionOperationsScripts.cshtml" model="Model" />
+    @* Handlers: openSplitModal, SaveTransactionSplits, RemoveTransactionSplits *@
+}

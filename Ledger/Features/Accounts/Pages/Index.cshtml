@@ -1,0 +1,145 @@
+﻿@page "/Accounts"
+@model Ledger.Features.Accounts.Pages.IndexModel
+@{
+    ViewData["Title"] = Localizer["Dashboard.Title"];
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-3">
+    <!-- En-tête avec métriques globales -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-1">@Localizer["Dashboard.Title"]</h1>
+            <p class="text-muted small mb-0">@Localizer["Dashboard.Subtitle"]</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/Transactions" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-receipt-cutoff me-1"></i> @Localizer["Dashboard.AllTransactions"]
+            </a>
+            <a href="/Imports" class="btn btn-outline-primary btn-sm">
+                <i class="bi bi-cloud-upload me-1"></i> @Localizer["Dashboard.ImportStatement"]
+            </a>
+            <a href="/Accounts/CreateAccount" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i> @Localizer["Dashboard.NewAccount"]
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-primary border-4">
+                <div class="card-body">
+                    <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.NetWorth"]</span>
+                    <div class="h3 fw-bold mt-1 text-primary">@Model.Dashboard.TotalNetWorth.ToString("C2")</div>
+                    <span class="small text-muted"><i class="bi bi-bank me-1"></i> Actifs nets de passifs</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-success border-4">
+                <div class="card-body">
+                    <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.LiquidAssets"]</span>
+                    <div class="h3 fw-bold mt-1 text-success">@Model.Dashboard.TotalLiquidAssets.ToString("C2")</div>
+                    <span class="small text-muted"><i class="bi bi-wallet2 me-1"></i> Comptes chèques & espèces</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-info border-4">
+                <div class="card-body">
+                    <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.Savings"]</span>
+                    <div class="h3 fw-bold mt-1 text-info">@Model.Dashboard.TotalSavings.ToString("C2")</div>
+                    <span class="small text-muted"><i class="bi bi-graph-up-arrow me-1"></i> Livrets, PEA, Titres</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 border-start border-danger border-4">
+                <div class="card-body">
+                    <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.Debts"]</span>
+                    <div class="h3 fw-bold mt-1 text-danger">@Model.Dashboard.TotalDebts.ToString("C2")</div>
+                    <span class="small text-muted"><i class="bi bi-credit-card-2-front me-1"></i> Débits & cartes différées</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grille des comptes bancaires -->
+    <h2 class="h5 fw-bold mb-3">@Localizer["Dashboard.YourAccounts"] (@Model.Dashboard.Accounts.Count)</h2>
+
+    @if (!Model.Dashboard.Accounts.Any())
+    {
+        <div class="card border-0 shadow-sm p-5 text-center">
+            <div class="text-muted mb-3"><i class="bi bi-wallet2 display-3"></i></div>
+            <h4>@Localizer["Dashboard.NoAccounts"]</h4>
+            <p class="text-muted">@Localizer["Dashboard.NoAccountsDesc"]</p>
+            <div class="mt-2">
+                <a href="/Accounts/CreateAccount" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i> @Localizer["Dashboard.AddFirstAccount"]
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-3">
+            @foreach (var acc in Model.Dashboard.Accounts)
+            {
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0 hover-lift">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <span class="badge bg-light text-dark border mb-1">@acc.BankName</span>
+                                    <span class="badge bg-secondary-subtle text-secondary font-monospace mb-1 ms-1">@acc.Currency</span>
+                                    <h3 class="h5 card-title fw-bold mb-0">@acc.AccountName</h3>
+                                </div>
+                                @if (!string.IsNullOrEmpty(acc.CustomAccountTypeName))
+                                {
+                                    <span class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
+                                          style="background-color: @(acc.CustomAccountTypeColor ?? "#0dcaf0")15; color: @(acc.CustomAccountTypeColor ?? "#0dcaf0"); border-color: @(acc.CustomAccountTypeColor ?? "#0dcaf0")40 !important; font-size: 0.75rem;">
+                                        <i class="bi @(acc.CustomAccountTypeIcon ?? "bi-piggy-bank")"></i>
+                                        <span>@acc.CustomAccountTypeName</span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge @acc.Type.GetBadgeClass()">@acc.Type.GetDisplayName()</span>
+                                }
+                            </div>
+
+                            <div class="my-3">
+                                <div class="text-muted small">@Localizer["Dashboard.CurrentBalance"]</div>
+                                <div class="h4 fw-bold @(acc.CurrentBalance >= 0 ? "text-dark" : "text-danger")">
+                                    @acc.CurrentBalance.ToCurrency(acc.Currency)
+                                </div>
+                                @if (acc.PendingBalance != 0)
+                                {
+                                    <div class="small text-muted">
+                                        @Localizer["Dashboard.Cleared"] : <span class="fw-semibold">@acc.ClearedBalance.ToCurrency(acc.Currency)</span>
+                                        <span class="badge bg-secondary-subtle text-secondary ms-1">@Localizer["Dashboard.Pending"] : @acc.PendingBalance.ToCurrency(acc.Currency)</span>
+                                    </div>
+                                }
+                            </div>
+
+                            <div class="d-flex justify-content-between pt-2 border-top gap-1">
+                                <a href="/Accounts/Details/@acc.AccountId" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-list-ul me-1"></i> @Localizer["Nav.Transactions"]
+                                </a>
+                                <div class="d-flex gap-1">
+                                    <a href="/Accounts/Edit/@acc.AccountId?returnUrl=/Accounts" class="btn btn-sm btn-outline-secondary" title="@Localizer["Common.Edit"]">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a href="/Imports?accountId=@acc.AccountId" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-cloud-arrow-up me-1"></i> @Localizer["Nav.Imports"]
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

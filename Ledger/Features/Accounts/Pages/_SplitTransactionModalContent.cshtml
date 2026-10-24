@@ -1,0 +1,86 @@
+﻿@model Ledger.Features.Accounts.Pages.TransactionOperationsPageModelBase
+
+<div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content shadow border-0">
+        <div class="modal-header bg-light border-bottom py-3">
+            <div class="d-flex align-items-center gap-2">
+                <div class="rounded-circle bg-primary-subtle text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                    <i class="bi bi-diagram-2-fill fs-5"></i>
+                </div>
+                <div>
+                    <h5 class="modal-title fs-6 fw-bold mb-0" id="splitTransactionModalLabel">@Localizer["Transactions.SplitModalTitle"]</h5>
+                    <div class="text-muted small">@Localizer["Transactions.SplitModalDesc"]</div>
+                </div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@Localizer["Common.Close"]"></button>
+        </div>
+        <div class="modal-body p-3">
+            <input type="hidden" id="splitModalTxId" />
+            
+            <!-- En-tête récapitulatif transaction parente -->
+            <div class="card bg-light border-0 mb-3 p-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small">@Localizer["Transactions.SelectedOperation"] :</span>
+                        <div class="fw-bold text-dark fs-6" id="splitModalTxLabel"></div>
+                        <div class="small text-muted" id="splitModalTxDate"></div>
+                    </div>
+                    <div class="text-end">
+                        <span class="text-muted small">@Localizer["Transactions.SplitTotalAmount"]</span>
+                        <div class="fs-5 fw-bold" id="splitModalTxTotalAmount"></div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+                    <div class="small">
+                        <span class="text-muted">@Localizer["Transactions.SplitAllocated"]</span>
+                        <span class="fw-bold ms-1" id="splitModalAllocatedAmount">0,00 €</span>
+                    </div>
+                    <div class="small">
+                        <span class="text-muted">@Localizer["Transactions.SplitRemaining"]</span>
+                        <span class="badge px-2 py-1 fs-6" id="splitModalRemainingBadge">0,00 €</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tableau dynamique des parts ventilées -->
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-2">
+                    <thead class="table-light small text-muted">
+                        <tr>
+                            <th style="width: 150px;">@Localizer["Common.Amount"] (<span id="splitModalThCurrency">€</span>) <span class="text-danger">*</span></th>
+                            <th style="min-width: 180px;">@Localizer["Nav.Categories"]</th>
+                            <th style="min-width: 160px;">@Localizer["Merchants.Merchant"]</th>
+                            <th style="min-width: 160px;">@Localizer["Transactions.Notes"]</th>
+                            <th style="width: 40px;" class="text-center"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="splitLinesContainer">
+                        <!-- Lignes dynamiques -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <button type="button" class="btn btn-outline-primary btn-sm" onclick="addSplitLine()">
+                    <i class="bi bi-plus-circle me-1"></i> @Localizer["Transactions.SplitAddPart"]
+                </button>
+                <div id="splitBalanceAlert" class="small text-danger fw-semibold" style="display: none;">
+                    <i class="bi bi-exclamation-circle me-1"></i> @Localizer["Transactions.SplitBalanceError"]
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer bg-light py-2 d-flex justify-content-between">
+            <div>
+                <button type="button" class="btn btn-outline-danger btn-sm" id="btnDeleteSplits" onclick="removeSplits()" style="display: none;">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i> @Localizer["Transactions.SplitDeleteAll"]
+                </button>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnSaveSplits" onclick="saveSplits()">
+                    <i class="bi bi-check-lg me-1"></i> @Localizer["Common.Save"]
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

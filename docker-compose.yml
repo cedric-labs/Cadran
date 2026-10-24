@@ -1,0 +1,17 @@
+services:
+  cadran:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: cadran:latest
+    container_name: cadran
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./docker-data:/app/data
+      - ./docker-backups:/app/backups
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - Server__Port=8080
+      - Server__AllowNetworkAccess=true

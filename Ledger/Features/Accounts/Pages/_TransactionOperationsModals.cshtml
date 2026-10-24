@@ -1,0 +1,512 @@
+﻿@model Ledger.Features.Accounts.Pages.TransactionOperationsPageModelBase
+@using Ledger.Domain.Entities
+
+<!-- Modal de modification d'opération -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-pencil-square me-2 text-primary"></i>@Localizer["Transactions.EditOperation"]
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@Localizer["Common.Close"]"></button>
+            </div>
+            <form id="updateCategoryForm" method="post" asp-page-handler="UpdateCategory">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="modalTransactionId" name="transactionId" />
+
+                    <div class="p-3 bg-light rounded-3 mb-3">
+                        <div class="small text-muted mb-1">@Localizer["Transactions.SelectedOperation"]</div>
+                        <div class="fw-bold fs-6" id="modalTransactionLabel"></div>
+                        <div class="small fw-semibold mt-1" id="modalTransactionAmount"></div>
+                    </div>
+
+                    <!-- Marchand / Tiers -->
+                    <div class="mb-3 position-relative" id="merchantComboboxContainer">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold mb-0" for="modalMerchantSearch">
+                                <i class="bi bi-shop me-1 text-primary"></i>@Localizer["Merchants.Title"]
+                            </label>
+                            <a href="/Merchants" class="small text-muted text-decoration-none" target="_blank">
+                                <i class="bi bi-gear me-1"></i>@Localizer["Merchants.ManageMerchants"]
+                            </a>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white"><i class="bi bi-shop"></i></span>
+                            <input type="text" class="form-control" id="modalMerchantSearch" 
+                                   placeholder="@Localizer["Merchants.SearchOrAdd"]" 
+                                   autocomplete="off" oninput="onMerchantSearchInput(this.value)" onfocus="onMerchantSearchFocus()" />
+                            <button type="button" class="btn btn-outline-secondary" id="btnModalClearMerchant" onclick="clearSelectedMerchant()" title="@Localizer["Common.Clear"]">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="modalMerchantId" name="merchantId" />
+                        <input type="hidden" id="modalNewMerchantName" name="newMerchantName" />
+                        
+                        <div id="modalMerchantList" class="dropdown-menu w-100 shadow border p-1" style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1060;">
+                            <!-- Populated dynamically via JS -->
+                        </div>
+                    </div>
+
+                    <!-- Note / Informations complémentaires -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="modalTransactionNotes">
+                            <i class="bi bi-sticky me-1 text-warning"></i>@Localizer["Transactions.NotesAndInfo"]
+                        </label>
+                        <textarea class="form-control form-control-sm" id="modalTransactionNotes" name="notes" rows="2"
+                                  placeholder="@Localizer["Transactions.NotesPlaceholder"]"></textarea>
+                        <div class="text-muted small mt-1" style="font-size: 0.72rem;">
+                            @Localizer["Transactions.NotesHelp"]
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="categoryTreeSearch" class="form-label small fw-semibold">@Localizer["Transactions.ChooseCategoryTree"]</label>
+                        
+                        <!-- Recherche rapide en temps réel dans l'arborescence -->
+                        <div class="input-group input-group-sm mb-2">
+                            <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                            <input type="text" id="categoryTreeSearch" class="form-control" placeholder="@Localizer["Transactions.SearchCategoryPlaceholder"]" aria-label="@Localizer["Transactions.ChooseCategoryTree"]" oninput="filterCategoryTree(this.value)">
+                        </div>
+
+                        <!-- Arborescence style Explorateur Windows -->
+                        <div class="border rounded-3 p-2 bg-white" style="max-height: 280px; overflow-y: auto;" id="categoryTreeContainer">
+                            <!-- Option Non catégorisé -->
+                            <div class="tree-item d-flex align-items-center p-2 rounded-2 cursor-pointer mb-1"
+                                 id="tree-item-none"
+                                 role="button"
+                                 tabindex="0"
+                                 data-is-income=""
+                                 onclick="selectCategoryNode('', '@Localizer["Accounts.Uncategorized"]', 'bi-tag', '#6c757d', null)">
+                                <i class="bi bi-slash-circle text-muted me-2"></i>
+                                <span class="small fw-semibold text-muted">-- @Localizer["Accounts.Uncategorized"] --</span>
+                            </div>
+
+                            @foreach (var parent in Model.ParentCategories)
+                            {
+                                var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pEn) && !string.IsNullOrWhiteSpace(pEn) ? pEn : parent.Name;
+                                <div class="tree-node mb-1" data-cat-id="@parent.Id" data-cat-name="@parent.Name.ToLowerInvariant() @parentName.ToLowerInvariant()">
+                                    <!-- Ligne Grande Catégorie (sélectionnable !) -->
+                                    <div class="tree-node-header d-flex align-items-center justify-content-between p-2 rounded-2 cursor-pointer"
+                                         id="tree-item-@parent.Id"
+                                         role="button"
+                                         tabindex="0"
+                                         data-is-income="@(parent.IsIncome.ToString().ToLowerInvariant())"
+                                         onclick="selectCategoryNode('@parent.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(parentName)', '@parent.IconName', '@parent.ColorHex', @(parent.IsIncome.ToString().ToLowerInvariant()))">
+                                        <div class="d-flex align-items-center gap-2 flex-grow-1 overflow-hidden">
+                                            <span class="tree-toggle text-secondary me-1" role="button" tabindex="0" onclick="event.stopPropagation(); toggleTreeNode('@parent.Id');" title="Toggle">
+                                                <i class="bi bi-chevron-down" id="chevron-@parent.Id"></i>
+                                            </span>
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                                 style="width: 24px; height: 24px; background-color: @parent.ColorHex; color: #fff;">
+                                                <i class="bi @parent.IconName" style="font-size: 0.75rem;"></i>
+                                            </div>
+                                            <span class="fw-bold small text-dark text-truncate">@parentName</span>
+                                            <span class="badge @(parent.IsIncome ? "bg-success-subtle text-success" : "bg-light text-muted border") ms-1" style="font-size: 0.65rem;">
+                                                @(parent.IsIncome ? Localizer["Categories.Incomes"] : Localizer["Categories.Expenses"])
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Sous-catégories indentées -->
+                                    <div class="tree-children ps-4 mt-1 border-start ms-3" id="children-@parent.Id">
+                                        @foreach (var sub in parent.SubCategories.OrderBy(s => s.Name))
+                                        {
+                                            var subName = Model.CategoryTranslations.TryGetValue(sub.Id, out var sEn) && !string.IsNullOrWhiteSpace(sEn) ? sEn : sub.Name;
+                                            <div class="tree-child-item d-flex align-items-center p-1 px-2 rounded-2 cursor-pointer mb-1"
+                                                 id="tree-item-@sub.Id"
+                                                 role="button"
+                                                 tabindex="0"
+                                                 data-cat-id="@sub.Id"
+                                                 data-cat-name="@sub.Name.ToLowerInvariant() @subName.ToLowerInvariant()"
+                                                 data-is-income="@(sub.IsIncome.ToString().ToLowerInvariant())"
+                                                 onclick="selectCategoryNode('@sub.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(subName)', '@sub.IconName', '@sub.ColorHex', @(sub.IsIncome.ToString().ToLowerInvariant()))">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center me-2 flex-shrink-0"
+                                                     style="width: 20px; height: 20px; background-color: @(sub.ColorHex)20; color: @sub.ColorHex;">
+                                                    <i class="bi @sub.IconName" style="font-size: 0.7rem;"></i>
+                                                </div>
+                                                <span class="small text-truncate">@subName</span>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Input caché pour la valeur soumise -->
+                        <input type="hidden" id="modalNewCategoryId" name="newCategoryId" />
+
+                        <!-- Affichage de la catégorie sélectionnée en temps réel -->
+                        <div class="mt-2 p-2 bg-light rounded-2 border d-flex align-items-center justify-content-between">
+                            <span class="small text-muted">@Localizer["Transactions.CurrentSelection"] :</span>
+                            <div id="modalSelectedCategoryPreview">
+                                <span class="badge bg-light text-muted border"><i class="bi bi-tag me-1"></i> @Localizer["Accounts.Uncategorized"]</span>
+                            </div>
+                        </div>
+
+                        <!-- Alerte en cas d'incohérence Débit / Crédit avec le type de la catégorie -->
+                        <div id="modalCategoryAnomalyAlert" class="alert alert-warning py-2 px-3 mt-2 mb-0 d-none align-items-center">
+                            <i class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2 text-warning fs-5"></i>
+                            <div>
+                                <strong class="d-block small">@Localizer["Transactions.AnomalyWarningTitle"]</strong>
+                                <span class="small text-muted" id="modalCategoryAnomalyAlertText">@Localizer["Transactions.AnomalyWarningDesc"]</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Date de comptabilisation budgétaire -->
+                    <div class="mt-3 p-3 bg-light rounded-3 border">
+                        <label for="modalBudgetDateInput" class="form-label small fw-semibold d-flex justify-content-between align-items-center mb-1">
+                            <span><i class="bi bi-calendar-event me-1 text-primary"></i>@Localizer["Transactions.BudgetDate"]</span>
+                            <span class="badge bg-secondary-subtle text-secondary" id="modalBudgetDateBadge" style="font-size: 0.7rem;">@Localizer["Transactions.ActualDate"]</span>
+                        </label>
+                        <div class="text-muted small mb-2" style="font-size: 0.75rem;">
+                            @Localizer["Transactions.BudgetDateDesc"]
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <input type="date" class="form-control" id="modalBudgetDateInput" name="budgetDate" aria-label="@Localizer["Transactions.BudgetDate"]" />
+                            <button type="button" class="btn btn-outline-primary" id="btnModalShiftNextMonth" title="+1 @Localizer["Transactions.MonthShort"]">
+                                <i class="bi bi-arrow-right-short"></i> +1 @Localizer["Transactions.MonthShort"]
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="btnModalResetBudgetDate" title="@Localizer["Transactions.ActualDate"]">
+                                <i class="bi bi-arrow-counterclockwise"></i> @Localizer["Transactions.ActualDate"]
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Statut de l'opération -->
+                    <div class="mt-3 p-3 bg-light rounded-3 border">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold mb-0" for="modalTransactionStatus">
+                                <i class="bi bi-tags-fill me-1 text-primary"></i>@Localizer["Common.Status"]
+                            </label>
+                            <a href="/Accounts/Statuses" class="small text-muted text-decoration-none" target="_blank">
+                                <i class="bi bi-gear me-1"></i>@Localizer["Nav.Statuses"]
+                            </a>
+                        </div>
+                        <select class="form-select form-select-sm" id="modalTransactionStatus" name="statusId">
+                            @foreach (var s in Model.AvailableStatuses)
+                            {
+                                var sName = Model.StatusTranslations.TryGetValue(s.Id, out var sTr) && !string.IsNullOrWhiteSpace(sTr) ? sTr : s.Name;
+                                <option value="@s.Id">@sName @(!string.IsNullOrEmpty(s.Description) ? $" - {s.Description}" : "")</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="form-check form-switch p-2 bg-light rounded-2 border mt-3">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" id="modalApplySimilar" name="applyToSimilarLabels" value="true">
+                        <label class="form-check-label small fw-semibold" for="modalApplySimilar">
+                            @Localizer["Transactions.ApplyToSimilar"]
+                        </label>
+                        <div class="small text-muted ms-4">@Localizer["Transactions.ApplyToSimilarHelp"]</div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="modalSubmitBtn">
+                        <i class="bi bi-check-lg me-1"></i> @Localizer["Common.Save"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de création rapide de règle -->
+<div class="modal fade" id="quickRuleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-light py-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-lightning-charge-fill fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-dark">@Localizer["Rules.NewRule"]</h5>
+                        <p class="text-muted small mb-0">@Localizer["Rules.PrepopulatedFromTx"]</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@Localizer["Common.Close"]"></button>
+            </div>
+            <form id="quickRuleForm" onsubmit="submitQuickRule(event)">
+                <input type="hidden" id="qrTargetBankAccountId" value="" />
+                <div class="modal-body p-4">
+                    <!-- Opération source de référence -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">@Localizer["Rules.OriginalOperation"]</span>
+                            <span class="fw-bold" id="qrSourceAmount"></span>
+                        </div>
+                        <div class="fw-semibold text-dark" id="qrSourceLabel"></div>
+                        <div class="text-muted font-monospace small mt-1" id="qrSourceRawLabel" style="font-size: 0.75rem; display: none;"></div>
+                    </div>
+
+                    <!-- Alerte si des règles correspondent déjà -->
+                    <div id="qrExistingRuleAlert" class="alert alert-info py-2 px-3 small mb-3 border-0 rounded-3 d-none">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle-fill fs-6" id="qrExistingRuleIcon"></i>
+                            <div id="qrExistingRuleText"></div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-7">
+                            <label class="form-label small fw-semibold" for="qrRuleName">
+                                @Localizer["Rules.RuleName"] <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-sm" id="qrRuleName" required placeholder="Ex: Course Carrefour, Spotify..." />
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label small fw-semibold" for="qrPriority">
+                                @Localizer["Rules.Priority"]
+                            </label>
+                            <input type="number" class="form-control form-control-sm" id="qrPriority" value="10" min="1" max="1000" />
+                            <div class="form-text text-muted" style="font-size: 0.7rem;">@Localizer["Rules.PriorityMax"]</div>
+                        </div>
+                    </div>
+
+                    <!-- Assistant de condition -->
+                    <div class="card border-primary border-opacity-25 bg-light bg-opacity-50 p-3 mb-3 rounded-3">
+                        <div class="fw-bold small text-primary mb-2">
+                            <i class="bi bi-magic me-1"></i> @Localizer["Rules.DetectionCondition"]
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-5">
+                                <label class="form-label small text-muted mb-1" for="qrMatchType">@Localizer["Rules.Condition"]</label>
+                                <select class="form-select form-select-sm" id="qrMatchType" onchange="updateQuickRulePattern()">
+                                    <option value="contains" selected>@Localizer["Rules.Contains"]</option>
+                                    <option value="startsWith">@Localizer["Rules.StartsWith"]</option>
+                                    <option value="endsWith">@Localizer["Rules.EndsWith"]</option>
+                                    <option value="exact">@Localizer["Rules.Exact"]</option>
+                                </select>
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label small text-muted mb-1" for="qrKeyword">
+                                    @Localizer["Rules.Keywords"]
+                                    <span class="badge bg-white text-secondary border ms-1 fw-normal">@Localizer["Rules.WildcardsAccepted"]</span>
+                                </label>
+                                <input type="text" class="form-control form-control-sm" id="qrKeyword" required oninput="updateQuickRulePattern()" />
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2 mt-1">
+                            <span class="small text-muted" style="font-size: 0.72rem;">@Localizer["Rules.GeneratedRegex"]</span>
+                            <code class="small bg-white px-2 py-0 border rounded text-primary font-monospace" id="qrPatternPreview" style="font-size: 0.75rem;"></code>
+                        </div>
+                    </div>
+
+                    <!-- Choix de la catégorie assignée -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold mb-1" for="qrTargetCategoryId">
+                            @Localizer["Rules.AssignedCategory"] <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select form-select-sm" id="qrTargetCategoryId" required>
+                            <option value="">@Localizer["Rules.ChooseCategory"]</option>
+                            @foreach (var parent in Model.ParentCategories)
+                            {
+                                var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pEn) && !string.IsNullOrWhiteSpace(pEn) ? pEn : parent.Name;
+                                <optgroup label="📁 @parentName.ToUpper()">
+                                    <option value="@parent.Id">▶ @parentName</option>
+                                    @foreach (var cat in parent.SubCategories.OrderBy(c => c.Name))
+                                    {
+                                        var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cEn) && !string.IsNullOrWhiteSpace(cEn) ? cEn : cat.Name;
+                                        <option value="@cat.Id">&nbsp;&nbsp;&nbsp;• @catName</option>
+                                    }
+                                </optgroup>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Choix du marchand/tiers assigné -->
+                    <div class="mb-3 position-relative" id="qrMerchantComboboxContainer">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-semibold mb-0" for="qrMerchantSearch">
+                                <i class="bi bi-shop me-1 text-primary"></i>@Localizer["Merchants.Title"] <span class="text-muted fw-normal">(@Localizer["Common.Optional"])</span>
+                            </label>
+                            <a href="/Merchants" class="small text-muted text-decoration-none" target="_blank" style="font-size: 0.72rem;">
+                                <i class="bi bi-gear me-1"></i>@Localizer["Merchants.ManageMerchants"]
+                            </a>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white"><i class="bi bi-shop"></i></span>
+                            <input type="text" class="form-control" id="qrMerchantSearch" 
+                                   placeholder="@Localizer["Merchants.SearchOrAdd"]" 
+                                   autocomplete="off" />
+                            <button type="button" class="btn btn-outline-secondary" id="btnQrClearMerchant" title="@Localizer["Common.Clear"]">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="qrTargetMerchantId" />
+                        <input type="hidden" id="qrNewMerchantName" />
+                        <div id="qrMerchantList" class="dropdown-menu w-100 shadow border p-1" style="max-height: 200px; overflow-y: auto; display: none; position: absolute; z-index: 1060;"></div>
+                    </div>
+
+                    <!-- Options d'application -->
+                    <div class="p-3 bg-light rounded-3 border">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="qrApplyImmediately" checked />
+                            <label class="form-check-label small fw-semibold" for="qrApplyImmediately">
+                                @Localizer["Rules.ApplyImmediately"]
+                            </label>
+                        </div>
+                        <div class="form-check ms-4 mb-2">
+                            <input class="form-check-input" type="checkbox" id="qrOverwriteExisting" />
+                            <label class="form-check-label small text-muted" for="qrOverwriteExisting">
+                                @Localizer["Rules.OverwriteExisting"]
+                            </label>
+                        </div>
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="qrShiftToNextMonth" />
+                            <label class="form-check-label small fw-semibold" for="qrShiftToNextMonth">
+                                @Localizer["Rules.ShiftToNextMonth"]
+                            </label>
+                            <div class="small text-muted" style="font-size: 0.72rem;">@Localizer["Rules.ShiftToNextMonthDesc"]</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitQuickRule">
+                        <i class="bi bi-check-lg me-1"></i> @Localizer["Rules.CreateRule"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Définir une opération comme charge récurrente (pré-remplie & modifiable) -->
+<div class="modal fade" id="quickRecurringModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header bg-light py-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-arrow-repeat fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0 text-dark">@Localizer["Transactions.CreateRecurringTitle"]</h5>
+                        <p class="text-muted small mb-0">@Localizer["Transactions.CreateRecurringSubtitle"]</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@Localizer["Common.Close"]"></button>
+            </div>
+            <form id="quickRecurringForm" onsubmit="submitQuickRecurring(event)">
+                <div class="modal-body p-4">
+                    <!-- Opération source de référence -->
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted small fw-semibold text-uppercase" style="letter-spacing: 0.5px;">@Localizer["Rules.OriginalOperation"]</span>
+                            <span class="fw-bold text-dark" id="qrecSourceAmount"></span>
+                        </div>
+                        <div class="fw-semibold text-dark" id="qrecSourceLabel"></div>
+                        <div class="text-muted font-monospace small mt-1" id="qrecSourceRawLabel" style="font-size: 0.75rem; display: none;"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold mb-1" for="qrecName">
+                            @Localizer["Recurring.NameLabel"] <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="qrecName" required placeholder="ex: Netflix, Loyer, Box Fibre, EDF" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold mb-1" for="qrecPattern">
+                            @Localizer["Recurring.PatternLabel"] <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="qrecPattern" required placeholder="ex: NETFLIX, FREE TELECOM, EDF" />
+                        <div class="form-text small" style="font-size: 0.75rem;">@Localizer["Recurring.PatternHelp"]</div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1" for="qrecAmount">
+                                @Localizer["Recurring.ExpectedAmount"] (€) <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" step="0.01" class="form-control" id="qrecAmount" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1" for="qrecDay">
+                                @Localizer["Recurring.ExpectedDay"] (1-31)
+                            </label>
+                            <input type="number" min="1" max="31" class="form-control" id="qrecDay" />
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1" for="qrecFrequency">
+                                @Localizer["Recurring.Frequency"]
+                            </label>
+                            <select class="form-select" id="qrecFrequency">
+                                <option value="1">@Localizer["Recurring.FreqMonthly"]</option>
+                                <option value="2">@Localizer["Recurring.FreqQuarterly"]</option>
+                                <option value="3">@Localizer["Recurring.FreqBiannual"]</option>
+                                <option value="4">@Localizer["Recurring.FreqAnnual"]</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1" for="qrecTolerance">
+                                @Localizer["Recurring.Tolerance"]
+                            </label>
+                            <select class="form-select" id="qrecTolerance">
+                                <option value="0">0% (@Localizer["Recurring.ToleranceStrict"])</option>
+                                <option value="0.05" selected>± 5%</option>
+                                <option value="0.10">± 10%</option>
+                                <option value="0.20">± 20%</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1" for="qrecCategory">
+                                @Localizer["Recurring.Category"]
+                            </label>
+                            <select class="form-select" id="qrecCategory">
+                                <option value="">-- @Localizer["Common.None"] --</option>
+                                @foreach (var parent in Model.ParentCategories)
+                                {
+                                    var parentName = Model.CategoryTranslations.TryGetValue(parent.Id, out var pEn) && !string.IsNullOrWhiteSpace(pEn) ? pEn : parent.Name;
+                                    <optgroup label="📁 @parentName.ToUpper()">
+                                        <option value="@parent.Id">▶ @parentName</option>
+                                        @foreach (var cat in parent.SubCategories.OrderBy(c => c.Name))
+                                        {
+                                            var catName = Model.CategoryTranslations.TryGetValue(cat.Id, out var cEn) && !string.IsNullOrWhiteSpace(cEn) ? cEn : cat.Name;
+                                            <option value="@cat.Id">&nbsp;&nbsp;&nbsp;• @catName</option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold mb-1" for="qrecAccount">
+                                @Localizer["Recurring.Account"]
+                            </label>
+                            <select class="form-select" id="qrecAccount">
+                                <option value="">-- @Localizer["Recurring.AnyAccount"] --</option>
+                                @foreach (var acc in Model.AvailableAccounts)
+                                {
+                                    <option value="@acc.Id">@acc.Name</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label class="form-label small fw-semibold mb-1" for="qrecNotes">
+                            @Localizer["Recurring.Notes"]
+                        </label>
+                        <input type="text" class="form-control" id="qrecNotes" placeholder="ex: Engagement 12 mois, prélèvement automatique" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="btnSubmitQuickRecurring">
+                        <i class="bi bi-check-lg me-1"></i> @Localizer["Common.Save"]
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

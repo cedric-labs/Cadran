@@ -1,0 +1,1176 @@
+﻿[
+  {
+    "translations": {
+      "fr": "Logement, immobilier",
+      "en": "Housing & Real Estate"
+    },
+    "colorHex": "#8b5cf6",
+    "iconName": "bi-house-door-fill",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Entretien chaudière",
+          "en": "Boiler Maintenance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-fire",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Electricité, gaz, chauffage",
+          "en": "Electricity, Gas & Heating"
+        },
+        "colorHex": "#8b5cf6",
+        "iconName": "bi-house-door-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Assurance logement",
+          "en": "Home Insurance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-shield-check",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Eau",
+          "en": "Water Utility"
+        },
+        "colorHex": "#8b5cf6",
+        "iconName": "bi-house-door-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Travaux, déco, jardin",
+          "en": "Home Improvement, Decor & Gardening"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-brush",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Entretien poêle à granulés",
+          "en": "Pellet Stove Maintenance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-fire",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Loyer",
+          "en": "Rent"
+        },
+        "colorHex": "#8b5cf6",
+        "iconName": "bi-house-door-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Charges logement",
+          "en": "Housing Utilities & Fees"
+        },
+        "colorHex": "#8b5cf6",
+        "iconName": "bi-house-door-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Entretien adoucisseur",
+          "en": "Water Softener Maintenance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-water",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Vente immobiliére",
+          "en": "Real Estate Sale"
+        },
+        "colorHex": "#10b981",
+        "iconName": "bi-arrow-down-left-circle-fill",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Stockage meubles",
+          "en": "Storage Unit"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-box-seam",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Dépenses vie courante",
+      "en": "Daily Living Expenses"
+    },
+    "colorHex": "#f97316",
+    "iconName": "bi-cart-fill",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Alimentation, supermarché",
+          "en": "Groceries & Supermarket"
+        },
+        "colorHex": "#10b981",
+        "iconName": "bi-cart-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Meubles, équipement",
+          "en": "Furniture & Home Equipment"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-lamp",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Snacks, repas au travail",
+          "en": "Snacks & Work Lunches"
+        },
+        "colorHex": "#ec4899",
+        "iconName": "bi-cup-hot-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Shopping/e-Commerce",
+          "en": "Shopping & eCommerce"
+        },
+        "colorHex": "#a855f7",
+        "iconName": "bi-bag-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Animaux",
+          "en": "Pets"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-feather",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Machine café Yzee-Services",
+          "en": "Coffee Machine (Yzee-Services)"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-cup-hot",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Internet, TV, télécom",
+          "en": "Internet, TV & Telecom"
+        },
+        "colorHex": "#06b6d4",
+        "iconName": "bi-wifi",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Remboursement",
+          "en": "Reimbursement"
+        },
+        "colorHex": "#10b981",
+        "iconName": "bi-arrow-down-left-circle-fill",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Habillement, accessoires",
+          "en": "Clothing & Accessories"
+        },
+        "colorHex": "#a855f7",
+        "iconName": "bi-bag-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Electronique, multimédia",
+          "en": "Electronics & Media"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-tv",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Coiffeur, esthétique, cosmétique, soins",
+          "en": "Hairdresser, Cosmetics & Personal Care"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-scissors",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Dons caritatifs",
+          "en": "Charity Donations"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-heart-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Cadeaux offerts",
+          "en": "Gifts Given"
+        },
+        "colorHex": "#8b5cf6",
+        "iconName": "bi-house-door-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Abonnement",
+          "en": "Subscription"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-repeat",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Poste, courrier",
+          "en": "Post Office & Mail"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-envelope",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Avances, remboursements",
+          "en": "Advances & Reimbursements"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-arrow-left-right",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Tabac/Presse",
+          "en": "Tobacco & Newsagent"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-newspaper",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Masques chirurgicaux",
+          "en": "Surgical Masks & Health Supplies"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-bandaid",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Chèques",
+          "en": "Checks"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-check2-square",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Transports, véhicules",
+      "en": "Transport & Vehicles"
+    },
+    "colorHex": "#3b82f6",
+    "iconName": "bi-car-front-fill",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Parking, péages, PV",
+          "en": "Parking, Tolls & Fines"
+        },
+        "colorHex": "#3b82f6",
+        "iconName": "bi-car-front-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Carburant",
+          "en": "Fuel"
+        },
+        "colorHex": "#f59e0b",
+        "iconName": "bi-fuel-pump-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Assurance véhicule",
+          "en": "Vehicle Insurance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-shield-check",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Permis de conduire",
+          "en": "Driving License"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-person-badge",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Entretien, équipements véhicules",
+          "en": "Vehicle Maintenance & Gear"
+        },
+        "colorHex": "#3b82f6",
+        "iconName": "bi-car-front-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Transports en commun",
+          "en": "Public Transit"
+        },
+        "colorHex": "#14b8a6",
+        "iconName": "bi-dribbble",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Garage, parking privé",
+          "en": "Garage & Private Parking"
+        },
+        "colorHex": "#3b82f6",
+        "iconName": "bi-car-front-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Achat véhicule",
+          "en": "Vehicle Purchase"
+        },
+        "colorHex": "#3b82f6",
+        "iconName": "bi-car-front-fill",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Santé, prévoyance",
+      "en": "Healthcare & Insurance"
+    },
+    "colorHex": "#ef4444",
+    "iconName": "bi-heart-pulse-fill",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Dentiste",
+          "en": "Dentist"
+        },
+        "colorHex": "#ef4444",
+        "iconName": "bi-heart-pulse-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Vétérinaire",
+          "en": "Veterinarian"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-activity",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Frais, remb santé",
+          "en": "Medical Expenses & Reimbursements"
+        },
+        "colorHex": "#ef4444",
+        "iconName": "bi-heart-pulse-fill",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Orthodontiste",
+          "en": "Orthodontist"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-emoji-smile",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Opticien",
+          "en": "Optician / Eyewear"
+        },
+        "colorHex": "#ef4444",
+        "iconName": "bi-heart-pulse-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Medecin",
+          "en": "Doctor / Physician"
+        },
+        "colorHex": "#ef4444",
+        "iconName": "bi-heart-pulse-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Diététicienne",
+          "en": "Dietitian"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-apple",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Loisirs, sorties & culture",
+      "en": "Leisure, Outings & Culture"
+    },
+    "colorHex": "#ec4899",
+    "iconName": "bi-controller",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Abonnements VOD, musique, jeux",
+          "en": "VOD, Music & Gaming Subscriptions"
+        },
+        "colorHex": "#d946ef",
+        "iconName": "bi-controller",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "NETFLIX",
+          "en": "Netflix"
+        },
+        "colorHex": "#f43f5e",
+        "iconName": "bi-play-circle-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Musique, livres, films",
+          "en": "Music, Books & Movies"
+        },
+        "colorHex": "#f43f5e",
+        "iconName": "bi-play-circle-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "GamePass",
+          "en": "Xbox Game Pass"
+        },
+        "colorHex": "#d946ef",
+        "iconName": "bi-controller",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Cotis. sports, loisirs",
+          "en": "Sports & Leisure Fees"
+        },
+        "colorHex": "#14b8a6",
+        "iconName": "bi-dribbble",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Jeux vidéo",
+          "en": "Video Games"
+        },
+        "colorHex": "#d946ef",
+        "iconName": "bi-controller",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Sorties détente",
+          "en": "Relaxation & Wellness"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-sun",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Restaurants, soirées",
+          "en": "Restaurants & Nightlife"
+        },
+        "colorHex": "#ec4899",
+        "iconName": "bi-cup-hot-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Passion, hobby",
+          "en": "Hobbies & Passions"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-palette",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Sorties culturelles",
+          "en": "Cultural Outings"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-ticket-perforated",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "FDJ",
+          "en": "Lottery & Gaming (FDJ)"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-dice-5",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Equipement sports, loisirs",
+          "en": "Sports & Leisure Equipment"
+        },
+        "colorHex": "#14b8a6",
+        "iconName": "bi-dribbble",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Voyages",
+          "en": "Travel & Holidays"
+        },
+        "colorHex": "#0ea5e9",
+        "iconName": "bi-airplane-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Spotify",
+          "en": "Spotify"
+        },
+        "colorHex": "#f43f5e",
+        "iconName": "bi-play-circle-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Hôtel",
+          "en": "Hotel & Lodging"
+        },
+        "colorHex": "#0ea5e9",
+        "iconName": "bi-airplane-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Sorties, voyages",
+          "en": "Outings & Trips"
+        },
+        "colorHex": "#0ea5e9",
+        "iconName": "bi-airplane-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Cours sports, loisirs",
+          "en": "Sports & Leisure Classes"
+        },
+        "colorHex": "#14b8a6",
+        "iconName": "bi-dribbble",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Sports, loisirs",
+          "en": "Sports & Leisure"
+        },
+        "colorHex": "#14b8a6",
+        "iconName": "bi-dribbble",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Warcraft",
+          "en": "World of Warcraft"
+        },
+        "colorHex": "#d946ef",
+        "iconName": "bi-controller",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Amazon Video",
+          "en": "Amazon Prime Video"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-play-btn",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Enfants, scolarité",
+      "en": "Children & Schooling"
+    },
+    "colorHex": "#eab308",
+    "iconName": "bi-backpack-fill",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Inscription, scolarité",
+          "en": "Tuition & School Registration"
+        },
+        "colorHex": "#f97316",
+        "iconName": "bi-backpack-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Restauration scolaire",
+          "en": "School Cafeteria"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-cup-straw",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Argent de poche",
+          "en": "Pocket Money"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-coin",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Livres, fournitures (éducation)",
+          "en": "Books & School Supplies"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-journal-bookmark",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Assurance scolaire",
+          "en": "School Insurance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-shield-check",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Jouets, cadeaux",
+          "en": "Toys & Presents"
+        },
+        "colorHex": "#8b5cf6",
+        "iconName": "bi-house-door-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Education, formation",
+          "en": "Education & Training"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-mortarboard",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Enfants",
+          "en": "Children"
+        },
+        "colorHex": "#f97316",
+        "iconName": "bi-backpack-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Activités enfants",
+          "en": "Children Activities"
+        },
+        "colorHex": "#f97316",
+        "iconName": "bi-backpack-fill",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Garde d'enfants",
+          "en": "Childcare"
+        },
+        "colorHex": "#f97316",
+        "iconName": "bi-backpack-fill",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Banque, assurances & crédits",
+      "en": "Banking, Insurance & Loans"
+    },
+    "colorHex": "#64748b",
+    "iconName": "bi-bank",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Frais bancaires",
+          "en": "Bank Fees"
+        },
+        "colorHex": "#64748b",
+        "iconName": "bi-bank",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Assurance prêt immo.",
+          "en": "Mortgage Insurance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-shield-check",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Remb. prêt immobilier",
+          "en": "Mortgage Repayment"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-house-check",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Assurances",
+          "en": "Insurance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-shield-check",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Conseil juridique",
+          "en": "Legal Advisory"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-file-earmark-text",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Remb. prêt conso",
+          "en": "Consumer Loan Repayment"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-file-earmark-ruled",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Déblocage prêt, crédits, réserves",
+          "en": "Loan Drawdowns & Credits"
+        },
+        "colorHex": "#10b981",
+        "iconName": "bi-arrow-down-left-circle-fill",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Conseil financier",
+          "en": "Financial Advisory"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-briefcase",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Achats, ventes de titres",
+          "en": "Securities Trading"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-graph-up-arrow",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Impôts, taxes",
+      "en": "Taxes & Duties"
+    },
+    "colorHex": "#dc2626",
+    "iconName": "bi-receipt",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Impôts",
+          "en": "Income Taxes"
+        },
+        "colorHex": "#dc2626",
+        "iconName": "bi-receipt",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Services & abonnements pros",
+      "en": "Services & Subscriptions"
+    },
+    "colorHex": "#06b6d4",
+    "iconName": "bi-cpu-fill",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Services",
+          "en": "Services"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-gear",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Linxo",
+          "en": "Linxo"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-credit-card-2-front",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Aide",
+          "en": "Assistance"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-life-preserver",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Google cloud",
+          "en": "Google Cloud"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-cloud",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Github",
+          "en": "GitHub"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-github",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Office 365",
+          "en": "Microsoft 365"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-microsoft",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "ADN",
+          "en": "ADN (Anime)"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-fingerprint",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Revenus & rentrées d'argent",
+      "en": "Income & Money In"
+    },
+    "colorHex": "#10b981",
+    "iconName": "bi-cash-coin",
+    "isIncome": true,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Salaire/Revenus d'activité",
+          "en": "Salary & Professional Income"
+        },
+        "colorHex": "#059669",
+        "iconName": "bi-cash-coin",
+        "isIncome": true,
+        "isSalary": true
+      },
+      {
+        "translations": {
+          "fr": "Revenus de remplacement",
+          "en": "Replacement Income / Benefits"
+        },
+        "colorHex": "#059669",
+        "iconName": "bi-cash-coin",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Aides et allocations",
+          "en": "Benefits & Allowances"
+        },
+        "colorHex": "#10b981",
+        "iconName": "bi-arrow-down-left-circle-fill",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Cadeaux, dons reçus",
+          "en": "Gifts & Donations Received"
+        },
+        "colorHex": "#8b5cf6",
+        "iconName": "bi-house-door-fill",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Revenus",
+          "en": "Income"
+        },
+        "colorHex": "#059669",
+        "iconName": "bi-cash-coin",
+        "isIncome": true,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Virements & épargne",
+      "en": "Transfers & Savings"
+    },
+    "colorHex": "#0284c7",
+    "iconName": "bi-arrow-left-right",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "Virements internes",
+          "en": "Internal Transfers"
+        },
+        "colorHex": "#0284c7",
+        "iconName": "bi-arrow-left-right",
+        "isIncome": true,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Virements d'épargne",
+          "en": "Savings Transfers"
+        },
+        "colorHex": "#0284c7",
+        "iconName": "bi-arrow-left-right",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Virements à catégoriser",
+          "en": "Transfers to Categorize"
+        },
+        "colorHex": "#0284c7",
+        "iconName": "bi-arrow-left-right",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  },
+  {
+    "translations": {
+      "fr": "Divers & à catégoriser",
+      "en": "Miscellaneous & Uncategorized"
+    },
+    "colorHex": "#94a3b8",
+    "iconName": "bi-question-circle-fill",
+    "isIncome": false,
+    "isSalary": false,
+    "subCategories": [
+      {
+        "translations": {
+          "fr": "A catégoriser",
+          "en": "To Categorize"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-question-diamond",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Hors budget",
+          "en": "Out of Budget"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-slash-circle",
+        "isIncome": false,
+        "isSalary": false
+      },
+      {
+        "translations": {
+          "fr": "Notes de frais (+/-)",
+          "en": "Expense Reports (+/-)"
+        },
+        "colorHex": "#6366f1",
+        "iconName": "bi-receipt-cutoff",
+        "isIncome": false,
+        "isSalary": false
+      }
+    ]
+  }
+]

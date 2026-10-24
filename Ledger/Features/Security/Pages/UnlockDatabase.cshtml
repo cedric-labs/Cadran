@@ -1,0 +1,87 @@
+﻿@page "/Security/UnlockDatabase"
+@model Ledger.Features.Security.Pages.UnlockDatabaseModel
+@{
+    ViewData["Title"] = Localizer["DbEnc.UnlockTitle"];
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5 col-lg-4">
+        <div class="card shadow border-0">
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <div class="d-inline-flex p-3 rounded-circle bg-warning bg-opacity-10 text-warning mb-3">
+                        <i class="bi bi-shield-lock-fill fs-1"></i>
+                    </div>
+                    <h2 class="h4 fw-bold">@Localizer["DbEnc.UnlockTitle"]</h2>
+                    <p class="text-muted small mb-0">
+                        @Localizer["DbEnc.UnlockSubtitle"]
+                    </p>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger d-flex align-items-center small py-2 px-3 mb-3" role="alert">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-6"></i>
+                        <div>@Model.ErrorMessage</div>
+                    </div>
+                }
+
+                <form method="post" asp-route-returnUrl="@Model.ReturnUrl">
+                    <div class="mb-3">
+                        <label asp-for="Passphrase" for="dbPassphraseInput" class="form-label small fw-semibold">
+                            <i class="bi bi-key-fill text-primary me-1"></i> @Localizer["DbEnc.MasterPassphraseLabel"]
+                        </label>
+                        <div class="input-group">
+                            <input asp-for="Passphrase" id="dbPassphraseInput" class="form-control" required autocomplete="current-password" placeholder="••••••••••••" />
+                            <button class="btn btn-outline-secondary" type="button" id="togglePassphraseBtn" title="Afficher/Masquer">
+                                <i class="bi bi-eye" id="togglePassphraseIcon"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 form-check">
+                        <input asp-for="RememberOnDevice" class="form-check-input" id="rememberOnDeviceCheck" />
+                        <label asp-for="RememberOnDevice" class="form-check-label small text-muted" for="rememberOnDeviceCheck">
+                            @Localizer["DbEnc.RememberOnDeviceLabel"]
+                        </label>
+                        <div class="form-text small text-muted">
+                            @Localizer["DbEnc.RememberOnDeviceHint"]
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
+                        <i class="bi bi-unlock-fill me-1"></i> @Localizer["DbEnc.UnlockButton"]
+                    </button>
+                </form>
+
+                <div class="mt-4 pt-3 border-top text-center">
+                    <div class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>
+                        @Localizer["DbEnc.PortableHint"]
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('togglePassphraseBtn')?.addEventListener('click', function () {
+            const input = document.getElementById('dbPassphraseInput');
+            const icon = document.getElementById('togglePassphraseIcon');
+            if (input && icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('bi-eye');
+                    icon.classList.add('bi-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('bi-eye-slash');
+                    icon.classList.add('bi-eye');
+                }
+            }
+        });
+    </script>
+}
