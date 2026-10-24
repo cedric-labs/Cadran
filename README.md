@@ -1,6 +1,14 @@
 # Cadran - Personal Finance & Wealth Management
 
 <p align="center">
+  <strong>Languages:</strong>
+  <strong>English</strong> |
+  <a href="README.fr.md">Français</a> |
+  <a href="README.es.md">Español</a> |
+  <a href="README.de.md">Deutsch</a>
+</p>
+
+<p align="center">
   <img src="assets/cadran-logo.png" alt="Cadran Logo" width="220" />
   <br/>
   <a href="https://ko-fi.com/curvecoder"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support curvecoder on Ko-fi" /></a>

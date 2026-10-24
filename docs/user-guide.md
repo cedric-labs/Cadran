@@ -1,5 +1,13 @@
 # Cadran - User Guide & Production Operations
 
+<p align="center">
+  <strong>Languages:</strong>
+  <strong>English</strong> |
+  <a href="fr/user-guide.md">Français</a> |
+  <a href="es/user-guide.md">Español</a> |
+  <a href="de/user-guide.md">Deutsch</a>
+</p>
+
 Welcome to the official user manual for **Cadran**, a modern, privacy-first personal finance, budget tracking, and wealth management platform.
 
 This guide is structured according to the **Diátaxis** framework:

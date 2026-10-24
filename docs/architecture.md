@@ -1,5 +1,13 @@
 # Cadran - Architecture & Engineering Specification
 
+<p align="center">
+  <strong>Languages:</strong>
+  <strong>English</strong> |
+  <a href="fr/architecture.md">Français</a> |
+  <a href="es/architecture.md">Español</a> |
+  <a href="de/architecture.md">Deutsch</a>
+</p>
+
 ## 1. Executive Architecture Summary
 
 **Cadran** is a high-performance, local-first, privacy-focused personal finance and wealth management platform built on ASP.NET Core 9 and modern C# 12. Designed strictly under the **Local-First** and **Privacy-First** paradigms, Cadran operates autonomously without cloud aggregation services, third-party analytics, or remote telemetry.
@@ -57,7 +65,7 @@ flowchart TD
 
 ## 2. Decoupled Shared Framework Architecture
 
-Cadran follows Clean Architecture and Dependency Inversion principles. Domain, parsing, data storage, and localization operations rely on modular shared frameworks located in `D:\Dev\Framework`:
+Cadran follows Clean Architecture and Dependency Inversion principles. Domain, parsing, data storage, and localization operations rely on modular shared frameworks published under the `curvecoder` ecosystem:
 
 ```mermaid
 classDiagram
