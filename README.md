@@ -95,6 +95,23 @@ dotnet publish Ledger/Ledger.csproj -c Release -r linux-x64 --self-contained tru
 
 ---
 
+## Architecture & Shared Frameworks
+
+`Cadran` is built upon modular shared libraries hosted under the `curvecoder` ecosystem, compliant with Clean Architecture and SonarQube Quality Gate standards:
+
+- **[StatementForge](https://github.com/curvecoder/StatementForge)** (`v1.0.0`): High-performance streaming bank statement parser (OFX, QFX, CSV) with transaction deduplication, custom CSV mapping profiles, and recurring expense detection.
+- **[SqliteForge](https://github.com/curvecoder/SqliteForge)** (`v1.0.0`): Resilient SQLite infrastructure featuring automatic WAL concurrency interception, SQLCipher/SQLiteMC AES-256 encryption, and dynamic configuration providers.
+- **[LocaleForge](https://github.com/curvecoder/LocaleForge)** (`v1.0.0`): Lightweight hierarchical JSON localization library and ISO-4217 currency formatter.
+
+All dependencies are restored automatically from GitHub Packages via the included `nuget.config`.
+
+To run the full quality verification pipeline (formatting, Release build, unit/architecture tests with OpenCover coverage, and SonarQube Quality Gate):
+```powershell
+.\verify.ps1
+```
+
+---
+
 ## Support & Sponsoring
 
 Cadran is free, open-source, and developed independently. If Cadran helps you organize your finances and protect your data sovereignty, consider supporting ongoing development:
