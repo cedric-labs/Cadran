@@ -9,9 +9,19 @@ param (
 $ErrorActionPreference = 'Stop'
 
 # 1. Retrieve GitHub Token from git credential helper
-$credOutput = ("url=https://github.com" | git credential fill | Out-String)
-$token = ($credOutput -split "`n" | Where-Object { $_ -match "^password=" }) -replace "^password=", ""
-$token = $token.Trim()
+$token = $null
+$tempCredFile = [System.IO.Path]::GetTempFileName()
+try {
+    [System.IO.File]::WriteAllText($tempCredFile, "protocol=https`nhost=github.com`n`n", [System.Text.Encoding]::ASCII)
+    $credOutput = cmd.exe /c "type `"$tempCredFile`" | git credential fill"
+    $tokenLine = ($credOutput -split "`r?`n") | Where-Object { $_ -match "^password=" }
+    if ($tokenLine) {
+        $token = ($tokenLine -replace "^password=", "").Trim()
+    }
+}
+finally {
+    if (Test-Path $tempCredFile) { Remove-Item $tempCredFile -Force }
+}
 
 if ([string]::IsNullOrWhiteSpace($token)) {
     throw "Unable to acquire GitHub Token from git credential helper."
@@ -23,7 +33,7 @@ $headers = @{
     "User-Agent" = "Cadran-Release-Script"
 }
 
-Write-Host "Configuring repository metadata (topics and public visibility)..." -ForegroundColor Cyan
+Write-Host "Configuring repository metadata (topics)..." -ForegroundColor Cyan
 
 # 2. Update Topics
 $topicsBody = @{
@@ -32,14 +42,6 @@ $topicsBody = @{
 $topicsBytes = [System.Text.Encoding]::UTF8.GetBytes($topicsBody)
 Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/topics" -Method Put -Headers $headers -Body $topicsBytes -ContentType "application/json; charset=utf-8" | Out-Null
 Write-Host "Topics configured." -ForegroundColor Green
-
-# 3. Update visibility to public
-$repoUpdateBody = @{
-    visibility = "public"
-} | ConvertTo-Json
-$repoBytes = [System.Text.Encoding]::UTF8.GetBytes($repoUpdateBody)
-Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo" -Method Patch -Headers $headers -Body $repoBytes -ContentType "application/json; charset=utf-8" | Out-Null
-Write-Host "Repository visibility set to PUBLIC." -ForegroundColor Green
 
 # 4. Read SHA256SUMS
 $checksumsContent = Get-Content (Join-Path $DistDir "SHA256SUMS.txt") -Raw
@@ -59,7 +61,7 @@ Cadran is a modern, local-first, privacy-first personal finance, budget tracking
 - **Dynamic Pivot Tables (TCD)**: Multi-dimensional aggregations by category, payee, or account with interactive drill-down transaction inspection and CSV export.
 - **Windows System Tray Supervisor**: Native notification area launcher (`Cadran.Launcher.exe`) with automated database backups upon start/exit and one-click browser launch.
 - **Security & Remote Access**: Local-first architecture with optional SQLCipher AES-256 database encryption. Remote access should be performed exclusively via private VPN (e.g., WireGuard); TOTP 2FA is untested and scheduled for deprecation.
-- **Multi-Platform Support**: Self-contained standalone builds for Windows x64 and Linux x64, with Docker Compose and systemd support.
+- **Multi-Platform Support**: Self-contained standalone builds for Windows x64 and Linux x64, with systemd and Windows service support.
 
 ### Download Artifacts
 

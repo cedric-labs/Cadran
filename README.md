@@ -16,7 +16,7 @@
 
 ## Documentation
 
-- 📖 **[User Guide & Operations (docs/user-guide.md)](docs/user-guide.md)**: Comprehensive manual covering quickstart, step-by-step how-to recipes, Windows Tray Supervisor, Windows Service (NSSM), Linux `systemd`, Docker Compose, air-gapped deployments, and financial concepts.
+- 📖 **[User Guide & Operations (docs/user-guide.md)](docs/user-guide.md)**: Comprehensive manual covering quickstart, step-by-step how-to recipes, Windows Tray Supervisor, Windows Service (NSSM), Linux standalone binary, Linux deployment archive (`.tar.gz`), `systemd` integration, air-gapped deployments, and financial concepts.
 - 🏗️ **[Architecture & Engineering Specification (docs/architecture.md)](docs/architecture.md)**: In-depth engineering reference detailing component architecture, decoupled shared frameworks (`StatementForge`, `SqliteForge`, `LocaleForge`, `FileForge`), threading and memory models, and two-tier security.
 
 ---
@@ -66,32 +66,40 @@ dotnet run --project Cadran.Launcher/Cadran.Launcher.csproj
 ./scripts/publish-windows.ps1
 ```
 
-### 2. Docker & Docker Compose
+### 2. Linux Standalone Single Binary (`Cadran-*-linux-x64`)
 
-Deploy Cadran inside a secure, lightweight Linux container (118 MB):
-
-```bash
-# Start container
-docker compose up -d
-
-# Access the interface
-open http://localhost:8080
-```
-
-Persistent data and backups are preserved on the host via bind mounts in `./docker-data` and `./docker-backups`.
-
-### 3. Linux / Headless Server (`systemd`)
-
-Run Cadran as a background daemon on headless Linux servers:
+**When to choose this:** Ideal for quick evaluations, personal developer machines, portable scripting, or ad-hoc servers. It is a single, zero-extraction autonomous executable embedding the full .NET 9 runtime and SQLCipher engine.
 
 ```bash
-# Build self-contained release
-dotnet publish Ledger/Ledger.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -o /opt/cadran
+# 1. Download release binary and grant execution rights
+chmod +x Cadran-1.0.0-linux-x64
 
-# Launch directly
-/opt/cadran/Cadran --urls http://0.0.0.0:5000
+# 2. Launch directly (creates ./data/cadran.db automatically on first start)
+./Cadran-1.0.0-linux-x64 --urls http://0.0.0.0:5000
+
+# 3. Access web interface
+xdg-open http://localhost:5000 # or visit http://<your-server-ip>:5000
 ```
-*(See [Production Operations](docs/user-guide.md#33-running-on-linux-systemd-service) for the complete hardened systemd unit file).*
+
+### 3. Linux Deployment Archive (`Cadran-*-linux-x64.tar.gz`) & `systemd`
+
+**When to choose this:** Recommended for production server environments, home servers, and long-term unprivileged daemon hosting. It extracts into a standardized directory layout (`/opt/cadran`) with pre-configured persistent `data/` and `backups/` directories and permissions.
+
+```bash
+# 1. Create a dedicated unprivileged system user
+sudo useradd --system --shell /usr/sbin/nologin --home-dir /opt/cadran cadran
+sudo mkdir -p /opt/cadran
+sudo chown -R cadran:cadran /opt/cadran
+
+# 2. Extract distribution archive
+sudo tar -xzf Cadran-1.0.0-linux-x64.tar.gz -C /opt/cadran
+sudo chown -R cadran:cadran /opt/cadran
+sudo chmod +x /opt/cadran/Cadran
+
+# 3. Launch directly or deploy as a hardened systemd unit
+sudo -u cadran /opt/cadran/Cadran --urls http://0.0.0.0:5000
+```
+*(See [Production Operations](docs/user-guide.md#33-running-on-linux-production-deployments) for the complete hardened systemd unit file and automatic boot startup).*
 
 ---
 

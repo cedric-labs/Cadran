@@ -44,10 +44,6 @@ dist/
 coverage*.xml
 coverage*.json
 
-## Docker local mounts
-docker-data/
-docker-backups/
-
 ## Local AI Instructions
 AGENTS.md
 

@@ -173,4 +173,4 @@ flowchart LR
 | **OFX Statement Import (10,000 tx)** | < 1.0 second | ~ 320 ms |
 | **Rule Matching Engine (5,000 rules)** | < 100 ms | ~ 35 ms |
 | **Pivot Table Aggregation (50,000 tx)** | < 250 ms | ~ 95 ms |
-| **Docker Container Image Footprint** | < 150 MB | 118 MB (Debian slim) |
+| **Standalone Binary Footprint** | < 150 MB | ~ 100 MB (Self-contained x64) |

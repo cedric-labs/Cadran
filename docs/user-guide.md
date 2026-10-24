@@ -5,7 +5,7 @@ Welcome to the official user manual for **Cadran**, a modern, privacy-first pers
 This guide is structured according to the **Diátaxis** framework:
 - 🎓 **[1. Getting Started Tutorial](#1-getting-started-tutorial)** *(Learning-oriented)*: A step-by-step walkthrough to configure your workspace, import your first statement, and inspect your financial health in 10 minutes.
 - 🛠️ **[2. How-To Practical Guides](#2-how-to-practical-guides)** *(Task-oriented)*: Step-by-step recipes for day-to-day operations (CSV profile creation, receipt splitting, automation rules, encrypted backups).
-- 🚀 **[3. Deployment & Production Operations](#3-deployment--production-operations)** *(Operational)*: Running the Windows Tray Supervisor, installing as a Windows Service with NSSM, configuring Linux systemd units, Docker Compose, and air-gapped environments.
+- 🚀 **[3. Deployment & Production Operations](#3-deployment--production-operations)** *(Operational)*: Running the Windows Tray Supervisor, installing as a Windows Service with NSSM, configuring Linux standalone binary and archive deployments with systemd units, and air-gapped environments.
 - 💡 **[4. Key Concepts & Financial Rationale](#4-key-concepts--financial-rationale)** *(Understanding-oriented)*: Accounting principles, Real Date vs. Budget Imputation Date, Safe-to-Spend calculation, and the two-tier security model.
 - 📖 **[5. Functional Reference](#5-functional-reference)** *(Information-oriented)*: Wildcard syntax, CSV import formats, and keyboard navigation.
 
@@ -16,8 +16,8 @@ This guide is structured according to the **Diátaxis** framework:
 ### 1.1. Starting the Application
 1. **Launch the binary**:
    - On Windows: Double-click `Cadran.Launcher.exe` (or run `dotnet run --project Ledger/Ledger.csproj`).
-   - On Linux / Docker: Execute `./Cadran` or `docker compose up -d`.
-2. **Access the Web Interface**: Open your browser and navigate to `http://localhost:5000` (or `http://localhost:8080` in Docker).
+   - On Linux: Execute `./Cadran-1.0.0-linux-x64` or start the `cadran.service` systemd daemon.
+2. **Access the Web Interface**: Open your browser and navigate to `http://localhost:5000`.
 3. **Select Language**: Click the language toggle (`EN` / `FR`) in the navigation bar.
 4. **Register Your Account**:
    - Click **Create an Account**.
@@ -134,23 +134,57 @@ To run Cadran as a persistent background service without an interactive user log
    Get-Service -Name Cadran
    ```
 
-### 3.3. Running on Linux (`systemd` Service)
-Deploy Cadran as a hardened, unprivileged systemd daemon on Linux servers:
+### 3.3. Running on Linux: Standalone Binary vs. Deployment Archive
 
-1. **Create dedicated service user**:
+Cadran provides two distinct Linux x64 distribution formats, each tailored to specific operational requirements. Both packages are 100% self-contained and bundle the .NET 9 runtime and SQLCipher engine, requiring zero pre-installed runtime dependencies.
+
+#### Choosing Between Formats
+
+| Criteria | Standalone Executable (`Cadran-*-linux-x64`) | Deployment Archive (`Cadran-*-linux-x64.tar.gz`) |
+|---|---|---|
+| **Packaging** | Single self-contained ELF binary | Compressed tarball archive |
+| **Extraction Needed** | No (Direct execution) | Yes (`tar -xzf ...`) |
+| **Included Structure** | Executable only (creates `data/` automatically) | Full directory layout (`data/`, `backups/`, `README.md`, `LICENSE`) |
+| **Best Used For** | Fast evaluations, portable usage, personal developer machines | Production servers, multi-user systems, systemd services |
+| **Disk Management** | Automatic directory creation in current working directory | Pre-structured directory permissions in `/opt/cadran` |
+
+---
+
+#### Method A: Standalone Single Binary (`Cadran-*-linux-x64`)
+
+**When to choose:** You want the fastest possible path to run Cadran on Linux with zero overhead or directory unpacking.
+
+1. **Download and grant execution permissions**:
+   ```bash
+   chmod +x Cadran-1.0.0-linux-x64
+   ```
+
+2. **Launch directly**:
+   ```bash
+   ./Cadran-1.0.0-linux-x64 --urls http://0.0.0.0:5000
+   ```
+   *Note:* Upon first launch, Cadran automatically detects that the database directory does not exist, creates `./data/`, and initializes `cadran.db`.
+
+---
+
+#### Method B: Production Deployment Archive (`Cadran-*-linux-x64.tar.gz`) with `systemd`
+
+**When to choose:** You are deploying Cadran as a permanent, unattended background service on a home server, VPS, or dedicated machine with automated boot startup and process supervision.
+
+1. **Create a dedicated unprivileged service user and directory**:
    ```bash
    sudo useradd --system --shell /usr/sbin/nologin --home-dir /opt/cadran cadran
-   sudo mkdir -p /opt/cadran/data /opt/cadran/backups
-   sudo chown -R cadran:cadran /opt/cadran
+   sudo mkdir -p /opt/cadran
    ```
 
-2. **Extract release files**:
+2. **Extract distribution archive and configure permissions**:
    ```bash
-   tar -xzf Cadran-1.0.0-linux-x64.tar.gz -C /opt/cadran
-   chmod +x /opt/cadran/Cadran
+   sudo tar -xzf Cadran-1.0.0-linux-x64.tar.gz -C /opt/cadran
+   sudo chown -R cadran:cadran /opt/cadran
+   sudo chmod +x /opt/cadran/Cadran
    ```
 
-3. **Deploy systemd service unit (`/etc/systemd/system/cadran.service`)**:
+3. **Deploy the hardened systemd service unit (`/etc/systemd/system/cadran.service`)**:
    ```ini
    [Unit]
    Description=Cadran Personal Finance Web Application
@@ -180,40 +214,19 @@ Deploy Cadran as a hardened, unprivileged systemd daemon on Linux servers:
    WantedBy=multi-user.target
    ```
 
-4. **Enable and start**:
+4. **Enable and start the service**:
    ```bash
    sudo systemctl daemon-reload
    sudo systemctl enable --now cadran.service
    sudo systemctl status cadran.service
    ```
 
-### 3.4. Docker & Docker Compose Deployment
-```yaml
-# docker-compose.yml
-services:
-  cadran:
-    image: cadran:latest
-    container_name: cadran
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Production
-      - Server__AllowNetworkAccess=true
-    volumes:
-      - ./docker-data:/app/data
-      - ./docker-backups:/app/backups
-```
+5. **Inspect application logs**:
+   ```bash
+   journalctl -u cadran.service -f
+   ```
 
-```bash
-# Build and run
-docker compose up -d
-
-# Check logs
-docker compose logs -f
-```
-
-### 3.5. Air-Gapped & Offline Isolation
+### 3.4. Air-Gapped & Offline Isolation
 Cadran is 100% self-contained:
 - All stylesheets, icons, and fonts (Inter, Bootstrap Icons) are embedded in local wwwroot bundles.
 - No Content Delivery Networks (CDNs) or external asset URLs are referenced.
