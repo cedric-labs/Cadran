@@ -14,17 +14,20 @@ namespace Ledger.Features.Accounts.Pages;
 public class CreateAccountModel(
     AppDbContext dbContext,
     IAccountTypeService accountTypeService,
-    ICurrencyService currencyService) : PageModel
+    ICurrencyService currencyService,
+    ILocalizedEntityService localizedEntityService) : PageModel
 {
     private readonly AppDbContext _dbContext = dbContext;
     private readonly IAccountTypeService _accountTypeService = accountTypeService;
     private readonly ICurrencyService _currencyService = currencyService;
+    private readonly ILocalizedEntityService _localizedEntityService = localizedEntityService;
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
     public List<Bank> AvailableBanks { get; set; } = new();
     public List<CustomAccountType> AvailableAccountTypes { get; set; } = new();
+    public Dictionary<Guid, string> LocalizedTypeNames { get; set; } = new();
     public IReadOnlyList<CurrencyInfo> AvailableCurrencies { get; set; } = new List<CurrencyInfo>();
 
     public class InputModel
@@ -64,6 +67,13 @@ public class CreateAccountModel(
         AvailableAccountTypes = await _accountTypeService.GetAllAccountTypesAsync(cancellationToken);
         AvailableCurrencies = _currencyService.GetSupportedCurrencies();
 
+        LocalizedTypeNames = await _localizedEntityService.GetTranslationsAsync(
+            "CustomAccountType",
+            AvailableAccountTypes.Select(t => t.Id),
+            "Name",
+            System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+            cancellationToken);
+
         // Sélectionner par défaut le type Compte de Dépôt s'il existe
         var defaultType = AvailableAccountTypes.FirstOrDefault(t => t.Code == "Checking") ?? AvailableAccountTypes.FirstOrDefault();
         if (defaultType != null)
@@ -81,6 +91,12 @@ public class CreateAccountModel(
             AvailableBanks = await _dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
             AvailableAccountTypes = await _accountTypeService.GetAllAccountTypesAsync(cancellationToken);
             AvailableCurrencies = _currencyService.GetSupportedCurrencies();
+            LocalizedTypeNames = await _localizedEntityService.GetTranslationsAsync(
+                "CustomAccountType",
+                AvailableAccountTypes.Select(t => t.Id),
+                "Name",
+                System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+                cancellationToken);
             return Page();
         }
 

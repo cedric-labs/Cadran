@@ -36,6 +36,11 @@ public sealed class AppWebTestFixture : WebApplicationFactory<Program>
     public string DatabasePath => _databasePath;
 
     /// <summary>
+    /// Fournisseur de services de l'instance réelle Kestrel en cours d'exécution.
+    /// </summary>
+    public IServiceProvider KestrelServices => _kestrelHost?.Services ?? Services;
+
+    /// <summary>
     /// Force le démarrage du serveur Kestrel en initialisant l'hôte WebApplicationFactory.
     /// </summary>
     public void EnsureServerStarted()
@@ -53,6 +58,7 @@ public sealed class AppWebTestFixture : WebApplicationFactory<Program>
     {
         ArgumentNullException.ThrowIfNull(builder);
         builder.UseEnvironment("Testing");
+        builder.UseStaticWebAssets();
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
@@ -81,6 +87,7 @@ public sealed class AppWebTestFixture : WebApplicationFactory<Program>
             {
                 options.Listen(IPAddress.Loopback, 0);
             });
+            webHostBuilder.UseStaticWebAssets();
         });
 
         _kestrelHost = builder.Build();

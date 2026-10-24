@@ -14,11 +14,13 @@ namespace Ledger.Features.Accounts.Pages;
 public class EditAccountModel(
     AppDbContext dbContext,
     IAccountTypeService accountTypeService,
-    ICurrencyService currencyService) : PageModel
+    ICurrencyService currencyService,
+    Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService) : PageModel
 {
     private readonly AppDbContext _dbContext = dbContext;
     private readonly IAccountTypeService _accountTypeService = accountTypeService;
     private readonly ICurrencyService _currencyService = currencyService;
+    private readonly Ledger.Infrastructure.Configuration.ILocalizedEntityService _localizedEntityService = localizedEntityService;
 
     [BindProperty]
     public InputModel Input { get; set; } = new();
@@ -28,6 +30,7 @@ public class EditAccountModel(
 
     public List<Bank> AvailableBanks { get; set; } = new();
     public List<CustomAccountType> AvailableAccountTypes { get; set; } = new();
+    public Dictionary<Guid, string> LocalizedTypeNames { get; set; } = new();
     public IReadOnlyList<CurrencyInfo> AvailableCurrencies { get; set; } = new List<CurrencyInfo>();
 
     public Guid AccountId { get; set; }
@@ -98,6 +101,13 @@ public class EditAccountModel(
         AvailableAccountTypes = await _accountTypeService.GetAllAccountTypesAsync(cancellationToken);
         AvailableCurrencies = _currencyService.GetSupportedCurrencies();
 
+        LocalizedTypeNames = await _localizedEntityService.GetTranslationsAsync(
+            "CustomAccountType",
+            AvailableAccountTypes.Select(t => t.Id),
+            "Name",
+            System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+            cancellationToken);
+
         // Si le compte n'a pas encore de CustomAccountTypeId, le relier au type par défaut correspondant
         var customTypeId = account.CustomAccountTypeId;
         if (!customTypeId.HasValue)
@@ -140,6 +150,12 @@ public class EditAccountModel(
             AvailableBanks = await _dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
             AvailableAccountTypes = await _accountTypeService.GetAllAccountTypesAsync(cancellationToken);
             AvailableCurrencies = _currencyService.GetSupportedCurrencies();
+            LocalizedTypeNames = await _localizedEntityService.GetTranslationsAsync(
+                "CustomAccountType",
+                AvailableAccountTypes.Select(t => t.Id),
+                "Name",
+                System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
+                cancellationToken);
             return Page();
         }
 

@@ -1,7 +1,7 @@
-﻿@page "/Accounts/Edit/{id:guid}"
+@page "/Accounts/Edit/{id:guid}"
 @model Ledger.Features.Accounts.Pages.EditAccountModel
 @{
-    ViewData["Title"] = "Modifier le compte";
+    ViewData["Title"] = Localizer["Accounts.EditAccountTitle"];
     Layout = "_Layout";
 }
 
@@ -9,7 +9,7 @@
     <div class="col-lg-6">
         <div class="mb-3">
             <a href="@(string.IsNullOrWhiteSpace(Model.ReturnUrl) ? $"/Accounts/Details/{Model.AccountId}" : Model.ReturnUrl)" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i> Retour
+                <i class="bi bi-arrow-left me-1"></i> @Localizer["Common.Cancel"]
             </a>
         </div>
 
@@ -20,8 +20,8 @@
                         <i class="bi bi-pencil-square fs-3"></i>
                     </div>
                     <div>
-                        <h1 class="h4 mb-0">Modifier le compte</h1>
-                        <p class="text-muted small mb-0">Ajustez les informations, le nom ou le solde initial du compte</p>
+                        <h1 class="h4 mb-0">@Localizer["Accounts.EditAccountTitle"]</h1>
+                        <p class="text-muted small mb-0">@Localizer["Accounts.EditAccountSubtitle"]</p>
                     </div>
                 </div>
 
@@ -30,7 +30,7 @@
                     <div asp-validation-summary="ModelOnly" class="text-danger small mb-3"></div>
 
                     <div class="mb-3">
-                        <label asp-for="Input.ExistingBankId" class="form-label small fw-semibold"></label>
+                        <label asp-for="Input.ExistingBankId" class="form-label small fw-semibold">@Localizer["Accounts.ExistingBank"]</label>
                         <select asp-for="Input.ExistingBankId" class="form-select">
                             @foreach (var bank in Model.AvailableBanks)
                             {
@@ -40,35 +40,35 @@
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Input.NewBankName" class="form-label small fw-semibold"></label>
-                        <input asp-for="Input.NewBankName" class="form-control" placeholder="Laisser vide pour conserver la banque actuelle" />
+                        <label asp-for="Input.NewBankName" class="form-label small fw-semibold">@Localizer["Accounts.NewBank"]</label>
+                        <input asp-for="Input.NewBankName" class="form-control" placeholder="@Localizer["Accounts.KeepBankPlaceholder"]" />
                     </div>
 
                     <hr class="my-4 text-muted" />
 
                     <div class="mb-3">
-                        <label asp-for="Input.AccountName" class="form-label small fw-semibold"></label>
-                        <input asp-for="Input.AccountName" class="form-control" placeholder="Ex: Compte Courant..." />
+                        <label asp-for="Input.AccountName" class="form-label small fw-semibold">@Localizer["Accounts.AccountName"]</label>
+                        <input asp-for="Input.AccountName" class="form-control" placeholder="@Localizer["Accounts.AccountNamePlaceholder"]" />
                         <span asp-validation-for="Input.AccountName" class="text-danger small"></span>
                     </div>
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label asp-for="Input.CustomAccountTypeId" class="form-label small fw-semibold mb-0">Type de compte</label>
+                                <label asp-for="Input.CustomAccountTypeId" class="form-label small fw-semibold mb-0">@Localizer["Accounts.AccountType"]</label>
                                 <a href="/Accounts/Types" class="small text-primary text-decoration-none" title="Gérer ou créer d'autres types de comptes">
-                                    <i class="bi bi-gear me-1"></i>Gérer les types
+                                    <i class="bi bi-gear me-1"></i>@Localizer["Accounts.ManageTypes"]
                                 </a>
                             </div>
                             <select asp-for="Input.CustomAccountTypeId" class="form-select">
                                 @foreach (var type in Model.AvailableAccountTypes)
                                 {
-                                    <option value="@type.Id">@type.Name</option>
+                                    <option value="@type.Id">@(Model.LocalizedTypeNames.TryGetValue(type.Id, out var typeName) ? typeName : type.Name)</option>
                                 }
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label asp-for="Input.Currency" class="form-label small fw-semibold">Devise</label>
+                            <label asp-for="Input.Currency" class="form-label small fw-semibold">@Localizer["Accounts.Currency"]</label>
                             <select asp-for="Input.Currency" class="form-select">
                                 @foreach (var curr in Model.AvailableCurrencies)
                                 {
@@ -80,41 +80,41 @@
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label asp-for="Input.Iban" class="form-label small fw-semibold"></label>
-                            <input asp-for="Input.Iban" class="form-control font-monospace" placeholder="FR76 1234 5678 9012 3456 7890 123" />
+                            <label asp-for="Input.Iban" class="form-label small fw-semibold">@Localizer["Accounts.Iban"]</label>
+                            <input asp-for="Input.Iban" class="form-control font-monospace" placeholder="@Localizer["Accounts.IbanPlaceholder"]" />
                         </div>
                         <div class="col-md-6">
                             <label asp-for="Input.OfxAccountId" class="form-label small fw-semibold">
-                                Identifiant OFX (&lt;ACCTID&gt;)
-                                <i class="bi bi-info-circle text-muted ms-1" title="Numéro de compte présent dans la balise <ACCTID> des fichiers OFX exportés par votre banque pour l'affectation automatique."></i>
+                                @Localizer["Accounts.OfxAccountId"]
+                                <i class="bi bi-info-circle text-muted ms-1" title="@Localizer["Accounts.OfxIdHelp"]"></i>
                             </label>
                             <input asp-for="Input.OfxAccountId" class="form-control font-monospace" placeholder="Ex: 01234567890, 00012345678..." />
-                            <span class="form-text small text-muted">Permet la détection automatique du compte lors de l'import OFX.</span>
+                            <span class="form-text small text-muted">@Localizer["Accounts.OfxIdHint"]</span>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label asp-for="Input.InitialBalance" class="form-label small fw-semibold"></label>
+                        <label asp-for="Input.InitialBalance" class="form-label small fw-semibold">@Localizer["Accounts.InitialBalance"]</label>
                         <div class="input-group">
                             <input asp-for="Input.InitialBalance" class="form-control" type="number" step="0.01" />
                             <span class="input-group-text">€</span>
                         </div>
                         <span class="form-text small text-muted">
-                            Solde de départ constaté avant la première transaction enregistrée dans votre historique.
+                            @Localizer["Accounts.InitialBalanceEditHelp"]
                         </span>
                     </div>
 
                     <div class="form-check form-switch mb-4">
                         <input asp-for="Input.IsArchived" class="form-check-input" type="checkbox" id="archivedSwitch">
-                        <label class="form-check-label small" for="archivedSwitch">Archiver ce compte (masqué du tableau de bord)</label>
+                        <label class="form-check-label small" for="archivedSwitch">@Localizer["Accounts.ArchiveAccount"]</label>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
                         <a href="@(string.IsNullOrWhiteSpace(Model.ReturnUrl) ? $"/Accounts/Details/{Model.AccountId}" : Model.ReturnUrl)" class="btn btn-outline-secondary">
-                            <i class="bi bi-arrow-left me-1"></i> Annuler
+                            <i class="bi bi-arrow-left me-1"></i> @Localizer["Common.Cancel"]
                         </a>
                         <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check2 me-1"></i> Enregistrer les modifications
+                            <i class="bi bi-check2 me-1"></i> @Localizer["Accounts.SaveChanges"]
                         </button>
                     </div>
                 </form>

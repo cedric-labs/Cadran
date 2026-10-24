@@ -1,4 +1,4 @@
-﻿@page "/Accounts"
+@page "/Accounts"
 @model Ledger.Features.Accounts.Pages.IndexModel
 @{
     ViewData["Title"] = Localizer["Dashboard.Title"];
@@ -32,7 +32,7 @@
                 <div class="card-body">
                     <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.NetWorth"]</span>
                     <div class="h3 fw-bold mt-1 text-primary">@Model.Dashboard.TotalNetWorth.ToString("C2")</div>
-                    <span class="small text-muted"><i class="bi bi-bank me-1"></i> Actifs nets de passifs</span>
+                    <span class="small text-muted"><i class="bi bi-bank me-1"></i> @Localizer["Dashboard.NetWorthDesc"]</span>
                 </div>
             </div>
         </div>
@@ -41,7 +41,7 @@
                 <div class="card-body">
                     <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.LiquidAssets"]</span>
                     <div class="h3 fw-bold mt-1 text-success">@Model.Dashboard.TotalLiquidAssets.ToString("C2")</div>
-                    <span class="small text-muted"><i class="bi bi-wallet2 me-1"></i> Comptes chèques & espèces</span>
+                    <span class="small text-muted"><i class="bi bi-wallet2 me-1"></i> @Localizer["Dashboard.LiquidAssetsDesc"]</span>
                 </div>
             </div>
         </div>
@@ -50,7 +50,7 @@
                 <div class="card-body">
                     <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.Savings"]</span>
                     <div class="h3 fw-bold mt-1 text-info">@Model.Dashboard.TotalSavings.ToString("C2")</div>
-                    <span class="small text-muted"><i class="bi bi-graph-up-arrow me-1"></i> Livrets, PEA, Titres</span>
+                    <span class="small text-muted"><i class="bi bi-graph-up-arrow me-1"></i> @Localizer["Dashboard.SavingsDesc"]</span>
                 </div>
             </div>
         </div>
@@ -59,7 +59,7 @@
                 <div class="card-body">
                     <span class="text-muted small fw-semibold text-uppercase">@Localizer["Dashboard.Debts"]</span>
                     <div class="h3 fw-bold mt-1 text-danger">@Model.Dashboard.TotalDebts.ToString("C2")</div>
-                    <span class="small text-muted"><i class="bi bi-credit-card-2-front me-1"></i> Débits & cartes différées</span>
+                    <span class="small text-muted"><i class="bi bi-credit-card-2-front me-1"></i> @Localizer["Dashboard.DebtsDesc"]</span>
                 </div>
             </div>
         </div>

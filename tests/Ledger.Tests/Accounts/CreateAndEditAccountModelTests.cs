@@ -24,6 +24,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     private readonly SqliteConnection _connection;
     private readonly Mock<IAccountTypeService> _mockAccountTypeService;
     private readonly Mock<ICurrencyService> _mockCurrencyService;
+    private readonly Mock<ILocalizedEntityService> _mockLocalizedEntityService;
     private readonly Bank _bank;
     private readonly CustomAccountType _customType;
 
@@ -56,6 +57,11 @@ public class CreateAndEditAccountModelTests : IDisposable
         _mockCurrencyService
             .Setup(s => s.GetSupportedCurrencies())
             .Returns(new List<CurrencyInfo> { new("EUR", "Euro", "€") });
+
+        _mockLocalizedEntityService = new Mock<ILocalizedEntityService>();
+        _mockLocalizedEntityService
+            .Setup(s => s.GetTranslationsAsync(It.IsAny<string>(), It.IsAny<IEnumerable<Guid>>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new Dictionary<Guid, string>());
     }
 
     public void Dispose()
@@ -86,7 +92,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     public async Task CreateAccountModel_OnGetAsync_ShouldPopulateAvailableCollectionsAndDefaultType()
     {
         var (pageContext, tempData, _) = CreateContext();
-        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -104,7 +110,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     public async Task OnPostCreateAsync_WithInvalidModelState_ReturnsPage()
     {
         var (pageContext, tempData, _) = CreateContext();
-        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -121,7 +127,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     public async Task OnPostCreateAsync_WithoutBank_AddsErrorAndReturnsPage()
     {
         var (pageContext, tempData, _) = CreateContext();
-        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData,
@@ -143,7 +149,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     public async Task OnPostCreateAsync_WithExistingBank_CreatesAccountAndRedirects()
     {
         var (pageContext, tempData, _) = CreateContext();
-        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData,
@@ -173,7 +179,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     public async Task OnPostCreateAsync_WithNewBankName_CreatesBankAndAccount()
     {
         var (pageContext, tempData, _) = CreateContext();
-        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new CreateAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData,
@@ -201,7 +207,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     public async Task OnGetEditAsync_WithNonExistentAccount_ReturnsNotFound()
     {
         var (pageContext, tempData, _) = CreateContext();
-        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -229,7 +235,7 @@ public class CreateAndEditAccountModelTests : IDisposable
         await _context.SaveChangesAsync();
 
         var (pageContext, tempData, mockUrl) = CreateContext("https://localhost/Accounts/Details/" + account.Id);
-        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData,
@@ -248,7 +254,7 @@ public class CreateAndEditAccountModelTests : IDisposable
     public async Task OnPostEditAsync_WithNonExistentAccount_ReturnsNotFound()
     {
         var (pageContext, tempData, _) = CreateContext();
-        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -273,7 +279,7 @@ public class CreateAndEditAccountModelTests : IDisposable
         await _context.SaveChangesAsync();
 
         var (pageContext, tempData, _) = CreateContext();
-        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -300,7 +306,7 @@ public class CreateAndEditAccountModelTests : IDisposable
         await _context.SaveChangesAsync();
 
         var (pageContext, tempData, mockUrl) = CreateContext();
-        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object)
+        var model = new EditAccountModel(_context, _mockAccountTypeService.Object, _mockCurrencyService.Object, _mockLocalizedEntityService.Object)
         {
             PageContext = pageContext,
             TempData = tempData,

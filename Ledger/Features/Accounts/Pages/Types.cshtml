@@ -1,4 +1,4 @@
-﻿@page "/Accounts/Types"
+@page "/Accounts/Types"
 @model Ledger.Features.Accounts.Pages.TypesModel
 @{
     ViewData["Title"] = "Types de comptes";
@@ -11,23 +11,23 @@
         <div>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb small mb-1">
-                    <li class="breadcrumb-item"><a href="/Accounts" class="text-decoration-none">Comptes</a></li>
-                    <li class="breadcrumb-item active" aria-current="page">Paramètres des types de comptes</li>
+                    <li class="breadcrumb-item"><a href="/Accounts" class="text-decoration-none">@Localizer["Nav.Accounts"]</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">@Localizer["AccountTypes.Title"]</li>
                 </ol>
             </nav>
             <h1 class="h3 fw-bold mb-1">
-                <i class="bi bi-wallet-fill text-primary me-2"></i>Types de comptes bancaires
+                <i class="bi bi-wallet-fill text-primary me-2"></i>@Localizer["AccountTypes.Title"]
             </h1>
             <p class="text-muted small mb-0">
-                Personnalisez les types de comptes et livrets disponibles (Compte de Dépôt, LDD Solidaire, Livret A, Carré mauve PEL, Parts Sociales, etc.) et configurez leur appartenance patrimoniale.
+                @Localizer["AccountTypes.Subtitle"]
             </p>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-primary btn-sm" onclick="openTypeModal()">
-                <i class="bi bi-plus-lg me-1"></i> Nouveau type de compte
+                <i class="bi bi-plus-lg me-1"></i> @Localizer["AccountTypes.NewType"]
             </button>
             <a href="/Accounts" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i> Retour aux comptes
+                <i class="bi bi-arrow-left me-1"></i> @Localizer["AccountTypes.BackToAccounts"]
             </a>
         </div>
     </div>
@@ -51,20 +51,20 @@
     <!-- Liste des types de comptes -->
     <div class="card shadow-sm border-0">
         <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
-            <h2 class="h6 fw-bold mb-0">Types de comptes configurés en base de données (@Model.AccountTypes.Count)</h2>
-            <span class="small text-muted">Ces types apparaissent dans les listes déroulantes de création/modification de compte.</span>
+            <h2 class="h6 fw-bold mb-0">@string.Format(Localizer["AccountTypes.ConfiguredTypes"].Value, Model.AccountTypes.Count)</h2>
+            <span class="small text-muted">@Localizer["AccountTypes.ConfiguredTypesDesc"]</span>
         </div>
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light small">
                     <tr>
                         <th style="width: 50px;" class="text-center">#</th>
-                        <th style="width: 220px;">Aperçu du badge</th>
-                        <th>Nom & Code</th>
-                        <th>Groupe patrimonial (KPI)</th>
-                        <th>Description</th>
-                        <th style="width: 120px;" class="text-center">Comptes liés</th>
-                        <th style="width: 110px;" class="text-end">Actions</th>
+                        <th style="width: 220px;">@Localizer["AccountTypes.BadgePreview"]</th>
+                        <th>@Localizer["AccountTypes.NameAndCode"]</th>
+                        <th>@Localizer["AccountTypes.AssetGroup"]</th>
+                        <th>@Localizer["AccountTypes.Description"]</th>
+                        <th style="width: 120px;" class="text-center">@Localizer["AccountTypes.LinkedAccounts"]</th>
+                        <th style="width: 110px;" class="text-end">@Localizer["AccountTypes.Actions"]</th>
                     </tr>
                 </thead>
                 <tbody class="small">
@@ -77,34 +77,34 @@
                                 <span class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
                                       style="background-color: @(t.ColorHex)15; color: @t.ColorHex; border-color: @(t.ColorHex)40 !important; font-size: 0.75rem;">
                                     <i class="bi @t.IconName"></i>
-                                    <span>@t.Name</span>
+                                    <span>@(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && !string.IsNullOrEmpty(item.NameEn) ? item.NameEn : t.Name)</span>
                                 </span>
                             </td>
                             <td>
-                                <span class="fw-bold text-dark">@t.Name</span>
+                                <span class="fw-bold text-dark">@(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && !string.IsNullOrEmpty(item.NameEn) ? item.NameEn : t.Name)</span>
                                 @if (!string.IsNullOrEmpty(t.Code))
                                 {
                                     <span class="text-muted ms-1 font-monospace" style="font-size: 0.7rem;">(@t.Code)</span>
                                 }
                                 @if (t.IsSystem)
                                 {
-                                    <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.65rem;" title="Type standard initialisé">Standard</span>
+                                    <span class="badge bg-light text-secondary border ms-1" style="font-size: 0.65rem;" title="Type standard initialisé">@Localizer["AccountTypes.StandardBadge"]</span>
                                 }
                             </td>
                             <td>
                                 @switch (t.CategoryGroup)
                                 {
                                     case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Liquid:
-                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-wallet2 me-1"></i> Liquidités courantes</span>
+                                        <span class="badge bg-success-subtle text-success"><i class="bi bi-wallet2 me-1"></i> @Localizer["AccountTypes.LiquidGroup"]</span>
                                         break;
                                     case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Savings:
-                                        <span class="badge bg-info-subtle text-info"><i class="bi bi-piggy-bank me-1"></i> Épargne & Livrets</span>
+                                        <span class="badge bg-info-subtle text-info"><i class="bi bi-piggy-bank me-1"></i> @Localizer["AccountTypes.SavingsGroup"]</span>
                                         break;
                                     case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Investment:
-                                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-graph-up me-1"></i> Investissements / Titres</span>
+                                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-graph-up me-1"></i> @Localizer["AccountTypes.SavingsGroup"]</span>
                                         break;
                                     case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Debt:
-                                        <span class="badge bg-danger-subtle text-danger"><i class="bi bi-credit-card me-1"></i> Passif / Dette</span>
+                                        <span class="badge bg-danger-subtle text-danger"><i class="bi bi-credit-card me-1"></i> @Localizer["AccountTypes.DebtGroup"]</span>
                                         break;
                                 }
                             </td>
