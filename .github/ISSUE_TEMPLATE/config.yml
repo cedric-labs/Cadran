@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
-  - name: ðŸ“– Documentation & User Guide
+  - name: 📖 Documentation & User Guide
     url: https://github.com/curvecoder/Cadran/blob/main/docs/user-guide.md
     about: Please check our documentation and user guide before opening an issue.
