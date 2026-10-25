@@ -24,6 +24,7 @@
 
 ## Dokumentation
 
+- 🗺️ **[Visuelle Schritt-für-Schritt-Anleitung (docs/README.md)](docs/README.md)**: Interaktives Handbuch mit hochauflösenden Screenshots, nummerierten Aktionsaufrufen und Schritt-für-Schritt-Anleitungen für alle 24 Bildschirme in den 6 Funktionsmodulen.
 - 📖 **[Benutzerhandbuch & Betrieb (docs/de/user-guide.md)](docs/de/user-guide.md)**: Umfassendes Handbuch mit Schnellstart, Schritt-für-Schritt-Anleitungen, Windows Tray Supervisor, Windows Service (NSSM), Linux Standalone-Binary, Linux Bereitstellungsarchiv (`.tar.gz`), `systemd`-Integration, isolierten Offline-Installationen (Air-Gap) und Finanzkonzepten.
 - 🏗️ **[Architektur- & Engineering-Spezifikation (docs/de/architecture.md)](docs/de/architecture.md)**: Detaillierte technische Referenz über Komponentenarchitektur, entkoppelte Shared Frameworks (`StatementForge`, `SqliteForge`, `LocaleForge`, `FileForge`), Nebenläufigkeits- und Speichermodelle sowie zweistufige Sicherheit.
 

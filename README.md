@@ -24,6 +24,7 @@
 
 ## Documentation
 
+- 🗺️ **[Step-by-Step Visual Screens Guide (docs/README.md)](docs/README.md)**: Interactive manual with high-resolution screenshots, numbered action callouts, and step-by-step guidance for all 24 screens across all 6 functional batches (Security, Accounts, Transactions, Rules, Imports, and Reports).
 - 📖 **[User Guide & Operations (docs/user-guide.md)](docs/user-guide.md)**: Comprehensive manual covering quickstart, step-by-step how-to recipes, Windows Tray Supervisor, Windows Service (NSSM), Linux standalone binary, Linux deployment archive (`.tar.gz`), `systemd` integration, air-gapped deployments, and financial concepts.
 - 🏗️ **[Architecture & Engineering Specification (docs/architecture.md)](docs/architecture.md)**: In-depth engineering reference detailing component architecture, decoupled shared frameworks (`StatementForge`, `SqliteForge`, `LocaleForge`, `FileForge`), threading and memory models, and two-tier security.
 

@@ -24,6 +24,7 @@
 
 ## Documentación
 
+- 🗺️ **[Guía Visual Paso a Paso (docs/README.md)](docs/README.md)**: Manual interactivo con capturas de pantalla de alta resolución, llamadas de acción numeradas y guías paso a paso para las 24 pantallas en los 6 módulos funcionales.
 - 📖 **[Guía del Usuario y Operaciones (docs/es/user-guide.md)](docs/es/user-guide.md)**: Manual integral que cubre inicio rápido, tutoriales paso a paso, el supervisor Windows Tray, servicio Windows (NSSM), binario autónomo para Linux, archivo de distribución Linux (`.tar.gz`), integración con `systemd`, despliegues aislados (air-gapped) y conceptos financieros.
 - 🏗️ **[Especificación de Arquitectura e Ingeniería (docs/es/architecture.md)](docs/es/architecture.md)**: Referencia técnica en profundidad que detalla la arquitectura de componentes, los frameworks compartidos desacoplados (`StatementForge`, `SqliteForge`, `LocaleForge`, `FileForge`), modelos de concurrencia y memoria, y seguridad en dos niveles.
 

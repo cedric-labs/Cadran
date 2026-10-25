@@ -24,6 +24,7 @@
 
 ## Documentation
 
+- 🗺️ **[Guide Visuel Écran par Écran (docs/fr/README.md)](docs/fr/README.md)** : Manuel illustré interactif avec captures d'écran haute résolution, repères d'action numérotés et fiches pratiques pour les 24 écrans des 6 lots fonctionnels (Sécurité, Comptes, Transactions, Règles & Budgets, Imports et Rapports).
 - 📖 **[Guide Utilisateur & Exploitation (docs/fr/user-guide.md)](docs/fr/user-guide.md)** : Manuel exhaustif couvrant la prise en main rapide, les tutoriels pas à pas, le superviseur Windows Tray, le service Windows (NSSM), le binaire autonome Linux, l'archive de déploiement Linux (`.tar.gz`), l'intégration `systemd`, les déploiements hors-ligne (air-gapped) et les concepts financiers.
 - 🏗️ **[Spécification d'Architecture & d'Ingénierie (docs/fr/architecture.md)](docs/fr/architecture.md)** : Référence technique approfondie détaillant l'architecture logicielle, les frameworks partagés découplés (`StatementForge`, `SqliteForge`, `LocaleForge`, `FileForge`), les modèles de concurrence/mémoire et la sécurité à deux niveaux.
 
