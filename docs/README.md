@@ -29,23 +29,23 @@ Welcome to the comprehensive, step-by-step user manual for **Cadran**. Every scr
 - 🏷️ **[10. Custom Account Types](screens/10-account-types.md)** — Custom classifications and parent asset groups.
 - 🎯 **[11. Custom Transaction Statuses](screens/11-account-statuses.md)** — Reconciliation tags and default import behavior.
 
-### 💸 3. Transaction Operations & Splitting (Batch 3 — Upcoming)
-- 📝 **12. Add & Edit Transaction** — Transaction entry modal and fields.
-- ✂️ **13. Split Transaction** — Multi-category receipt splitting.
-- 🔍 **14. Batch Reconciliation & Bulk Categorization** — Multi-select actions.
+### 💸 3. Transaction Operations & Splitting (Batch 3 — Complete)
+- 📋 **[12. Unified Transaction Ledger](screens/12-transactions-ledger.md)** — Consolidated multi-account register, search, and quick cycling.
+- ✏️ **[13. Edit Transaction & Classification Details](screens/13-edit-transaction.md)** — Category tree selection, merchant linking, notes, and rule propagation.
+- ✂️ **[14. Split Multi-Category Transactions](screens/14-split-transaction.md)** — Multi-category receipt splitting and zero-sum balancing.
+- ⚡ **[15. Batch Reconciliations & Bulk Actions](screens/15-batch-actions.md)** — Multi-selection, bulk statement clearing, and mass reconciliation.
 
-### 🏷️ 4. Categories, Budget & Rules (Batch 4)
-- 🌳 **15. Category Hierarchy & Tree** — Income and expense structures.
-- 🎨 **16. Create & Edit Category** — Color codes and icon selector.
-- ⚡ **17. Automated Rules Engine** — Auto-categorization conditions and actions.
-- 🔄 **18. Recurring Operations & Bills** — Scheduled salaries and expenses.
-- 🏪 **19. Payee & Merchant Normalization** — Vendor name cleaning.
+### 🏷️ 4. Categories, Budget & Rules (Batch 4 — Complete)
+- 🌳 **[16. Category Hierarchy & Explorer](screens/16-categories.md)** — Income and expense structures, group folding, and color icons.
+- 🎨 **[17. Create & Edit Category](screens/17-create-category.md)** — Color codes, icons, multilingual translations, and parent grouping.
+- ⚡ **[18. Automated Rules Engine](screens/18-rules-engine.md)** — Auto-categorization conditions, wildcards, and live statement tester.
+- 🔄 **[19. Recurring Operations & Bills](screens/19-recurring-transactions.md)** — Scheduled bills, discretionary remaining budget, and monthly tracking.
 
-### 📥 5. Bank Imports & Delimited Data (Batch 5)
-- 📂 **20. Statement Import (OFX / CSV)** — File upload and duplicate prevention.
-- ⚙️ **21. CSV Import Profile Builder** — Mapping columns, dates, and polarity.
+### 📥 5. Bank Imports & Delimited Data (Batch 5 — Complete)
+- 📂 **[20. Statement Import (OFX / CSV)](screens/20-statement-imports.md)** — File upload, automated account matching, and duplicate prevention.
+- ⚙️ **[21. CSV Import Profile Builder](screens/21-import-mapping.md)** — Mapping bank columns, date formats, delimiters, and polarity.
 
-### 📈 6. Reports, Analytics & Supervision (Batch 6)
-- 📊 **22. Financial Reports & Charts** — Category expense breakdown and trends.
-- 🎨 **23. Appearance & Theme Settings** — Fonts, size, dark/light modes.
-- 🖥️ **24. Windows Tray Launcher & Backups** — Supervisor, backups, and retention.
+### 📈 6. Reports, Analytics & Supervision (Batch 6 — Complete)
+- 📊 **[22. Financial Reports & Charts](screens/22-financial-reports.md)** — Visual category spending breakdown, top expenses, and interactive pivot tables.
+- 🎨 **[23. Appearance & Theme Settings](screens/23-appearance-settings.md)** — Custom fonts, scale adjustments, and compact/comfort ledger density.
+- 🖥️ **[24. Windows Tray Launcher & Backups](screens/24-backups-supervision.md)** — Tray supervisor, automated snapshots, and one-click database restore.
