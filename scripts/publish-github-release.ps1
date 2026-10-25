@@ -52,13 +52,19 @@ Write-Host "Topics configured." -ForegroundColor Green
 
 # 4. Read SHA256SUMS
 $checksumsContent = Get-Content (Join-Path $DistDir "SHA256SUMS.txt") -Raw
+$cleanVersion = ($Tag -replace '^v', '')
 
 $releaseMarkdown = @"
-# Cadran v1.0.0 - Privacy-First Personal Finance & Wealth Management
+# Cadran $Tag - Privacy-First Personal Finance & Wealth Management
 
-We are excited to announce the initial open-source release of **Cadran v1.0.0**!
+We are excited to announce the release of **Cadran $Tag**!
 
 Cadran is a modern, local-first, privacy-first personal finance, budget tracking, and wealth management platform built on ASP.NET Core 9, C# 12, Entity Framework Core, and Encrypted SQLite (SQLCipher).
+
+### What's New in $Tag
+- **Multilingual Support (ES, DE, FR, EN)**: Complete end-to-end user interface and documentation in Spanish and German alongside French and English.
+- **Dynamic Account Types & Statuses**: Single-field multilingual edition with localized KPI group bindings and automatic seed fallbacks.
+- **Automated SemVer 2.0**: Versioning dynamically driven by Git tags and MinVer.
 
 ### Key Features
 - **Local-First & Privacy-First**: 100% data sovereignty. All records stored locally in encrypted SQLite (`cadran.db`). Zero telemetry, zero external scrapers.
@@ -67,17 +73,17 @@ Cadran is a modern, local-first, privacy-first personal finance, budget tracking
 - **Safe-to-Spend**: Dynamic subscription tracking and pending recurring expense reservation from day 1 of the monthly cycle.
 - **Dynamic Pivot Tables (TCD)**: Multi-dimensional aggregations by category, payee, or account with interactive drill-down transaction inspection and CSV export.
 - **Windows System Tray Supervisor**: Native notification area launcher (`Cadran.Launcher.exe`) with automated database backups upon start/exit and one-click browser launch.
-- **Security & Remote Access**: Local-first architecture with optional SQLCipher AES-256 database encryption. Remote access should be performed exclusively via private VPN (e.g., WireGuard); TOTP 2FA is untested and scheduled for deprecation.
+- **Security & Remote Access**: Local-first architecture with optional SQLCipher AES-256 database encryption.
 - **Multi-Platform Support**: Self-contained standalone builds for Windows x64 and Linux x64, with systemd and Windows service support.
 
 ### Download Artifacts
 
 | Platform / Architecture | Artifact | Description |
 |---|---|---|
-| **Windows x64** | `Cadran-1.0.0-win-x64.zip` | Complete Windows deployment archive including Tray Supervisor (`Cadran.Launcher.exe`) and server engine. |
-| **Windows x64 (Direct)** | `Cadran-1.0.0-win-x64.exe` | Standalone Windows Tray Supervisor executable. |
-| **Linux x64** | `Cadran-1.0.0-linux-x64.tar.gz` | Complete Linux deployment archive with configuration and data directories. |
-| **Linux x64 (Direct)** | `Cadran-1.0.0-linux-x64` | Standalone Linux server binary. |
+| **Windows x64** | `Cadran-$cleanVersion-win-x64.zip` | Complete Windows deployment archive including Tray Supervisor (`Cadran.Launcher.exe`) and server engine. |
+| **Windows x64 (Direct)** | `Cadran-$cleanVersion-win-x64.exe` | Standalone Windows Tray Supervisor executable. |
+| **Linux x64** | `Cadran-$cleanVersion-linux-x64.tar.gz` | Complete Linux deployment archive with configuration and data directories. |
+| **Linux x64 (Direct)** | `Cadran-$cleanVersion-linux-x64` | Standalone Linux server binary. |
 | **Checksums** | `SHA256SUMS.txt` | SHA256 checksums for cryptographic verification. |
 
 ### SHA256 Integrity Checksums
@@ -94,7 +100,7 @@ try {
     $release = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/tags/$Tag" -Headers $headers
     Write-Host "Found existing release $($release.id). Updating release body..." -ForegroundColor Cyan
     $updatePayload = @{
-        name = "Cadran v1.0.0"
+        name = "Cadran $Tag"
         body = $releaseMarkdown
     } | ConvertTo-Json
     $updateBytes = [System.Text.Encoding]::UTF8.GetBytes($updatePayload)
@@ -104,7 +110,7 @@ catch {
     Write-Host "Creating GitHub Release for $Tag ..." -ForegroundColor Cyan
     $releasePayload = @{
         tag_name = $Tag
-        name = "Cadran v1.0.0"
+        name = "Cadran $Tag"
         body = $releaseMarkdown
         draft = $false
         prerelease = $false
@@ -152,4 +158,4 @@ foreach ($file in $assets) {
     Write-Host "Uploaded $($file.Name) successfully (ID: $($uploaded.id))." -ForegroundColor Green
 }
 
-Write-Host "`n[SUCCESS] GitHub Release v1.0.0 published successfully at: $($release.html_url)" -ForegroundColor Green
+Write-Host "`n[SUCCESS] GitHub Release $Tag published successfully at: $($release.html_url)" -ForegroundColor Green
