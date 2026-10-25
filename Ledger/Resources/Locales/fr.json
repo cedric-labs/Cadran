@@ -23,6 +23,7 @@
     "Logout": "Déconnexion"
   },
   "Common": {
+    "Name": "Nom",
     "Save": "Enregistrer",
     "Cancel": "Annuler",
     "Delete": "Supprimer",
@@ -799,6 +800,11 @@
     "LiquidGroup": "Liquidités courantes",
     "SavingsGroup": "Épargne & Placements",
     "DebtGroup": "Dettes & Passifs",
+    "GroupLiquid": "Liquidités courantes (comptes chèques, espèces)",
+    "GroupSavings": "Épargne & Livrets (Livret A, LDDS, PEL, CAT...)",
+    "GroupInvestment": "Investissements & Titres (PEA, CTO, Crypto...)",
+    "GroupDebt": "Passif & Dettes (Crédits, emprunts, cartes différées)",
+    "CategoryGroupHelp": "Définit dans quel indicateur (KPI) du tableau de bord le solde du compte s'additionne.",
     "EditType": "Modifier le type",
     "DeleteType": "Supprimer le type"
   },

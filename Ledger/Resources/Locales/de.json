@@ -23,6 +23,7 @@
     "Logout": "Abmelden"
   },
   "Common": {
+    "Name": "Name",
     "Save": "Speichern",
     "Cancel": "Abbrechen",
     "Delete": "Löschen",
@@ -799,6 +800,11 @@
     "LiquidGroup": "Liquide Mittel",
     "SavingsGroup": "Ersparnisse & Anlagen",
     "DebtGroup": "Verbindlichkeiten / Schulden",
+    "GroupLiquid": "Flüssige Mittel (Girokonten, Bargeld)",
+    "GroupSavings": "Sparguthaben & Einlagen (Sparkonten, Festgeld...)",
+    "GroupInvestment": "Wertpapiere & Anlagen (Aktien, Depot, Krypto...)",
+    "GroupDebt": "Verbindlichkeiten & Schulden (Kredite, Darlehen)",
+    "CategoryGroupHelp": "Bestimmt, zu welcher Dashboard-Kennzahl (KPI) der Kontostand beiträgt.",
     "EditType": "Typ bearbeiten",
     "DeleteType": "Typ löschen"
   },

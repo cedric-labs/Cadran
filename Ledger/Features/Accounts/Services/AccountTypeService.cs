@@ -1,3 +1,4 @@
+using Ledger.Domain.Entities;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Security.Context;
 using Ledger.Infrastructure.Data;
@@ -14,6 +15,28 @@ public sealed class AccountTypeService(
     ICurrentUserService currentUserService,
     ILogger<AccountTypeService> logger) : IAccountTypeService
 {
+    private static readonly IReadOnlyDictionary<string, (string En, string Es, string De)> DefaultAccountTypeTranslations =
+        new Dictionary<string, (string En, string Es, string De)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Checking"] = ("Checking Account", "Cuenta Corriente", "Girokonto"),
+            ["CreditCard"] = ("Deferred Debit / Credit Card", "Tarjeta de crédito / débito diferido", "Kreditkarte / Aufgeschobene Debitkarte"),
+            ["Cash"] = ("Cash / Wallet", "Efectivo / Cartera", "Bargeld / Geldbörse"),
+            ["LivretA"] = ("Livret A Savings", "Cuenta de ahorro Livret A", "Livret A Sparkonto"),
+            ["Ldds"] = ("Sustainable Development Savings (LDDS)", "Ahorro Sostenible y Solidario (LDDS)", "Nachhaltiges Sparkonto (LDDS)"),
+            ["Lep"] = ("Popular Savings Account (LEP)", "Cuenta de Ahorro Popular (LEP)", "Volkssparkonto (LEP)"),
+            ["LivretJeune"] = ("Youth Savings Account", "Cuenta de Ahorro Joven", "Jugendsparkonto"),
+            ["Savings"] = ("Bank Savings Account (CSL)", "Cuenta de Ahorro Bancaria (CSL)", "Banksparkonto (CSL)"),
+            ["Pel"] = ("Home Savings Plan (PEL)", "Plan de Ahorro para la Vivienda (PEL)", "Bausparplan (PEL)"),
+            ["Cel"] = ("Home Savings Account (CEL)", "Cuenta de Ahorro para la Vivienda (CEL)", "Bausparkonto (CEL)"),
+            ["Cat"] = ("Term Deposit Account (CAT)", "Depósito a Plazo Fijo", "Festgeldkonto"),
+            ["Pea"] = ("Equity Savings Plan (PEA)", "Plan de Ahorro en Acciones (PEA)", "Aktiensparplan (PEA)"),
+            ["Investment"] = ("Standard Securities Account (CTO)", "Cuenta de Valores Ordinaria (CTO)", "Wertpapierdepot (CTO)"),
+            ["PartsSociales"] = ("Member Shares Account", "Cuenta de Cuotas Participativas", "Genossenschaftsanteile-Konto"),
+            ["AssuranceVie"] = ("Life Insurance Policy", "Seguro de Vida", "Lebensversicherung"),
+            ["Per"] = ("Retirement Savings Plan (PER)", "Plan de Pensiones / Jubilación (PER)", "Renten-Sparplan (PER)"),
+            ["Crypto"] = ("Cryptocurrencies / Other Assets", "Criptomonedas / Otros activos", "Kryptowährungen / Sonstige Vermögenswerte")
+        };
+
     public async Task<List<CustomAccountType>> GetAllAccountTypesAsync(CancellationToken cancellationToken = default)
     {
         var userId = currentUserService.UserId;
@@ -21,6 +44,8 @@ public sealed class AccountTypeService(
         {
             await EnsureDefaultAccountTypesForUserAsync(userId, cancellationToken);
         }
+
+        await EnsureDefaultTranslationsAsync(cancellationToken);
 
         return await dbContext.CustomAccountTypes
             .OrderBy(t => t.DisplayOrder)
@@ -154,6 +179,85 @@ public sealed class AccountTypeService(
         }
 
         logger.LogInformation("Types de comptes français par défaut initialisés en base pour l'utilisateur {UserId}.", userId);
+        await EnsureDefaultTranslationsAsync(cancellationToken);
+    }
+
+    private async Task EnsureDefaultTranslationsAsync(CancellationToken cancellationToken)
+    {
+        var types = await dbContext.CustomAccountTypes
+            .Where(t => t.Code != null && t.Code != "")
+            .ToListAsync(cancellationToken);
+
+        if (types.Count == 0) return;
+
+        var typeIds = types.Select(t => t.Id).ToHashSet();
+        var existingTranslations = await dbContext.EntityTranslations
+            .Where(t => t.EntityType == "CustomAccountType" && typeIds.Contains(t.EntityId) && t.Field == "Name")
+            .ToListAsync(cancellationToken);
+
+        var existingKeySet = existingTranslations
+            .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
+            .ToHashSet();
+
+        var toAdd = new List<EntityTranslation>();
+        foreach (var type in types)
+        {
+            if (string.IsNullOrEmpty(type.Code) || !DefaultAccountTypeTranslations.TryGetValue(type.Code, out var trans))
+            {
+                continue;
+            }
+
+            if (!existingKeySet.Contains($"{type.Id}:en") && !string.IsNullOrWhiteSpace(trans.En))
+            {
+                toAdd.Add(new EntityTranslation
+                {
+                    EntityType = "CustomAccountType",
+                    EntityId = type.Id,
+                    Field = "Name",
+                    LanguageCode = "en",
+                    Translation = trans.En
+                });
+            }
+
+            if (!existingKeySet.Contains($"{type.Id}:es") && !string.IsNullOrWhiteSpace(trans.Es))
+            {
+                toAdd.Add(new EntityTranslation
+                {
+                    EntityType = "CustomAccountType",
+                    EntityId = type.Id,
+                    Field = "Name",
+                    LanguageCode = "es",
+                    Translation = trans.Es
+                });
+            }
+
+            if (!existingKeySet.Contains($"{type.Id}:de") && !string.IsNullOrWhiteSpace(trans.De))
+            {
+                toAdd.Add(new EntityTranslation
+                {
+                    EntityType = "CustomAccountType",
+                    EntityId = type.Id,
+                    Field = "Name",
+                    LanguageCode = "de",
+                    Translation = trans.De
+                });
+            }
+        }
+
+        if (toAdd.Count > 0)
+        {
+            dbContext.EntityTranslations.AddRange(toAdd);
+            try
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Ajout de {Count} traductions de types de comptes par défaut (EN, ES, DE).", toAdd.Count);
+            }
+            catch (DbUpdateException ex)
+            {
+                // Tolérer si les traductions ont déjà été insérées concurremment par un autre thread/processus
+                logger.LogWarning(ex, "Concurrence lors de l'insertion des traductions par défaut des types de comptes.");
+            }
+        }
     }
 
     public async Task<int> DeduplicateAccountTypesAsync(CancellationToken cancellationToken = default)

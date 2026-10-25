@@ -108,7 +108,6 @@ public class AccountCustomTypesAndStatusesPageModelTests : IDisposable
             Input = new TypesModel.TypeInputModel
             {
                 Name = "Nouveau Compte",
-                NameEn = "New Account",
                 ColorHex = "#123456",
                 IconName = "bi-wallet"
             }
@@ -118,7 +117,7 @@ public class AccountCustomTypesAndStatusesPageModelTests : IDisposable
 
         result.Should().BeOfType<RedirectToPageResult>();
         _mockTypeService.Verify(s => s.CreateAsync(It.Is<CustomAccountType>(t => t.Name == "Nouveau Compte"), It.IsAny<CancellationToken>()), Times.Once);
-        _mockLocalizedEntityService.Verify(s => s.SetTranslationAsync("CustomAccountType", It.IsAny<Guid>(), "Name", "en", "New Account"), Times.Once);
+        _mockLocalizedEntityService.Verify(s => s.SetTranslationAsync("CustomAccountType", It.IsAny<Guid>(), "Name", It.IsAny<string>(), "Nouveau Compte", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -222,7 +221,6 @@ public class AccountCustomTypesAndStatusesPageModelTests : IDisposable
             Input = new StatusesModel.StatusInputModel
             {
                 Name = "Validé",
-                NameEn = "Validated",
                 ColorHex = "#00ff00",
                 IconName = "bi-check"
             }
@@ -232,6 +230,7 @@ public class AccountCustomTypesAndStatusesPageModelTests : IDisposable
 
         result.Should().BeOfType<RedirectToPageResult>();
         _mockStatusService.Verify(s => s.CreateAsync(It.Is<TransactionCustomStatus>(s => s.Name == "Validé")), Times.Once);
+        _mockLocalizedEntityService.Verify(s => s.SetTranslationAsync("TransactionCustomStatus", It.IsAny<Guid>(), "Name", It.IsAny<string>(), "Validé", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -271,7 +270,6 @@ public class AccountCustomTypesAndStatusesPageModelTests : IDisposable
             {
                 Id = id,
                 Name = "Mis à jour",
-                NameEn = "Updated",
                 ColorHex = "#654321",
                 IconName = "bi-star",
                 IsDefault = true
@@ -282,8 +280,8 @@ public class AccountCustomTypesAndStatusesPageModelTests : IDisposable
 
         result.Should().BeOfType<RedirectToPageResult>();
         existing.Name.Should().Be("Mis à jour");
-        _mockStatusService.Verify(s => s.UpdateAsync(existing), Times.Once);
-        _mockLocalizedEntityService.Verify(s => s.SetTranslationAsync("TransactionCustomStatus", id, "Name", "en", "Updated"), Times.Once);
+        _mockStatusService.Verify(s => s.UpdateAsync(existing, It.IsAny<CancellationToken>()), Times.Once);
+        _mockLocalizedEntityService.Verify(s => s.SetTranslationAsync("TransactionCustomStatus", id, "Name", It.IsAny<string>(), "Mis à jour", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

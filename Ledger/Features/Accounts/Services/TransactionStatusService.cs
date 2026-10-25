@@ -1,3 +1,4 @@
+using Ledger.Domain.Entities;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Security.Context;
 using Ledger.Infrastructure.Data;
@@ -14,6 +15,14 @@ public sealed class TransactionStatusService(
     ICurrentUserService currentUserService,
     ILogger<TransactionStatusService> logger) : ITransactionStatusService
 {
+    private static readonly IReadOnlyDictionary<string, (string En, string Es, string De)> DefaultStatusTranslations =
+        new Dictionary<string, (string En, string Es, string De)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Reconciled"] = ("Reconciled", "Conciliada", "Abgeglichen"),
+            ["Cleared"] = ("Cleared", "Contabilizada", "Gebucht"),
+            ["Pending"] = ("Pending", "Pendiente", "Ausstehend")
+        };
+
     public async Task<List<TransactionCustomStatus>> GetAllStatusesAsync(CancellationToken cancellationToken = default)
     {
         var userId = currentUserService.UserId;
@@ -21,6 +30,8 @@ public sealed class TransactionStatusService(
         {
             await EnsureDefaultStatusesForUserAsync(userId, cancellationToken);
         }
+
+        await EnsureDefaultTranslationsAsync(cancellationToken);
 
         return await dbContext.TransactionStatuses
             .OrderBy(s => s.DisplayOrder)
@@ -207,6 +218,84 @@ public sealed class TransactionStatusService(
         }
 
         logger.LogInformation("Statuts par défaut créés et associés pour l'utilisateur {UserId}.", userId);
+        await EnsureDefaultTranslationsAsync(cancellationToken);
+    }
+
+    private async Task EnsureDefaultTranslationsAsync(CancellationToken cancellationToken)
+    {
+        var statuses = await dbContext.TransactionStatuses
+            .Where(s => s.Code != null && s.Code != "")
+            .ToListAsync(cancellationToken);
+
+        if (statuses.Count == 0) return;
+
+        var statusIds = statuses.Select(s => s.Id).ToHashSet();
+        var existingTranslations = await dbContext.EntityTranslations
+            .Where(t => t.EntityType == "TransactionCustomStatus" && statusIds.Contains(t.EntityId) && t.Field == "Name")
+            .ToListAsync(cancellationToken);
+
+        var existingKeySet = existingTranslations
+            .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
+            .ToHashSet();
+
+        var toAdd = new List<EntityTranslation>();
+        foreach (var status in statuses)
+        {
+            if (string.IsNullOrEmpty(status.Code) || !DefaultStatusTranslations.TryGetValue(status.Code, out var trans))
+            {
+                continue;
+            }
+
+            if (!existingKeySet.Contains($"{status.Id}:en") && !string.IsNullOrWhiteSpace(trans.En))
+            {
+                toAdd.Add(new EntityTranslation
+                {
+                    EntityType = "TransactionCustomStatus",
+                    EntityId = status.Id,
+                    Field = "Name",
+                    LanguageCode = "en",
+                    Translation = trans.En
+                });
+            }
+
+            if (!existingKeySet.Contains($"{status.Id}:es") && !string.IsNullOrWhiteSpace(trans.Es))
+            {
+                toAdd.Add(new EntityTranslation
+                {
+                    EntityType = "TransactionCustomStatus",
+                    EntityId = status.Id,
+                    Field = "Name",
+                    LanguageCode = "es",
+                    Translation = trans.Es
+                });
+            }
+
+            if (!existingKeySet.Contains($"{status.Id}:de") && !string.IsNullOrWhiteSpace(trans.De))
+            {
+                toAdd.Add(new EntityTranslation
+                {
+                    EntityType = "TransactionCustomStatus",
+                    EntityId = status.Id,
+                    Field = "Name",
+                    LanguageCode = "de",
+                    Translation = trans.De
+                });
+            }
+        }
+
+        if (toAdd.Count > 0)
+        {
+            dbContext.EntityTranslations.AddRange(toAdd);
+            try
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+                logger.LogInformation("Ajout de {Count} traductions de statuts par défaut (EN, ES, DE).", toAdd.Count);
+            }
+            catch (DbUpdateException ex)
+            {
+                logger.LogWarning(ex, "Concurrence lors de l'insertion des traductions par défaut des statuts.");
+            }
+        }
     }
 
     public async Task<int> DeduplicateStatusesAsync(CancellationToken cancellationToken = default)

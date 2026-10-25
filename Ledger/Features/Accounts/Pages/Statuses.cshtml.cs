@@ -24,7 +24,7 @@ public class StatusesModel(
     public class StatusItemViewModel
     {
         public TransactionCustomStatus Status { get; set; } = new() { Name = string.Empty, Code = string.Empty, UserId = string.Empty };
-        public string? NameEn { get; set; }
+        public string LocalizedName { get; set; } = string.Empty;
         public int TransactionCount { get; set; }
     }
 
@@ -38,9 +38,6 @@ public class StatusesModel(
         [Required(ErrorMessage = "Le nom du statut est obligatoire.")]
         [StringLength(80, ErrorMessage = "Le nom ne doit pas dépasser 80 caractères.")]
         public string Name { get; set; } = string.Empty;
-
-        [StringLength(80, ErrorMessage = "Le nom en anglais ne doit pas dépasser 80 caractères.")]
-        public string? NameEn { get; set; }
 
         [StringLength(250, ErrorMessage = "La description ne doit pas dépasser 250 caractères.")]
         public string? Description { get; set; }
@@ -66,17 +63,18 @@ public class StatusesModel(
             .Select(g => new { StatusId = g.Key ?? Guid.Empty, Count = g.Count() })
             .ToDictionaryAsync(g => g.StatusId, g => g.Count, cancellationToken);
 
-        var translationsEn = await _localizedEntityService.GetTranslationsAsync(
+        var currentLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+        var translations = await _localizedEntityService.GetTranslationsAsync(
             "TransactionCustomStatus",
             allStatuses.Select(s => s.Id),
             "Name",
-            "en",
+            currentLang,
             cancellationToken);
 
         Statuses = allStatuses.Select(s => new StatusItemViewModel
         {
             Status = s,
-            NameEn = translationsEn.TryGetValue(s.Id, out var en) ? en : null,
+            LocalizedName = translations.TryGetValue(s.Id, out var val) && !string.IsNullOrWhiteSpace(val) ? val : s.Name,
             TransactionCount = counts.TryGetValue(s.Id, out var count) ? count : 0
         }).ToList();
     }
@@ -89,6 +87,7 @@ public class StatusesModel(
             return Page();
         }
 
+        var currentLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         Guid targetId;
 
         if (Input.Id.HasValue && Input.Id.Value != Guid.Empty)
@@ -100,7 +99,10 @@ public class StatusesModel(
                 return RedirectToPage();
             }
 
-            existing.Name = Input.Name.Trim();
+            if (currentLang == "fr")
+            {
+                existing.Name = Input.Name.Trim();
+            }
             existing.Description = Input.Description?.Trim();
             existing.ColorHex = Input.ColorHex.Trim();
             existing.IconName = Input.IconName.Trim();
@@ -108,7 +110,7 @@ public class StatusesModel(
 
             await _statusService.UpdateAsync(existing, cancellationToken);
             targetId = existing.Id;
-            TempData["SuccessMessage"] = $"Le statut '{existing.Name}' a été mis à jour avec succès.";
+            TempData["SuccessMessage"] = $"Le statut '{Input.Name.Trim()}' a été mis à jour avec succès.";
         }
         else
         {
@@ -128,13 +130,13 @@ public class StatusesModel(
             TempData["SuccessMessage"] = $"Le statut '{newStatus.Name}' a été créé avec succès.";
         }
 
-        // Sauvegarder la traduction anglaise
+        // Sauvegarder la traduction pour la langue active
         await _localizedEntityService.SetTranslationAsync(
             "TransactionCustomStatus",
             targetId,
             "Name",
-            "en",
-            Input.NameEn ?? string.Empty,
+            currentLang,
+            Input.Name.Trim(),
             cancellationToken);
 
         return RedirectToPage();

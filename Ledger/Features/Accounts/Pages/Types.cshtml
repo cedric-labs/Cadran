@@ -77,11 +77,11 @@
                                 <span class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
                                       style="background-color: @(t.ColorHex)15; color: @t.ColorHex; border-color: @(t.ColorHex)40 !important; font-size: 0.75rem;">
                                     <i class="bi @t.IconName"></i>
-                                    <span>@(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && !string.IsNullOrEmpty(item.NameEn) ? item.NameEn : t.Name)</span>
+                                    <span>@item.LocalizedName</span>
                                 </span>
                             </td>
                             <td>
-                                <span class="fw-bold text-dark">@(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && !string.IsNullOrEmpty(item.NameEn) ? item.NameEn : t.Name)</span>
+                                <span class="fw-bold text-dark">@item.LocalizedName</span>
                                 @if (!string.IsNullOrEmpty(t.Code))
                                 {
                                     <span class="text-muted ms-1 font-monospace" style="font-size: 0.7rem;">(@t.Code)</span>
@@ -101,7 +101,7 @@
                                         <span class="badge bg-info-subtle text-info"><i class="bi bi-piggy-bank me-1"></i> @Localizer["AccountTypes.SavingsGroup"]</span>
                                         break;
                                     case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Investment:
-                                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-graph-up me-1"></i> @Localizer["AccountTypes.SavingsGroup"]</span>
+                                        <span class="badge bg-primary-subtle text-primary"><i class="bi bi-graph-up me-1"></i> @Localizer["AccountTypes.GroupInvestment"]</span>
                                         break;
                                     case Ledger.Features.Accounts.Entities.AccountCategoryGroup.Debt:
                                         <span class="badge bg-danger-subtle text-danger"><i class="bi bi-credit-card me-1"></i> @Localizer["AccountTypes.DebtGroup"]</span>
@@ -119,7 +119,7 @@
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
                                     <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2"
-                                            onclick="editType('@t.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Name)', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(item.NameEn ?? ""))', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Code ?? ""))', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Description ?? ""))', '@((int)t.CategoryGroup)', '@t.ColorHex', '@t.IconName')"
+                                            onclick="editType('@t.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(item.LocalizedName)', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Code ?? ""))', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(t.Description ?? ""))', '@((int)t.CategoryGroup)', '@t.ColorHex', '@t.IconName')"
                                             title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -152,7 +152,7 @@
 
                 <div class="modal-header bg-light">
                     <h5 class="modal-title fw-bold h6" id="typeModalLabel">
-                        <i class="bi bi-wallet2 text-primary me-2"></i>Nouveau type de compte
+                        <i class="bi bi-wallet2 text-primary me-2"></i>@Localizer["AccountTypes.NewType"]
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
                 </div>
@@ -167,22 +167,13 @@
                         </span>
                     </div>
 
-                    <!-- Nom FR & EN -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold" for="typeNameInput">
-                                <span>🇫🇷</span> Nom (Français) <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control form-control-sm" id="typeNameInput" name="Input.Name" required
-                                   placeholder="Ex : Livret A, Compte de Dépôt..." oninput="updateLivePreview()" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold" for="typeNameEnInput">
-                                <span>🇬🇧</span> Nom (English)
-                            </label>
-                            <input type="text" class="form-control form-control-sm" id="typeNameEnInput" name="Input.NameEn"
-                                   placeholder="Ex : Savings Account, Checking..." />
-                        </div>
+                    <!-- Nom unique lié à la langue courante -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="typeNameInput">
+                            @Localizer["Common.Name"] <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="typeNameInput" name="Input.Name" required
+                               placeholder="Ex : Livret A, Compte de Dépôt..." oninput="updateLivePreview()" />
                     </div>
 
                     <!-- Code technique optionnel -->
@@ -194,14 +185,14 @@
 
                     <!-- Groupe patrimonial -->
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold" for="typeCategoryGroup">Groupe de calcul de patrimoine <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-semibold" for="typeCategoryGroup">@Localizer["AccountTypes.AssetGroup"] <span class="text-danger">*</span></label>
                         <select class="form-select form-select-sm" id="typeCategoryGroup" name="Input.CategoryGroup">
-                            <option value="0">Liquidités courantes (comptes chèques, espèces)</option>
-                            <option value="1">Épargne & Livrets (Livret A, LDDS, PEL, CAT...)</option>
-                            <option value="2">Investissements (PEA, CTO, Parts sociales, Crypto...)</option>
-                            <option value="3">Passif / Dettes (Crédit, carte différé négative)</option>
+                            <option value="0">@Localizer["AccountTypes.GroupLiquid"]</option>
+                            <option value="1">@Localizer["AccountTypes.GroupSavings"]</option>
+                            <option value="2">@Localizer["AccountTypes.GroupInvestment"]</option>
+                            <option value="3">@Localizer["AccountTypes.GroupDebt"]</option>
                         </select>
-                        <div class="form-text small">Définit dans quel indicateur (KPI) du tableau de bord le solde du compte s'additionne.</div>
+                        <div class="form-text small">@Localizer["AccountTypes.CategoryGroupHelp"]</div>
                     </div>
 
                     <!-- Description -->
@@ -259,9 +250,9 @@
                     </div>
                 </div>
                 <div class="modal-footer bg-light py-2">
-                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
                     <button type="submit" class="btn btn-sm btn-primary">
-                        <i class="bi bi-check-lg me-1"></i>Enregistrer
+                        <i class="bi bi-check-lg me-1"></i>@Localizer["Common.Save"]
                     </button>
                 </div>
             </form>
@@ -274,10 +265,9 @@
         var bsTypeModalInstance = null;
 
         function openTypeModal() {
-            document.getElementById('typeModalLabel').innerHTML = '<i class="bi bi-wallet2 text-primary me-2"></i>Nouveau type de compte';
+            document.getElementById('typeModalLabel').innerHTML = '<i class="bi bi-wallet2 text-primary me-2"></i>@Localizer["AccountTypes.NewType"]';
             document.getElementById('typeIdInput').value = '';
             document.getElementById('typeNameInput').value = '';
-            document.getElementById('typeNameEnInput').value = '';
             document.getElementById('typeCodeInput').value = '';
             document.getElementById('typeDescInput').value = '';
             document.getElementById('typeCategoryGroup').value = '1';
@@ -290,11 +280,10 @@
             bsTypeModalInstance.show();
         }
 
-        function editType(id, name, nameEn, code, desc, categoryGroup, color, icon) {
-            document.getElementById('typeModalLabel').innerHTML = '<i class="bi bi-pencil-square text-primary me-2"></i>Modifier le type de compte';
+        function editType(id, localizedName, code, desc, categoryGroup, color, icon) {
+            document.getElementById('typeModalLabel').innerHTML = '<i class="bi bi-pencil-square text-primary me-2"></i>@Localizer["AccountTypes.EditType"]';
             document.getElementById('typeIdInput').value = id;
-            document.getElementById('typeNameInput').value = name;
-            document.getElementById('typeNameEnInput').value = nameEn || '';
+            document.getElementById('typeNameInput').value = localizedName;
             document.getElementById('typeCodeInput').value = code || '';
             document.getElementById('typeDescInput').value = desc || '';
             document.getElementById('typeCategoryGroup').value = categoryGroup || '1';

@@ -75,12 +75,8 @@
                                 <span class="badge rounded-pill border px-2 py-1 small d-inline-flex align-items-center gap-1"
                                       style="background-color: @(s.ColorHex)15; color: @s.ColorHex; border-color: @(s.ColorHex)40 !important; font-size: 0.75rem;">
                                     <i class="bi @s.IconName"></i>
-                                    <span>@(System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "en" && !string.IsNullOrEmpty(item.NameEn) ? item.NameEn : s.Name)</span>
+                                    <span>@item.LocalizedName</span>
                                 </span>
-                                @if (!string.IsNullOrEmpty(item.NameEn) && System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName != "en")
-                                {
-                                    <span class="text-muted small ms-1" style="font-size: 0.75rem;">(@item.NameEn)</span>
-                                }
                             </td>
                             <td>
                                 <span class="small text-muted">@(s.Description ?? Localizer["Statuses.NoDescription"].Value)</span>
@@ -109,7 +105,7 @@
                             <td class="text-end">
                                 <div class="d-inline-flex gap-1">
                                     <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2"
-                                             onclick="editStatus('@s.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(s.Name)', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(item.NameEn ?? ""))', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(s.Description ?? ""))', '@s.ColorHex', '@s.IconName', @(s.IsDefault ? "true" : "false"))"
+                                             onclick="editStatus('@s.Id', '@System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(item.LocalizedName)', '@(System.Text.Encodings.Web.JavaScriptEncoder.Default.Encode(s.Description ?? ""))', '@s.ColorHex', '@s.IconName', @(s.IsDefault ? "true" : "false"))"
                                              title="Modifier">
                                         <i class="bi bi-pencil"></i>
                                     </button>
@@ -157,22 +153,13 @@
                         </span>
                     </div>
 
-                    <!-- Nom FR & EN -->
-                    <div class="row g-2 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold" for="statusNameInput">
-                                <span>🇫🇷</span> Nom (Français) <span class="text-danger">*</span>
-                            </label>
-                            <input type="text" class="form-control form-control-sm" id="statusNameInput" name="Input.Name" required
-                                   placeholder="Ex : À vérifier, Pointée..." oninput="updateLivePreview()" />
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold" for="statusNameEnInput">
-                                <span>🇬🇧</span> Nom (English)
-                            </label>
-                            <input type="text" class="form-control form-control-sm" id="statusNameEnInput" name="Input.NameEn"
-                                   placeholder="Ex : To verify, Cleared..." />
-                        </div>
+                    <!-- Nom unique lié à la langue active -->
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="statusNameInput">
+                            @Localizer["Common.Name"] <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-sm" id="statusNameInput" name="Input.Name" required
+                               placeholder="Ex : À vérifier, Pointée..." oninput="updateLivePreview()" />
                     </div>
 
                     <!-- Description -->
@@ -287,10 +274,9 @@
         }
 
         function openStatusModal() {
-            document.getElementById('statusModalLabel').innerHTML = '<i class="bi bi-tag-fill text-primary me-2"></i>Nouveau statut';
+            document.getElementById('statusModalLabel').innerHTML = '<i class="bi bi-tag-fill text-primary me-2"></i>@Localizer["Statuses.NewStatus"]';
             document.getElementById('statusIdInput').value = '';
             document.getElementById('statusNameInput').value = '';
-            document.getElementById('statusNameEnInput').value = '';
             document.getElementById('statusDescInput').value = '';
             document.getElementById('statusDefaultSwitch').checked = false;
             setColor('#3b82f6');
@@ -301,11 +287,10 @@
             bsStatusModal.show();
         }
 
-        function editStatus(id, name, nameEn, desc, color, icon, isDefault) {
-            document.getElementById('statusModalLabel').innerHTML = '<i class="bi bi-pencil-square text-primary me-2"></i>Modifier le statut';
+        function editStatus(id, localizedName, desc, color, icon, isDefault) {
+            document.getElementById('statusModalLabel').innerHTML = '<i class="bi bi-pencil-square text-primary me-2"></i>@Localizer["Statuses.EditStatus"]';
             document.getElementById('statusIdInput').value = id;
-            document.getElementById('statusNameInput').value = name;
-            document.getElementById('statusNameEnInput').value = nameEn || '';
+            document.getElementById('statusNameInput').value = localizedName;
             document.getElementById('statusDescInput').value = desc;
             document.getElementById('statusDefaultSwitch').checked = isDefault;
             setColor(color);

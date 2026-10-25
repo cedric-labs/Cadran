@@ -24,7 +24,7 @@ public class TypesModel(
     public class TypeItemViewModel
     {
         public CustomAccountType Type { get; set; } = new() { Name = string.Empty, Code = string.Empty, UserId = string.Empty };
-        public string? NameEn { get; set; }
+        public string LocalizedName { get; set; } = string.Empty;
         public int AccountCount { get; set; }
     }
 
@@ -38,9 +38,6 @@ public class TypesModel(
         [Required(ErrorMessage = "Le nom du type de compte est obligatoire.")]
         [StringLength(100, ErrorMessage = "Le nom ne doit pas dépasser 100 caractères.")]
         public string Name { get; set; } = string.Empty;
-
-        [StringLength(100, ErrorMessage = "Le nom en anglais ne doit pas dépasser 100 caractères.")]
-        public string? NameEn { get; set; }
 
         [StringLength(50, ErrorMessage = "Le code ne doit pas dépasser 50 caractères.")]
         public string? Code { get; set; }
@@ -69,17 +66,18 @@ public class TypesModel(
             .Select(g => new { TypeId = g.Key ?? Guid.Empty, Count = g.Count() })
             .ToDictionaryAsync(g => g.TypeId, g => g.Count, cancellationToken);
 
+        var currentLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         var translations = await _localizedEntityService.GetTranslationsAsync(
             "CustomAccountType",
             allTypes.Select(t => t.Id),
             "Name",
-            "en",
+            currentLang,
             cancellationToken);
 
         AccountTypes = allTypes.Select(t => new TypeItemViewModel
         {
             Type = t,
-            NameEn = translations.TryGetValue(t.Id, out var en) ? en : null,
+            LocalizedName = translations.TryGetValue(t.Id, out var localized) && !string.IsNullOrWhiteSpace(localized) ? localized : t.Name,
             AccountCount = counts.TryGetValue(t.Id, out var count) ? count : 0
         }).ToList();
     }
@@ -92,6 +90,7 @@ public class TypesModel(
             return Page();
         }
 
+        var currentLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
         Guid targetId;
         if (Input.Id.HasValue && Input.Id.Value != Guid.Empty)
         {
@@ -102,7 +101,10 @@ public class TypesModel(
                 return RedirectToPage();
             }
 
-            existing.Name = Input.Name.Trim();
+            if (currentLang == "fr")
+            {
+                existing.Name = Input.Name.Trim();
+            }
             existing.Code = Input.Code?.Trim();
             existing.Description = Input.Description?.Trim();
             existing.CategoryGroup = Input.CategoryGroup;
@@ -111,7 +113,7 @@ public class TypesModel(
 
             await _accountTypeService.UpdateAsync(existing, cancellationToken);
             targetId = existing.Id;
-            TempData["SuccessMessage"] = $"Le type de compte '{existing.Name}' a été mis à jour avec succès.";
+            TempData["SuccessMessage"] = $"Le type de compte '{Input.Name.Trim()}' a été mis à jour avec succès.";
         }
         else
         {
@@ -132,8 +134,8 @@ public class TypesModel(
             TempData["SuccessMessage"] = $"Le type de compte '{newType.Name}' a été créé avec succès.";
         }
 
-        // Sauvegarde de la traduction en anglais
-        await _localizedEntityService.SetTranslationAsync("CustomAccountType", targetId, "Name", "en", Input.NameEn ?? string.Empty, cancellationToken);
+        // Sauvegarde de la traduction pour la langue courante
+        await _localizedEntityService.SetTranslationAsync("CustomAccountType", targetId, "Name", currentLang, Input.Name.Trim(), cancellationToken);
 
         return RedirectToPage();
     }

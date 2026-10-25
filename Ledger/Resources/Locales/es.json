@@ -23,6 +23,7 @@
     "Logout": "Cerrar sesión"
   },
   "Common": {
+    "Name": "Nombre",
     "Save": "Guardar",
     "Cancel": "Cancelar",
     "Delete": "Eliminar",
@@ -799,6 +800,11 @@
     "LiquidGroup": "Activos Líquidos",
     "SavingsGroup": "Ahorros e Inversiones",
     "DebtGroup": "Deudas / Pasivos",
+    "GroupLiquid": "Activos líquidos (cuentas corrientes, efectivo)",
+    "GroupSavings": "Ahorros y Depósitos (cuentas de ahorro, depósitos...)",
+    "GroupInvestment": "Inversiones y Valores (acciones, valores, cripto...)",
+    "GroupDebt": "Pasivos y Deudas (préstamos, créditos, tarjetas diferidas)",
+    "CategoryGroupHelp": "Define en qué indicador (KPI) del panel se suma el saldo de la cuenta.",
     "EditType": "Modificar tipo",
     "DeleteType": "Eliminar tipo"
   },

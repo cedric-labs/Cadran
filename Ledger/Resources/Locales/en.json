@@ -23,6 +23,7 @@
     "Logout": "Sign out"
   },
   "Common": {
+    "Name": "Name",
     "Save": "Save",
     "Cancel": "Cancel",
     "Delete": "Delete",
@@ -799,6 +800,11 @@
     "LiquidGroup": "Liquid Assets",
     "SavingsGroup": "Savings & Investments",
     "DebtGroup": "Liabilities / Debts",
+    "GroupLiquid": "Liquid Assets (checking accounts, cash)",
+    "GroupSavings": "Savings & Deposits (savings accounts, term deposits...)",
+    "GroupInvestment": "Investments & Securities (stocks, brokerage, crypto...)",
+    "GroupDebt": "Liabilities & Debts (loans, credit lines, deferred cards)",
+    "CategoryGroupHelp": "Defines which dashboard KPI metric the account balance contributes to.",
     "EditType": "Edit type",
     "DeleteType": "Delete type"
   },
