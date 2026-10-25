@@ -1,8 +1,10 @@
-﻿[
+[
   {
     "translations": {
       "fr": "Logement, immobilier",
-      "en": "Housing & Real Estate"
+      "en": "Housing & Real Estate",
+      "es": "Vivienda e inmobiliaria",
+      "de": "Wohnen & Immobilien"
     },
     "colorHex": "#8b5cf6",
     "iconName": "bi-house-door-fill",
@@ -12,7 +14,9 @@
       {
         "translations": {
           "fr": "Entretien chaudière",
-          "en": "Boiler Maintenance"
+          "en": "Boiler Maintenance",
+          "es": "Mantenimiento de caldera",
+          "de": "Kesselwartung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-fire",
@@ -22,7 +26,9 @@
       {
         "translations": {
           "fr": "Electricité, gaz, chauffage",
-          "en": "Electricity, Gas & Heating"
+          "en": "Electricity, Gas & Heating",
+          "es": "Electricidad, gas y calefacción",
+          "de": "Strom, Gas & Heizung"
         },
         "colorHex": "#8b5cf6",
         "iconName": "bi-house-door-fill",
@@ -32,7 +38,9 @@
       {
         "translations": {
           "fr": "Assurance logement",
-          "en": "Home Insurance"
+          "en": "Home Insurance",
+          "es": "Seguro de hogar",
+          "de": "Wohngebäude- & Hausratversicherung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-shield-check",
@@ -42,7 +50,9 @@
       {
         "translations": {
           "fr": "Eau",
-          "en": "Water Utility"
+          "en": "Water Utility",
+          "es": "Agua",
+          "de": "Wasser & Abwasser"
         },
         "colorHex": "#8b5cf6",
         "iconName": "bi-house-door-fill",
@@ -52,7 +62,9 @@
       {
         "translations": {
           "fr": "Travaux, déco, jardin",
-          "en": "Home Improvement, Decor & Gardening"
+          "en": "Home Improvement, Decor & Gardening",
+          "es": "Reformas, decoración y jardín",
+          "de": "Renovierung, Deko & Garten"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-brush",
@@ -62,7 +74,9 @@
       {
         "translations": {
           "fr": "Entretien poêle à granulés",
-          "en": "Pellet Stove Maintenance"
+          "en": "Pellet Stove Maintenance",
+          "es": "Mantenimiento estufa de pellets",
+          "de": "Pelletofen-Wartung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-fire",
@@ -72,7 +86,9 @@
       {
         "translations": {
           "fr": "Loyer",
-          "en": "Rent"
+          "en": "Rent",
+          "es": "Alquiler",
+          "de": "Miete"
         },
         "colorHex": "#8b5cf6",
         "iconName": "bi-house-door-fill",
@@ -82,7 +98,9 @@
       {
         "translations": {
           "fr": "Charges logement",
-          "en": "Housing Utilities & Fees"
+          "en": "Housing Utilities & Fees",
+          "es": "Gastos de comunidad y vivienda",
+          "de": "Nebenkosten & Hausgeld"
         },
         "colorHex": "#8b5cf6",
         "iconName": "bi-house-door-fill",
@@ -92,7 +110,9 @@
       {
         "translations": {
           "fr": "Entretien adoucisseur",
-          "en": "Water Softener Maintenance"
+          "en": "Water Softener Maintenance",
+          "es": "Mantenimiento descalcificador",
+          "de": "Wasserenthärter-Wartung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-water",
@@ -102,7 +122,9 @@
       {
         "translations": {
           "fr": "Vente immobiliére",
-          "en": "Real Estate Sale"
+          "en": "Real Estate Sale",
+          "es": "Venta inmobiliaria",
+          "de": "Immobilienverkauf"
         },
         "colorHex": "#10b981",
         "iconName": "bi-arrow-down-left-circle-fill",
@@ -112,7 +134,9 @@
       {
         "translations": {
           "fr": "Stockage meubles",
-          "en": "Storage Unit"
+          "en": "Storage Unit",
+          "es": "Trastero y guardamuebles",
+          "de": "Lagerraum & Self-Storage"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-box-seam",
@@ -124,7 +148,9 @@
   {
     "translations": {
       "fr": "Dépenses vie courante",
-      "en": "Daily Living Expenses"
+      "en": "Daily Living Expenses",
+      "es": "Gastos cotidianos",
+      "de": "Lebenshaltungskosten"
     },
     "colorHex": "#f97316",
     "iconName": "bi-cart-fill",
@@ -134,7 +160,9 @@
       {
         "translations": {
           "fr": "Alimentation, supermarché",
-          "en": "Groceries & Supermarket"
+          "en": "Groceries & Supermarket",
+          "es": "Alimentación y supermercado",
+          "de": "Lebensmittel & Supermarkt"
         },
         "colorHex": "#10b981",
         "iconName": "bi-cart-fill",
@@ -144,7 +172,9 @@
       {
         "translations": {
           "fr": "Meubles, équipement",
-          "en": "Furniture & Home Equipment"
+          "en": "Furniture & Home Equipment",
+          "es": "Muebles y equipamiento del hogar",
+          "de": "Möbel & Haushaltsausstattung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-lamp",
@@ -154,7 +184,9 @@
       {
         "translations": {
           "fr": "Snacks, repas au travail",
-          "en": "Snacks & Work Lunches"
+          "en": "Snacks & Work Lunches",
+          "es": "Tentempiés y comidas en el trabajo",
+          "de": "Snacks & Mittagsverpflegung"
         },
         "colorHex": "#ec4899",
         "iconName": "bi-cup-hot-fill",
@@ -164,7 +196,9 @@
       {
         "translations": {
           "fr": "Shopping/e-Commerce",
-          "en": "Shopping & eCommerce"
+          "en": "Shopping & eCommerce",
+          "es": "Compras y comercio electrónico",
+          "de": "Shopping & E-Commerce"
         },
         "colorHex": "#a855f7",
         "iconName": "bi-bag-fill",
@@ -174,7 +208,9 @@
       {
         "translations": {
           "fr": "Animaux",
-          "en": "Pets"
+          "en": "Pets",
+          "es": "Mascotas",
+          "de": "Haustiere"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-feather",
@@ -184,7 +220,9 @@
       {
         "translations": {
           "fr": "Machine café Yzee-Services",
-          "en": "Coffee Machine (Yzee-Services)"
+          "en": "Coffee Machine (Yzee-Services)",
+          "es": "Cafetera (Yzee-Services)",
+          "de": "Kaffeemaschine (Yzee-Services)"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-cup-hot",
@@ -194,7 +232,9 @@
       {
         "translations": {
           "fr": "Internet, TV, télécom",
-          "en": "Internet, TV & Telecom"
+          "en": "Internet, TV & Telecom",
+          "es": "Internet, televisión y telefonía",
+          "de": "Internet, TV & Telekommunikation"
         },
         "colorHex": "#06b6d4",
         "iconName": "bi-wifi",
@@ -204,7 +244,9 @@
       {
         "translations": {
           "fr": "Remboursement",
-          "en": "Reimbursement"
+          "en": "Reimbursement",
+          "es": "Reembolso",
+          "de": "Rückerstattung"
         },
         "colorHex": "#10b981",
         "iconName": "bi-arrow-down-left-circle-fill",
@@ -214,7 +256,9 @@
       {
         "translations": {
           "fr": "Habillement, accessoires",
-          "en": "Clothing & Accessories"
+          "en": "Clothing & Accessories",
+          "es": "Ropa y accesorios",
+          "de": "Kleidung & Accessoires"
         },
         "colorHex": "#a855f7",
         "iconName": "bi-bag-fill",
@@ -224,7 +268,9 @@
       {
         "translations": {
           "fr": "Electronique, multimédia",
-          "en": "Electronics & Media"
+          "en": "Electronics & Media",
+          "es": "Electrónica y multimedia",
+          "de": "Elektronik & Multimedia"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-tv",
@@ -234,7 +280,9 @@
       {
         "translations": {
           "fr": "Coiffeur, esthétique, cosmétique, soins",
-          "en": "Hairdresser, Cosmetics & Personal Care"
+          "en": "Hairdresser, Cosmetics & Personal Care",
+          "es": "Peluquería, cosmética y cuidado personal",
+          "de": "Friseur, Kosmetik & Körperpflege"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-scissors",
@@ -244,7 +292,9 @@
       {
         "translations": {
           "fr": "Dons caritatifs",
-          "en": "Charity Donations"
+          "en": "Charity Donations",
+          "es": "Donaciones caritativas",
+          "de": "Spenden & Gemeinnütziges"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-heart-fill",
@@ -254,7 +304,9 @@
       {
         "translations": {
           "fr": "Cadeaux offerts",
-          "en": "Gifts Given"
+          "en": "Gifts Given",
+          "es": "Regalos entregados",
+          "de": "Geschenke"
         },
         "colorHex": "#8b5cf6",
         "iconName": "bi-house-door-fill",
@@ -264,7 +316,9 @@
       {
         "translations": {
           "fr": "Abonnement",
-          "en": "Subscription"
+          "en": "Subscription",
+          "es": "Suscripción",
+          "de": "Abonnement"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-repeat",
@@ -274,7 +328,9 @@
       {
         "translations": {
           "fr": "Poste, courrier",
-          "en": "Post Office & Mail"
+          "en": "Post Office & Mail",
+          "es": "Correos y paquetería",
+          "de": "Post & Versand"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-envelope",
@@ -284,7 +340,9 @@
       {
         "translations": {
           "fr": "Avances, remboursements",
-          "en": "Advances & Reimbursements"
+          "en": "Advances & Reimbursements",
+          "es": "Anticipos y devoluciones",
+          "de": "Vorschüsse & Erstattungen"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-arrow-left-right",
@@ -294,7 +352,9 @@
       {
         "translations": {
           "fr": "Tabac/Presse",
-          "en": "Tobacco & Newsagent"
+          "en": "Tobacco & Newsagent",
+          "es": "Tabaco y prensa",
+          "de": "Tabak & Zeitschriften"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-newspaper",
@@ -304,7 +364,9 @@
       {
         "translations": {
           "fr": "Masques chirurgicaux",
-          "en": "Surgical Masks & Health Supplies"
+          "en": "Surgical Masks & Health Supplies",
+          "es": "Mascarillas e higiene sanitaria",
+          "de": "Schutzmasken & Hygienebedarf"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-bandaid",
@@ -314,7 +376,9 @@
       {
         "translations": {
           "fr": "Chèques",
-          "en": "Checks"
+          "en": "Checks",
+          "es": "Cheques",
+          "de": "Schecks"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-check2-square",
@@ -326,7 +390,9 @@
   {
     "translations": {
       "fr": "Transports, véhicules",
-      "en": "Transport & Vehicles"
+      "en": "Transport & Vehicles",
+      "es": "Transporte y vehículos",
+      "de": "Transport & Fahrzeuge"
     },
     "colorHex": "#3b82f6",
     "iconName": "bi-car-front-fill",
@@ -336,7 +402,9 @@
       {
         "translations": {
           "fr": "Parking, péages, PV",
-          "en": "Parking, Tolls & Fines"
+          "en": "Parking, Tolls & Fines",
+          "es": "Aparcamiento, peajes y multas",
+          "de": "Parken, Maut & Bußgelder"
         },
         "colorHex": "#3b82f6",
         "iconName": "bi-car-front-fill",
@@ -346,7 +414,9 @@
       {
         "translations": {
           "fr": "Carburant",
-          "en": "Fuel"
+          "en": "Fuel",
+          "es": "Combustible",
+          "de": "Kraftstoff"
         },
         "colorHex": "#f59e0b",
         "iconName": "bi-fuel-pump-fill",
@@ -356,7 +426,9 @@
       {
         "translations": {
           "fr": "Assurance véhicule",
-          "en": "Vehicle Insurance"
+          "en": "Vehicle Insurance",
+          "es": "Seguro de vehículo",
+          "de": "Kfz-Versicherung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-shield-check",
@@ -366,7 +438,9 @@
       {
         "translations": {
           "fr": "Permis de conduire",
-          "en": "Driving License"
+          "en": "Driving License",
+          "es": "Permiso de conducir",
+          "de": "Führerschein"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-person-badge",
@@ -376,7 +450,9 @@
       {
         "translations": {
           "fr": "Entretien, équipements véhicules",
-          "en": "Vehicle Maintenance & Gear"
+          "en": "Vehicle Maintenance & Gear",
+          "es": "Mantenimiento y accesorios de vehículos",
+          "de": "Fahrzeugwartung & Zubehör"
         },
         "colorHex": "#3b82f6",
         "iconName": "bi-car-front-fill",
@@ -386,7 +462,9 @@
       {
         "translations": {
           "fr": "Transports en commun",
-          "en": "Public Transit"
+          "en": "Public Transit",
+          "es": "Transporte público",
+          "de": "Öffentlicher Nahverkehr"
         },
         "colorHex": "#14b8a6",
         "iconName": "bi-dribbble",
@@ -396,7 +474,9 @@
       {
         "translations": {
           "fr": "Garage, parking privé",
-          "en": "Garage & Private Parking"
+          "en": "Garage & Private Parking",
+          "es": "Garaje y estacionamiento privado",
+          "de": "Garage & Privatstellplatz"
         },
         "colorHex": "#3b82f6",
         "iconName": "bi-car-front-fill",
@@ -406,7 +486,9 @@
       {
         "translations": {
           "fr": "Achat véhicule",
-          "en": "Vehicle Purchase"
+          "en": "Vehicle Purchase",
+          "es": "Compra de vehículo",
+          "de": "Fahrzeugkauf"
         },
         "colorHex": "#3b82f6",
         "iconName": "bi-car-front-fill",
@@ -418,7 +500,9 @@
   {
     "translations": {
       "fr": "Santé, prévoyance",
-      "en": "Healthcare & Insurance"
+      "en": "Healthcare & Insurance",
+      "es": "Salud y bienestar",
+      "de": "Gesundheit & Vorsorge"
     },
     "colorHex": "#ef4444",
     "iconName": "bi-heart-pulse-fill",
@@ -428,7 +512,9 @@
       {
         "translations": {
           "fr": "Dentiste",
-          "en": "Dentist"
+          "en": "Dentist",
+          "es": "Dentista",
+          "de": "Zahnarzt"
         },
         "colorHex": "#ef4444",
         "iconName": "bi-heart-pulse-fill",
@@ -438,7 +524,9 @@
       {
         "translations": {
           "fr": "Vétérinaire",
-          "en": "Veterinarian"
+          "en": "Veterinarian",
+          "es": "Veterinario",
+          "de": "Tierarzt"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-activity",
@@ -448,7 +536,9 @@
       {
         "translations": {
           "fr": "Frais, remb santé",
-          "en": "Medical Expenses & Reimbursements"
+          "en": "Medical Expenses & Reimbursements",
+          "es": "Gastos y reembolsos médicos",
+          "de": "Gesundheitskosten & Erstattungen"
         },
         "colorHex": "#ef4444",
         "iconName": "bi-heart-pulse-fill",
@@ -458,7 +548,9 @@
       {
         "translations": {
           "fr": "Orthodontiste",
-          "en": "Orthodontist"
+          "en": "Orthodontist",
+          "es": "Ortodoncista",
+          "de": "Kieferorthopäde"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-emoji-smile",
@@ -468,7 +560,9 @@
       {
         "translations": {
           "fr": "Opticien",
-          "en": "Optician / Eyewear"
+          "en": "Optician / Eyewear",
+          "es": "Óptica",
+          "de": "Optiker & Brillen"
         },
         "colorHex": "#ef4444",
         "iconName": "bi-heart-pulse-fill",
@@ -478,7 +572,9 @@
       {
         "translations": {
           "fr": "Medecin",
-          "en": "Doctor / Physician"
+          "en": "Doctor / Physician",
+          "es": "Médico",
+          "de": "Arzt"
         },
         "colorHex": "#ef4444",
         "iconName": "bi-heart-pulse-fill",
@@ -488,7 +584,9 @@
       {
         "translations": {
           "fr": "Diététicienne",
-          "en": "Dietitian"
+          "en": "Dietitian",
+          "es": "Dietista / Nutricionista",
+          "de": "Ernährungsberatung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-apple",
@@ -500,7 +598,9 @@
   {
     "translations": {
       "fr": "Loisirs, sorties & culture",
-      "en": "Leisure, Outings & Culture"
+      "en": "Leisure, Outings & Culture",
+      "es": "Ocio, cultura y salidas",
+      "de": "Freizeit, Ausgehen & Kultur"
     },
     "colorHex": "#ec4899",
     "iconName": "bi-controller",
@@ -510,7 +610,9 @@
       {
         "translations": {
           "fr": "Abonnements VOD, musique, jeux",
-          "en": "VOD, Music & Gaming Subscriptions"
+          "en": "VOD, Music & Gaming Subscriptions",
+          "es": "Suscripciones VOD, música y juegos",
+          "de": "Streaming-, Musik- & Gaming-Abos"
         },
         "colorHex": "#d946ef",
         "iconName": "bi-controller",
@@ -520,7 +622,9 @@
       {
         "translations": {
           "fr": "NETFLIX",
-          "en": "Netflix"
+          "en": "Netflix",
+          "es": "Netflix",
+          "de": "Netflix"
         },
         "colorHex": "#f43f5e",
         "iconName": "bi-play-circle-fill",
@@ -530,7 +634,9 @@
       {
         "translations": {
           "fr": "Musique, livres, films",
-          "en": "Music, Books & Movies"
+          "en": "Music, Books & Movies",
+          "es": "Música, libros y películas",
+          "de": "Musik, Bücher & Filme"
         },
         "colorHex": "#f43f5e",
         "iconName": "bi-play-circle-fill",
@@ -540,7 +646,9 @@
       {
         "translations": {
           "fr": "GamePass",
-          "en": "Xbox Game Pass"
+          "en": "Xbox Game Pass",
+          "es": "Xbox Game Pass",
+          "de": "Xbox Game Pass"
         },
         "colorHex": "#d946ef",
         "iconName": "bi-controller",
@@ -550,7 +658,9 @@
       {
         "translations": {
           "fr": "Cotis. sports, loisirs",
-          "en": "Sports & Leisure Fees"
+          "en": "Sports & Leisure Fees",
+          "es": "Cuotas de deportes y actividades",
+          "de": "Vereins- & Kursbeiträge"
         },
         "colorHex": "#14b8a6",
         "iconName": "bi-dribbble",
@@ -560,7 +670,9 @@
       {
         "translations": {
           "fr": "Jeux vidéo",
-          "en": "Video Games"
+          "en": "Video Games",
+          "es": "Videojuegos",
+          "de": "Videospiele"
         },
         "colorHex": "#d946ef",
         "iconName": "bi-controller",
@@ -570,7 +682,9 @@
       {
         "translations": {
           "fr": "Sorties détente",
-          "en": "Relaxation & Wellness"
+          "en": "Relaxation & Wellness",
+          "es": "Bienestar y relajación",
+          "de": "Wellness & Erholung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-sun",
@@ -580,7 +694,9 @@
       {
         "translations": {
           "fr": "Restaurants, soirées",
-          "en": "Restaurants & Nightlife"
+          "en": "Restaurants & Nightlife",
+          "es": "Restaurantes y ocio nocturno",
+          "de": "Restaurants & Ausgehen"
         },
         "colorHex": "#ec4899",
         "iconName": "bi-cup-hot-fill",
@@ -590,7 +706,9 @@
       {
         "translations": {
           "fr": "Passion, hobby",
-          "en": "Hobbies & Passions"
+          "en": "Hobbies & Passions",
+          "es": "Aficiones y hobbies",
+          "de": "Hobbys & Freizeitgestaltung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-palette",
@@ -600,7 +718,9 @@
       {
         "translations": {
           "fr": "Sorties culturelles",
-          "en": "Cultural Outings"
+          "en": "Cultural Outings",
+          "es": "Salidas culturales y museos",
+          "de": "Kulturelle Veranstaltungen"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-ticket-perforated",
@@ -610,7 +730,9 @@
       {
         "translations": {
           "fr": "FDJ",
-          "en": "Lottery & Gaming (FDJ)"
+          "en": "Lottery & Gaming (FDJ)",
+          "es": "Loterías y apuestas",
+          "de": "Lotto & Glücksspiel"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-dice-5",
@@ -620,7 +742,9 @@
       {
         "translations": {
           "fr": "Equipement sports, loisirs",
-          "en": "Sports & Leisure Equipment"
+          "en": "Sports & Leisure Equipment",
+          "es": "Equipamiento deportivo y ocio",
+          "de": "Sport- & Freizeitausrüstung"
         },
         "colorHex": "#14b8a6",
         "iconName": "bi-dribbble",
@@ -630,7 +754,9 @@
       {
         "translations": {
           "fr": "Voyages",
-          "en": "Travel & Holidays"
+          "en": "Travel & Holidays",
+          "es": "Viajes y vacaciones",
+          "de": "Reisen & Urlaub"
         },
         "colorHex": "#0ea5e9",
         "iconName": "bi-airplane-fill",
@@ -640,7 +766,9 @@
       {
         "translations": {
           "fr": "Spotify",
-          "en": "Spotify"
+          "en": "Spotify",
+          "es": "Spotify",
+          "de": "Spotify"
         },
         "colorHex": "#f43f5e",
         "iconName": "bi-play-circle-fill",
@@ -650,7 +778,9 @@
       {
         "translations": {
           "fr": "Hôtel",
-          "en": "Hotel & Lodging"
+          "en": "Hotel & Lodging",
+          "es": "Hotel y alojamiento",
+          "de": "Hotel & Übernachtung"
         },
         "colorHex": "#0ea5e9",
         "iconName": "bi-airplane-fill",
@@ -660,7 +790,9 @@
       {
         "translations": {
           "fr": "Sorties, voyages",
-          "en": "Outings & Trips"
+          "en": "Outings & Trips",
+          "es": "Excursiones y viajes",
+          "de": "Ausflüge & Kurzreisen"
         },
         "colorHex": "#0ea5e9",
         "iconName": "bi-airplane-fill",
@@ -670,7 +802,9 @@
       {
         "translations": {
           "fr": "Cours sports, loisirs",
-          "en": "Sports & Leisure Classes"
+          "en": "Sports & Leisure Classes",
+          "es": "Clases deportivas y talleres",
+          "de": "Sport- & Freizeitkurse"
         },
         "colorHex": "#14b8a6",
         "iconName": "bi-dribbble",
@@ -680,7 +814,9 @@
       {
         "translations": {
           "fr": "Sports, loisirs",
-          "en": "Sports & Leisure"
+          "en": "Sports & Leisure",
+          "es": "Deportes y actividades",
+          "de": "Sport & Freizeit"
         },
         "colorHex": "#14b8a6",
         "iconName": "bi-dribbble",
@@ -690,7 +826,9 @@
       {
         "translations": {
           "fr": "Warcraft",
-          "en": "World of Warcraft"
+          "en": "World of Warcraft",
+          "es": "World of Warcraft",
+          "de": "World of Warcraft"
         },
         "colorHex": "#d946ef",
         "iconName": "bi-controller",
@@ -700,7 +838,9 @@
       {
         "translations": {
           "fr": "Amazon Video",
-          "en": "Amazon Prime Video"
+          "en": "Amazon Prime Video",
+          "es": "Amazon Prime Video",
+          "de": "Amazon Prime Video"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-play-btn",
@@ -712,7 +852,9 @@
   {
     "translations": {
       "fr": "Enfants, scolarité",
-      "en": "Children & Schooling"
+      "en": "Children & Schooling",
+      "es": "Niños y escolaridad",
+      "de": "Kinder & Schule"
     },
     "colorHex": "#eab308",
     "iconName": "bi-backpack-fill",
@@ -722,7 +864,9 @@
       {
         "translations": {
           "fr": "Inscription, scolarité",
-          "en": "Tuition & School Registration"
+          "en": "Tuition & School Registration",
+          "es": "Matrícula y escolaridad",
+          "de": "Schulgebühren & Einschreibung"
         },
         "colorHex": "#f97316",
         "iconName": "bi-backpack-fill",
@@ -732,7 +876,9 @@
       {
         "translations": {
           "fr": "Restauration scolaire",
-          "en": "School Cafeteria"
+          "en": "School Cafeteria",
+          "es": "Comedor escolar",
+          "de": "Schulverpflegung & Mensa"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-cup-straw",
@@ -742,7 +888,9 @@
       {
         "translations": {
           "fr": "Argent de poche",
-          "en": "Pocket Money"
+          "en": "Pocket Money",
+          "es": "Paga semanal / dinero de bolsillo",
+          "de": "Taschengeld"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-coin",
@@ -752,7 +900,9 @@
       {
         "translations": {
           "fr": "Livres, fournitures (éducation)",
-          "en": "Books & School Supplies"
+          "en": "Books & School Supplies",
+          "es": "Libros y material escolar",
+          "de": "Bücher & Schulbedarf"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-journal-bookmark",
@@ -762,7 +912,9 @@
       {
         "translations": {
           "fr": "Assurance scolaire",
-          "en": "School Insurance"
+          "en": "School Insurance",
+          "es": "Seguro escolar",
+          "de": "Schulversicherung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-shield-check",
@@ -772,7 +924,9 @@
       {
         "translations": {
           "fr": "Jouets, cadeaux",
-          "en": "Toys & Presents"
+          "en": "Toys & Presents",
+          "es": "Juguetes y regalos",
+          "de": "Spielzeug & Geschenke"
         },
         "colorHex": "#8b5cf6",
         "iconName": "bi-house-door-fill",
@@ -782,7 +936,9 @@
       {
         "translations": {
           "fr": "Education, formation",
-          "en": "Education & Training"
+          "en": "Education & Training",
+          "es": "Educación y formación",
+          "de": "Ausbildung & Weiterbildung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-mortarboard",
@@ -792,7 +948,9 @@
       {
         "translations": {
           "fr": "Enfants",
-          "en": "Children"
+          "en": "Children",
+          "es": "Niños",
+          "de": "Kinder"
         },
         "colorHex": "#f97316",
         "iconName": "bi-backpack-fill",
@@ -802,7 +960,9 @@
       {
         "translations": {
           "fr": "Activités enfants",
-          "en": "Children Activities"
+          "en": "Children Activities",
+          "es": "Actividades infantiles y extraescolares",
+          "de": "Kinderaktivitäten"
         },
         "colorHex": "#f97316",
         "iconName": "bi-backpack-fill",
@@ -812,7 +972,9 @@
       {
         "translations": {
           "fr": "Garde d'enfants",
-          "en": "Childcare"
+          "en": "Childcare",
+          "es": "Cuidado de niños y guardería",
+          "de": "Kinderbetreuung & Kita"
         },
         "colorHex": "#f97316",
         "iconName": "bi-backpack-fill",
@@ -824,7 +986,9 @@
   {
     "translations": {
       "fr": "Banque, assurances & crédits",
-      "en": "Banking, Insurance & Loans"
+      "en": "Banking, Insurance & Loans",
+      "es": "Banca, seguros y préstamos",
+      "de": "Bank, Versicherungen & Kredite"
     },
     "colorHex": "#64748b",
     "iconName": "bi-bank",
@@ -834,7 +998,9 @@
       {
         "translations": {
           "fr": "Frais bancaires",
-          "en": "Bank Fees"
+          "en": "Bank Fees",
+          "es": "Comisiones bancarias",
+          "de": "Bankgebühren"
         },
         "colorHex": "#64748b",
         "iconName": "bi-bank",
@@ -844,7 +1010,9 @@
       {
         "translations": {
           "fr": "Assurance prêt immo.",
-          "en": "Mortgage Insurance"
+          "en": "Mortgage Insurance",
+          "es": "Seguro de hipoteca",
+          "de": "Restkreditversicherung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-shield-check",
@@ -854,7 +1022,9 @@
       {
         "translations": {
           "fr": "Remb. prêt immobilier",
-          "en": "Mortgage Repayment"
+          "en": "Mortgage Repayment",
+          "es": "Amortización de hipoteca",
+          "de": "Baufinanzierung & Tilgung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-house-check",
@@ -864,7 +1034,9 @@
       {
         "translations": {
           "fr": "Assurances",
-          "en": "Insurance"
+          "en": "Insurance",
+          "es": "Seguros generales",
+          "de": "Sonstige Versicherungen"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-shield-check",
@@ -874,7 +1046,9 @@
       {
         "translations": {
           "fr": "Conseil juridique",
-          "en": "Legal Advisory"
+          "en": "Legal Advisory",
+          "es": "Asesoría jurídica",
+          "de": "Rechtsberatung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-file-earmark-text",
@@ -884,7 +1058,9 @@
       {
         "translations": {
           "fr": "Remb. prêt conso",
-          "en": "Consumer Loan Repayment"
+          "en": "Consumer Loan Repayment",
+          "es": "Amortización de préstamo personal",
+          "de": "Ratenkredit-Tilgung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-file-earmark-ruled",
@@ -894,7 +1070,9 @@
       {
         "translations": {
           "fr": "Déblocage prêt, crédits, réserves",
-          "en": "Loan Drawdowns & Credits"
+          "en": "Loan Drawdowns & Credits",
+          "es": "Disposición de crédito o préstamo",
+          "de": "Kreditauszahlungen"
         },
         "colorHex": "#10b981",
         "iconName": "bi-arrow-down-left-circle-fill",
@@ -904,7 +1082,9 @@
       {
         "translations": {
           "fr": "Conseil financier",
-          "en": "Financial Advisory"
+          "en": "Financial Advisory",
+          "es": "Asesoría financiera",
+          "de": "Finanzberatung"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-briefcase",
@@ -914,7 +1094,9 @@
       {
         "translations": {
           "fr": "Achats, ventes de titres",
-          "en": "Securities Trading"
+          "en": "Securities Trading",
+          "es": "Compraventa de valores y acciones",
+          "de": "Wertpapierhandel"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-graph-up-arrow",
@@ -926,7 +1108,9 @@
   {
     "translations": {
       "fr": "Impôts, taxes",
-      "en": "Taxes & Duties"
+      "en": "Taxes & Duties",
+      "es": "Impuestos y tasas",
+      "de": "Steuern & Abgaben"
     },
     "colorHex": "#dc2626",
     "iconName": "bi-receipt",
@@ -936,7 +1120,9 @@
       {
         "translations": {
           "fr": "Impôts",
-          "en": "Income Taxes"
+          "en": "Income Taxes",
+          "es": "Impuestos sobre la renta",
+          "de": "Einkommensteuer"
         },
         "colorHex": "#dc2626",
         "iconName": "bi-receipt",
@@ -948,7 +1134,9 @@
   {
     "translations": {
       "fr": "Services & abonnements pros",
-      "en": "Services & Subscriptions"
+      "en": "Services & Subscriptions",
+      "es": "Servicios y suscripciones",
+      "de": "Dienste & Abonnements"
     },
     "colorHex": "#06b6d4",
     "iconName": "bi-cpu-fill",
@@ -958,7 +1146,9 @@
       {
         "translations": {
           "fr": "Services",
-          "en": "Services"
+          "en": "Services",
+          "es": "Servicios varios",
+          "de": "Dienstleistungen"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-gear",
@@ -968,7 +1158,9 @@
       {
         "translations": {
           "fr": "Linxo",
-          "en": "Linxo"
+          "en": "Linxo",
+          "es": "Linxo",
+          "de": "Linxo"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-credit-card-2-front",
@@ -978,7 +1170,9 @@
       {
         "translations": {
           "fr": "Aide",
-          "en": "Assistance"
+          "en": "Assistance",
+          "es": "Asistencia y soporte",
+          "de": "Hilfe & Support"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-life-preserver",
@@ -988,7 +1182,9 @@
       {
         "translations": {
           "fr": "Google cloud",
-          "en": "Google Cloud"
+          "en": "Google Cloud",
+          "es": "Google Cloud",
+          "de": "Google Cloud"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-cloud",
@@ -998,7 +1194,9 @@
       {
         "translations": {
           "fr": "Github",
-          "en": "GitHub"
+          "en": "GitHub",
+          "es": "GitHub",
+          "de": "GitHub"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-github",
@@ -1008,7 +1206,9 @@
       {
         "translations": {
           "fr": "Office 365",
-          "en": "Microsoft 365"
+          "en": "Microsoft 365",
+          "es": "Microsoft 365",
+          "de": "Microsoft 365"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-microsoft",
@@ -1018,7 +1218,9 @@
       {
         "translations": {
           "fr": "ADN",
-          "en": "ADN (Anime)"
+          "en": "ADN (Anime)",
+          "es": "ADN (Anime)",
+          "de": "ADN (Anime)"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-fingerprint",
@@ -1030,7 +1232,9 @@
   {
     "translations": {
       "fr": "Revenus & rentrées d'argent",
-      "en": "Income & Money In"
+      "en": "Income & Money In",
+      "es": "Ingresos y entradas",
+      "de": "Einkommen & Eingänge"
     },
     "colorHex": "#10b981",
     "iconName": "bi-cash-coin",
@@ -1040,7 +1244,9 @@
       {
         "translations": {
           "fr": "Salaire/Revenus d'activité",
-          "en": "Salary & Professional Income"
+          "en": "Salary & Professional Income",
+          "es": "Salario e ingresos de actividad",
+          "de": "Gehalt & Erwerbseinkommen"
         },
         "colorHex": "#059669",
         "iconName": "bi-cash-coin",
@@ -1050,7 +1256,9 @@
       {
         "translations": {
           "fr": "Revenus de remplacement",
-          "en": "Replacement Income / Benefits"
+          "en": "Replacement Income / Benefits",
+          "es": "Ingresos de sustitución / Prestaciones",
+          "de": "Ersatzeinkommen & Leistungen"
         },
         "colorHex": "#059669",
         "iconName": "bi-cash-coin",
@@ -1060,7 +1268,9 @@
       {
         "translations": {
           "fr": "Aides et allocations",
-          "en": "Benefits & Allowances"
+          "en": "Benefits & Allowances",
+          "es": "Subvenciones y ayudas",
+          "de": "Zuschüsse & Beihilfen"
         },
         "colorHex": "#10b981",
         "iconName": "bi-arrow-down-left-circle-fill",
@@ -1070,7 +1280,9 @@
       {
         "translations": {
           "fr": "Cadeaux, dons reçus",
-          "en": "Gifts & Donations Received"
+          "en": "Gifts & Donations Received",
+          "es": "Regalos y donaciones recibidas",
+          "de": "Erhaltene Geschenke & Spenden"
         },
         "colorHex": "#8b5cf6",
         "iconName": "bi-house-door-fill",
@@ -1080,7 +1292,9 @@
       {
         "translations": {
           "fr": "Revenus",
-          "en": "Income"
+          "en": "Income",
+          "es": "Ingresos varios",
+          "de": "Sonstige Einnahmen"
         },
         "colorHex": "#059669",
         "iconName": "bi-cash-coin",
@@ -1092,7 +1306,9 @@
   {
     "translations": {
       "fr": "Virements & épargne",
-      "en": "Transfers & Savings"
+      "en": "Transfers & Savings",
+      "es": "Transferencias y ahorro",
+      "de": "Umbuchungen & Sparen"
     },
     "colorHex": "#0284c7",
     "iconName": "bi-arrow-left-right",
@@ -1102,7 +1318,9 @@
       {
         "translations": {
           "fr": "Virements internes",
-          "en": "Internal Transfers"
+          "en": "Internal Transfers",
+          "es": "Transferencias internas",
+          "de": "Interne Umbuchungen"
         },
         "colorHex": "#0284c7",
         "iconName": "bi-arrow-left-right",
@@ -1112,7 +1330,9 @@
       {
         "translations": {
           "fr": "Virements d'épargne",
-          "en": "Savings Transfers"
+          "en": "Savings Transfers",
+          "es": "Transferencias de ahorro",
+          "de": "Sparüberweisungen"
         },
         "colorHex": "#0284c7",
         "iconName": "bi-arrow-left-right",
@@ -1122,7 +1342,9 @@
       {
         "translations": {
           "fr": "Virements à catégoriser",
-          "en": "Transfers to Categorize"
+          "en": "Transfers to Categorize",
+          "es": "Transferencias por categorizar",
+          "de": "Zu kategorisierende Umbuchungen"
         },
         "colorHex": "#0284c7",
         "iconName": "bi-arrow-left-right",
@@ -1134,7 +1356,9 @@
   {
     "translations": {
       "fr": "Divers & à catégoriser",
-      "en": "Miscellaneous & Uncategorized"
+      "en": "Miscellaneous & Uncategorized",
+      "es": "Varios y por categorizar",
+      "de": "Sonstiges & Nicht zugeordnet"
     },
     "colorHex": "#94a3b8",
     "iconName": "bi-question-circle-fill",
@@ -1144,7 +1368,9 @@
       {
         "translations": {
           "fr": "A catégoriser",
-          "en": "To Categorize"
+          "en": "To Categorize",
+          "es": "Por categorizar",
+          "de": "Zu kategorisieren"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-question-diamond",
@@ -1154,7 +1380,9 @@
       {
         "translations": {
           "fr": "Hors budget",
-          "en": "Out of Budget"
+          "en": "Out of Budget",
+          "es": "Fuera de presupuesto",
+          "de": "Außerhalb des Budgets"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-slash-circle",
@@ -1164,7 +1392,9 @@
       {
         "translations": {
           "fr": "Notes de frais (+/-)",
-          "en": "Expense Reports (+/-)"
+          "en": "Expense Reports (+/-)",
+          "es": "Gastos de empresa / dietas (+/-)",
+          "de": "Spesenabrechnungen (+/-)"
         },
         "colorHex": "#6366f1",
         "iconName": "bi-receipt-cutoff",

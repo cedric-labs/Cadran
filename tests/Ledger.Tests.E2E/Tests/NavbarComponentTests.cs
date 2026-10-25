@@ -49,4 +49,30 @@ public sealed class NavbarComponentTests(AppWebTestFixture webFixture, Playwrigh
         var currentLang = await navbar.GetCurrentLanguageCodeAsync();
         currentLang.Should().Be("en");
     }
+
+    [Fact]
+    public async Task NavbarComponent_WhenLanguageChangedToSpanish_UpdatesInterfaceToSpanish()
+    {
+        var navbar = new NavbarComponent(Page);
+        var homePage = new HomePage(Page);
+        await homePage.NavigateAsync(BaseUrl);
+
+        await navbar.SelectLanguageAsync("es");
+
+        var currentLang = await navbar.GetCurrentLanguageCodeAsync();
+        currentLang.Should().Be("es");
+    }
+
+    [Fact]
+    public async Task NavbarComponent_WhenLanguageChangedToGerman_UpdatesInterfaceToGerman()
+    {
+        var navbar = new NavbarComponent(Page);
+        var homePage = new HomePage(Page);
+        await homePage.NavigateAsync(BaseUrl);
+
+        await navbar.SelectLanguageAsync("de");
+
+        var currentLang = await navbar.GetCurrentLanguageCodeAsync();
+        currentLang.Should().Be("de");
+    }
 }

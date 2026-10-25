@@ -28,6 +28,14 @@ public sealed class MainLauncherForm : Form
     private bool _hasShownTrayBalloon;
     private bool _isUpdatingLanguage;
 
+    private static readonly (string Code, string Name)[] SupportedUiLanguages =
+    [
+        ("fr", "Français"),
+        ("en", "English"),
+        ("es", "Español"),
+        ("de", "Deutsch")
+    ];
+
     // Éléments de la zone de notification (Systray)
     private readonly NotifyIcon _trayIcon;
     private readonly ContextMenuStrip _trayContextMenu;
@@ -186,8 +194,8 @@ public sealed class MainLauncherForm : Form
             DropDownStyle = ComboBoxStyle.DropDownList,
             Font = new Font("Segoe UI", 9.5f)
         };
-        _headerLangCombo.Items.AddRange(["Français", "English"]);
-        _headerLangCombo.SelectedIndex = cultureCode.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        _headerLangCombo.Items.AddRange(SupportedUiLanguages.Select(l => (object)l.Name).ToArray());
+        _headerLangCombo.SelectedIndex = GetLanguageIndex(cultureCode);
         _headerLangCombo.SelectedIndexChanged += (_, _) => OnLanguageSelectionChanged();
 
         headerLangPanel.Controls.AddRange([
@@ -464,8 +472,8 @@ public sealed class MainLauncherForm : Form
             Width = 180,
             DropDownStyle = ComboBoxStyle.DropDownList
         };
-        _settingsLangCombo.Items.AddRange(["Français", "English"]);
-        _settingsLangCombo.SelectedIndex = cultureCode.StartsWith("en", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+        _settingsLangCombo.Items.AddRange(SupportedUiLanguages.Select(l => (object)l.Name).ToArray());
+        _settingsLangCombo.SelectedIndex = GetLanguageIndex(cultureCode);
         _settingsLangCombo.SelectedIndexChanged += (_, _) =>
         {
             if (_isUpdatingLanguage)
@@ -579,6 +587,29 @@ public sealed class MainLauncherForm : Form
         Load += (_, _) => RunAsyncSafe(InitializeLauncherAsync, "Initialisation de Cadran");
     }
 
+    private static int GetLanguageIndex(string? cultureCode)
+    {
+        var normalized = (cultureCode ?? "fr").Trim().ToLowerInvariant();
+        for (var i = 0; i < SupportedUiLanguages.Length; i++)
+        {
+            if (normalized.StartsWith(SupportedUiLanguages[i].Code, StringComparison.OrdinalIgnoreCase))
+            {
+                return i;
+            }
+        }
+        return 0;
+    }
+
+    private string GetSelectedLanguageCode()
+    {
+        var index = _headerLangCombo.SelectedIndex;
+        if (index >= 0 && index < SupportedUiLanguages.Length)
+        {
+            return SupportedUiLanguages[index].Code;
+        }
+        return "fr";
+    }
+
     private void OnLanguageSelectionChanged()
     {
         if (_isUpdatingLanguage)
@@ -586,7 +617,7 @@ public sealed class MainLauncherForm : Form
             return;
         }
 
-        var selectedCode = _headerLangCombo.SelectedIndex == 1 ? "en" : "fr";
+        var selectedCode = GetSelectedLanguageCode();
         _settingsLangCombo.SelectedIndex = _headerLangCombo.SelectedIndex;
 
         if (string.Equals(_currentSettings.Language, selectedCode, StringComparison.OrdinalIgnoreCase))
@@ -898,6 +929,35 @@ public sealed class MainLauncherForm : Form
         }
     }
 
+    internal void PrepareForDocumentationScreenshot(string culture, int tabIndex)
+    {
+        _headerLangCombo.SelectedIndex = GetLanguageIndex(culture);
+        _tabControl.SelectedIndex = tabIndex;
+        RefreshBackupsList();
+    }
+
+    internal record ScreenshotPin(Rectangle Rect, string Number, Color Color);
+
+    internal List<ScreenshotPin> GetScreenshotPinDefinitions()
+    {
+        return
+        [
+            new(_tabControl.Bounds, "1", Color.FromArgb(37, 99, 235)),
+            new(GetControlClientBounds(_createBackupButton), "2", Color.FromArgb(22, 163, 74)),
+            new(GetControlClientBounds(_restoreBackupButton), "3", Color.FromArgb(202, 138, 4)),
+            new(GetControlClientBounds(_backupsListView), "4", Color.FromArgb(2, 132, 199)),
+            new(GetControlClientBounds(_openBackupsFolderButton), "5", Color.FromArgb(147, 51, 234)),
+            new(GetControlClientBounds(_headerLangCombo), "6", Color.FromArgb(13, 148, 136))
+        ];
+    }
+
+    private Rectangle GetControlClientBounds(Control c)
+    {
+        var screenPoint = c.PointToScreen(Point.Empty);
+        var clientPoint = PointToClient(screenPoint);
+        return new Rectangle(clientPoint, c.Size);
+    }
+
     private void OnCreateBackupClicked()
     {
         RunAsyncSafe(CreateManualBackupAsync, "Création manuelle de sauvegarde");
@@ -1096,7 +1156,7 @@ public sealed class MainLauncherForm : Form
             (int)_maxBackupFilesInput.Value,
             (int)_maxBackupDaysInput.Value);
 
-        var selectedLang = _headerLangCombo.SelectedIndex == 1 ? "en" : "fr";
+        var selectedLang = GetSelectedLanguageCode();
 
         var updated = new LauncherSettings(
             (int)_portInput.Value,

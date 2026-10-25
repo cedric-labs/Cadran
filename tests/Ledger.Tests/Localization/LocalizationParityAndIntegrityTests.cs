@@ -59,42 +59,50 @@ public partial class LocalizationParityAndIntegrityTests
         }
     }
 
+    private static readonly string[] RequiredLanguages = ["fr", "en", "es", "de"];
+
     [Fact]
-    public void FrenchAndEnglishLocaleFiles_ShouldHaveExactKeyParity_AndNonEmptyValues()
+    public void SupportedLocaleFiles_WhenCompared_ShouldHaveExactKeyParityAndNonEmptyValues()
     {
-        var frPath = Path.Combine(_projectDir, "Resources", "Locales", "fr.json");
-        var enPath = Path.Combine(_projectDir, "Resources", "Locales", "en.json");
+        var localesDir = Path.Combine(_projectDir, "Resources", "Locales");
+        Directory.Exists(localesDir).Should().BeTrue("le répertoire Resources/Locales doit exister");
 
-        File.Exists(frPath).Should().BeTrue("fr.json doit exister dans Resources/Locales");
-        File.Exists(enPath).Should().BeTrue("en.json doit exister dans Resources/Locales");
+        var localeDicts = new Dictionary<string, Dictionary<string, string>>(StringComparer.OrdinalIgnoreCase);
 
-        var frDict = LoadFlattenedLocale(frPath);
-        var enDict = LoadFlattenedLocale(enPath);
+        foreach (var lang in RequiredLanguages)
+        {
+            var filePath = Path.Combine(localesDir, $"{lang}.json");
+            File.Exists(filePath).Should().BeTrue($"{lang}.json doit exister dans Resources/Locales");
+            localeDicts[lang] = LoadFlattenedLocale(filePath);
+        }
 
-        var missingInEn = frDict.Keys.Except(enDict.Keys, StringComparer.OrdinalIgnoreCase).ToList();
-        var missingInFr = enDict.Keys.Except(frDict.Keys, StringComparer.OrdinalIgnoreCase).ToList();
+        var frDict = localeDicts["fr"];
 
-        missingInEn.Should().BeEmpty("toute clé présente dans fr.json doit également être traduite dans en.json");
-        missingInFr.Should().BeEmpty("toute clé présente dans en.json doit également être traduite dans fr.json");
+        foreach (var lang in RequiredLanguages)
+        {
+            var dict = localeDicts[lang];
 
-        var emptyInFr = frDict.Where(kv => string.IsNullOrWhiteSpace(kv.Value)).Select(kv => kv.Key).ToList();
-        var emptyInEn = enDict.Where(kv => string.IsNullOrWhiteSpace(kv.Value)).Select(kv => kv.Key).ToList();
+            var missingKeys = frDict.Keys.Except(dict.Keys, StringComparer.OrdinalIgnoreCase).ToList();
+            missingKeys.Should().BeEmpty($"toute clé présente dans fr.json doit également être traduite dans {lang}.json");
 
-        emptyInFr.Should().BeEmpty("aucune traduction dans fr.json ne doit être vide");
-        emptyInEn.Should().BeEmpty("aucune traduction dans en.json ne doit être vide");
+            var extraKeys = dict.Keys.Except(frDict.Keys, StringComparer.OrdinalIgnoreCase).ToList();
+            extraKeys.Should().BeEmpty($"aucune clé superflue ne doit exister dans {lang}.json");
+
+            var emptyValues = dict.Where(kv => string.IsNullOrWhiteSpace(kv.Value)).Select(kv => kv.Key).ToList();
+            emptyValues.Should().BeEmpty($"aucune traduction dans {lang}.json ne doit être vide");
+        }
     }
 
     [Fact]
-    public void ScanLocalizerKeys_WhenComparedToLocales_KeysExistInFrenchAndEnglish()
+    public void ScanLocalizerKeys_WhenComparedToLocales_KeysExistInAllSupportedLanguages()
     {
-        var frPath = Path.Combine(_projectDir, "Resources", "Locales", "fr.json");
-        var enPath = Path.Combine(_projectDir, "Resources", "Locales", "en.json");
+        var localesDir = Path.Combine(_projectDir, "Resources", "Locales");
+        var localeDicts = RequiredLanguages.ToDictionary(
+            lang => lang,
+            lang => LoadFlattenedLocale(Path.Combine(localesDir, $"{lang}.json")),
+            StringComparer.OrdinalIgnoreCase);
 
-        var frDict = LoadFlattenedLocale(frPath);
-        var enDict = LoadFlattenedLocale(enPath);
-
-        var missingFrUsages = new List<string>();
-        var missingEnUsages = new List<string>();
+        var missingUsages = new List<string>();
 
         var files = Directory.EnumerateFiles(_projectDir, "*.*", SearchOption.AllDirectories)
             .Where(f => (f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase) ||
@@ -112,19 +120,17 @@ public partial class LocalizationParityAndIntegrityTests
             foreach (Match match in matches)
             {
                 var key = match.Groups["key"].Value;
-                if (!frDict.ContainsKey(key))
+                foreach (var lang in RequiredLanguages)
                 {
-                    missingFrUsages.Add($"{relativeFile}: '{key}' absent de fr.json");
-                }
-                if (!enDict.ContainsKey(key))
-                {
-                    missingEnUsages.Add($"{relativeFile}: '{key}' absent de en.json");
+                    if (!localeDicts[lang].ContainsKey(key))
+                    {
+                        missingUsages.Add($"{relativeFile}: '{key}' absent de {lang}.json");
+                    }
                 }
             }
         }
 
-        missingFrUsages.Should().BeEmpty("chaque clé Localizer[\"...*\"] utilisée dans le code ou les vues doit exister dans fr.json");
-        missingEnUsages.Should().BeEmpty("chaque clé Localizer[\"...*\"] utilisée dans le code ou les vues doit exister dans en.json");
+        missingUsages.Should().BeEmpty("chaque clé Localizer[\"...*\"] utilisée dans le code ou les vues doit exister dans toutes les langues");
     }
 
     [GeneratedRegex(@"(?:_localizer|Localizer)\[""(?<key>[^""{}$]+)""\]", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]

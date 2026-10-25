@@ -114,9 +114,12 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
             .ToListAsync(cancellationToken);
 
         var existingCatIds = existingCategories.Select(c => c.Id).ToHashSet();
-        var existingTranslations = await _dbContext.EntityTranslations
-            .Where(t => t.EntityType == "Category" && existingCatIds.Contains(t.EntityId))
+        var allCategoryTranslations = await _dbContext.EntityTranslations
+            .Where(t => t.EntityType == "Category")
             .ToListAsync(cancellationToken);
+        var existingTranslations = allCategoryTranslations
+            .Where(t => existingCatIds.Contains(t.EntityId))
+            .ToList();
 
         var existingParents = existingCategories.Where(c => c.ParentCategoryId == null).ToList();
         var existingSubsByParent = existingCategories
@@ -295,9 +298,12 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
     private async Task EnsureMissingTranslationsAsync(List<Category> categories, CancellationToken cancellationToken)
     {
         var categoryIds = categories.Select(c => c.Id).ToHashSet();
-        var existingTranslations = await _dbContext.EntityTranslations
-            .Where(t => t.EntityType == "Category" && categoryIds.Contains(t.EntityId))
+        var allCategoryTranslations = await _dbContext.EntityTranslations
+            .Where(t => t.EntityType == "Category")
             .ToListAsync(cancellationToken);
+        var existingTranslations = allCategoryTranslations
+            .Where(t => categoryIds.Contains(t.EntityId))
+            .ToList();
 
         var existingMap = existingTranslations
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}:{t.Field.ToLowerInvariant()}")

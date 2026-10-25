@@ -6,7 +6,7 @@ namespace Cadran.Launcher.Configuration;
 /// Paramètres de configuration du superviseur Cadran et de l'interface graphique Windows.
 /// </summary>
 /// <param name="Port">Numéro de port local sur lequel Kestrel écoute.</param>
-/// <param name="Language">Code de langue de l'interface (ex: 'fr', 'en'). Si null, détecté automatiquement.</param>
+/// <param name="Language">Code de langue de l'interface (ex: 'fr', 'en', 'es', 'de'). Si null, détecté automatiquement.</param>
 /// <param name="AutoStartServer">Indique si le serveur doit démarrer automatiquement à l'ouverture du superviseur.</param>
 /// <param name="AutoOpenBrowser">Indique si le navigateur doit être ouvert dès que le serveur est prêt.</param>
 /// <param name="StartMinimizedInTray">Indique si la fenêtre doit être réduite dans la zone de notification au lancement.</param>
@@ -21,6 +21,11 @@ public sealed record LauncherSettings(
     bool EnableAutomaticBackups = true,
     BackupRetentionOptions? RetentionPolicy = null)
 {
+    private static readonly HashSet<string> SupportedLanguages = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "fr", "en", "es", "de"
+    };
+
     /// <summary>
     /// Obtient la politique de rétention effective, garantie non nulle.
     /// </summary>
@@ -33,9 +38,7 @@ public sealed record LauncherSettings(
     public LauncherSettings Normalize()
     {
         var sanitizedPort = Port is >= 1024 and <= 65535 ? Port : 5000;
-        var sanitizedLang = string.IsNullOrWhiteSpace(Language)
-            ? (CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.Equals("en", StringComparison.OrdinalIgnoreCase) ? "en" : "fr")
-            : (Language.Trim().ToLowerInvariant().StartsWith("en", StringComparison.Ordinal) ? "en" : "fr");
+        var sanitizedLang = SanitizeLanguage(Language);
 
         return new LauncherSettings(
             sanitizedPort,
@@ -45,5 +48,26 @@ public sealed record LauncherSettings(
             StartMinimizedInTray,
             EnableAutomaticBackups,
             RetentionPolicy.Normalize());
+    }
+
+    private static string SanitizeLanguage(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            var uiLang = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
+            return SupportedLanguages.Contains(uiLang) ? uiLang : "fr";
+        }
+
+        var trimmed = language.Trim().ToLowerInvariant();
+        if (trimmed.Length >= 2)
+        {
+            var prefix = trimmed[..2];
+            if (SupportedLanguages.Contains(prefix))
+            {
+                return prefix;
+            }
+        }
+
+        return "fr";
     }
 }

@@ -71,14 +71,22 @@ public class CategorySeedServiceTests : IDisposable
 
         var frTranslations = translations.Where(t => t.LanguageCode == "fr").ToList();
         var enTranslations = translations.Where(t => t.LanguageCode == "en").ToList();
+        var esTranslations = translations.Where(t => t.LanguageCode == "es").ToList();
+        var deTranslations = translations.Where(t => t.LanguageCode == "de").ToList();
 
         Assert.Equal(115, frTranslations.Count);
         Assert.Equal(115, enTranslations.Count);
+        Assert.Equal(115, esTranslations.Count);
+        Assert.Equal(115, deTranslations.Count);
 
         // Vérifier une traduction spécifique
         var housingParent = parents.First(p => p.Name == "Logement, immobilier");
         var housingEn = enTranslations.First(t => t.EntityId == housingParent.Id);
+        var housingEs = esTranslations.First(t => t.EntityId == housingParent.Id);
+        var housingDe = deTranslations.First(t => t.EntityId == housingParent.Id);
         Assert.Equal("Housing & Real Estate", housingEn.Translation);
+        Assert.Equal("Vivienda e inmobiliaria", housingEs.Translation);
+        Assert.Equal("Wohnen & Immobilien", housingDe.Translation);
     }
 
     [Fact]
@@ -116,6 +124,8 @@ public class CategorySeedServiceTests : IDisposable
         Assert.NotEmpty(translations);
         Assert.Contains(translations, t => t.LanguageCode == "en" && t.Translation == "Housing & Real Estate");
         Assert.Contains(translations, t => t.LanguageCode == "fr" && t.Translation == "Logement, immobilier");
+        Assert.Contains(translations, t => t.LanguageCode == "es" && t.Translation == "Vivienda e inmobiliaria");
+        Assert.Contains(translations, t => t.LanguageCode == "de" && t.Translation == "Wohnen & Immobilien");
     }
 
     [Theory]

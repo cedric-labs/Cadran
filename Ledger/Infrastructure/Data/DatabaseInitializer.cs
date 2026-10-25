@@ -9,6 +9,8 @@ namespace Ledger.Infrastructure.Data;
 /// </summary>
 public static class DatabaseInitializer
 {
+    private static readonly SemaphoreSlim InitializationLock = new(1, 1);
+
     /// <summary>
     /// Initialise la base de données de manière idempotente : schéma SQLite, données de référence globales,
     /// traductions multilingues et normalisation des GUIDs.
@@ -19,13 +21,14 @@ public static class DatabaseInitializer
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
 
-        using var scope = serviceProvider.CreateScope();
-        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
-        var logger = loggerFactory.CreateLogger("DatabaseInitializer");
-
+        await InitializationLock.WaitAsync(cancellationToken);
         try
         {
+            using var scope = serviceProvider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var loggerFactory = scope.ServiceProvider.GetRequiredService<ILoggerFactory>();
+            var logger = loggerFactory.CreateLogger("DatabaseInitializer");
+
             var schemaSynchronizer = new DatabaseSchemaSynchronizer(loggerFactory.CreateLogger<DatabaseSchemaSynchronizer>());
             var referenceDataSeeder = new DatabaseReferenceDataSeeder(loggerFactory.CreateLogger<DatabaseReferenceDataSeeder>());
             var translationSeeder = new EntityTranslationSeeder(loggerFactory.CreateLogger<EntityTranslationSeeder>());
@@ -47,6 +50,10 @@ public static class DatabaseInitializer
         catch (Exception ex)
         {
             throw new InvalidOperationException("Erreur lors de l'initialisation de la base SQLite.", ex);
+        }
+        finally
+        {
+            InitializationLock.Release();
         }
     }
 }

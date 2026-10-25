@@ -35,16 +35,20 @@ public sealed class ConfigurationModelsTests
     }
 
     [Fact]
-    public void Normalize_WhenLanguageIsSpecified_NormalizesToFrOrEn()
+    public void Normalize_WhenLanguageIsSpecified_NormalizesToSupportedLanguageOrFallbackToFr()
     {
         // Arrange & Act
         var english = new LauncherSettings(Language: "en-US").Normalize();
         var french = new LauncherSettings(Language: "fr-FR").Normalize();
-        var unknown = new LauncherSettings(Language: "de").Normalize();
+        var spanish = new LauncherSettings(Language: "es-ES").Normalize();
+        var german = new LauncherSettings(Language: "de-DE").Normalize();
+        var unknown = new LauncherSettings(Language: "it").Normalize();
 
         // Assert
         english.Language.Should().Be("en");
         french.Language.Should().Be("fr");
+        spanish.Language.Should().Be("es");
+        german.Language.Should().Be("de");
         unknown.Language.Should().Be("fr");
     }
 }

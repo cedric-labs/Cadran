@@ -13,7 +13,7 @@ public sealed class NavbarComponent(IPage page) : BasePage(page)
     private ILocator AccountsLink => Page.Locator("a.nav-link[href='/Accounts']");
     private ILocator TransactionsLink => Page.Locator("a.nav-link[href='/Transactions']");
     private ILocator CategoriesLink => Page.Locator("a.nav-link[href='/Categories']");
-    private ILocator LanguageDropdownToggle => Page.Locator("button.dropdown-toggle[title='Langue'], button.dropdown-toggle[title='Language']");
+    private ILocator LanguageDropdownToggle => Page.Locator("button.dropdown-toggle:has(i.bi-translate)");
     private ILocator LanguageBadge => Page.Locator("button.dropdown-toggle span.small");
     private ILocator UserDropdownToggle => Page.Locator("a.dropdown-toggle:has(i.bi-person-fill)");
     private ILocator LogoutButton => Page.Locator("form[action='/Security/Logout'] button[type='submit']");
@@ -56,7 +56,7 @@ public sealed class NavbarComponent(IPage page) : BasePage(page)
     /// </summary>
     public async Task<string> GetCurrentLanguageCodeAsync()
     {
-        return (await LanguageBadge.InnerTextAsync()).Trim();
+        return (await LanguageBadge.InnerTextAsync()).Trim().ToLowerInvariant();
     }
 
     /// <summary>
