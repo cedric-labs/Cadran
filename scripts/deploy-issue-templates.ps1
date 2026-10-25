@@ -6,13 +6,17 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
+$emojiBug = [char]::ConvertFromUtf32(0x1F41B)
+$emojiLightbulb = [char]::ConvertFromUtf32(0x1F4A1)
+$emojiBook = [char]::ConvertFromUtf32(0x1F4D6)
+
 function Write-Step ($msg) {
     Write-Host "`n=== $msg ===" -ForegroundColor Cyan
 }
 
 function Get-AppBugReport ($appName) {
 @"
-name: 🐛 Bug Report
+name: $emojiBug Bug Report
 description: Create a report to help us improve $appName
 title: "[BUG] "
 labels: ["bug"]
@@ -103,7 +107,7 @@ body:
 
 function Get-AppFeatureRequest ($appName) {
 @"
-name: 💡 Feature Request
+name: $emojiLightbulb Feature Request
 description: Suggest an idea, enhancement, or new capability for $appName
 title: "[FEATURE] "
 labels: ["enhancement"]
@@ -148,7 +152,7 @@ function Get-AppConfig ($repoSlug) {
 @"
 blank_issues_enabled: false
 contact_links:
-  - name: 📖 Documentation & User Guide
+  - name: $emojiBook Documentation & User Guide
     url: https://github.com/curvecoder/$repoSlug/blob/main/docs/user-guide.md
     about: Please check our documentation and user guide before opening an issue.
 "@
@@ -156,7 +160,7 @@ contact_links:
 
 function Get-FrameworkBugReport ($frameworkName) {
 @"
-name: 🐛 Bug Report
+name: $emojiBug Bug Report
 description: Report a bug or unexpected behavior in $frameworkName
 title: "[BUG] "
 labels: ["bug"]
@@ -230,7 +234,7 @@ body:
 
 function Get-FrameworkFeatureRequest ($frameworkName) {
 @"
-name: 💡 Feature Request / API Proposal
+name: $emojiLightbulb Feature Request / API Proposal
 description: Propose an API enhancement, new capability, or performance improvement in $frameworkName
 title: "[FEATURE] "
 labels: ["enhancement"]
@@ -268,7 +272,7 @@ function Get-FrameworkConfig ($repoSlug) {
 @"
 blank_issues_enabled: false
 contact_links:
-  - name: 📖 Framework Specification
+  - name: $emojiBook Framework Specification
     url: https://github.com/curvecoder/$repoSlug/blob/main/FRAMEWORK.md
     about: Read the framework documentation and contracts before filing.
 "@
@@ -313,8 +317,7 @@ function Deploy-Templates ($repoDir, $appName, $repoSlug, [bool]$isApp) {
     $status = git -C $repoDir status --porcelain
     if (-not [string]::IsNullOrWhiteSpace($status)) {
         git -C $repoDir add .github/ISSUE_TEMPLATE/
-        if ($appName -eq "TopologyForge") { git -C $repoDir add .gitignore }
-        git -C $repoDir commit -m "feat(community): add standardized github issue forms (bug report and feature request)"
+        git -C $repoDir commit -m "fix(community): fix UTF-8 encoding of issue templates and emoji glyphs"
         Write-Host "Committed changes in $appName." -ForegroundColor Green
 
         if ($Push) {
@@ -337,4 +340,4 @@ foreach ($fw in $frameworks) {
     Deploy-Templates "D:\Dev\Framework\$fw" $fw $fw $false
 }
 
-Write-Step "All Issue Templates deployed successfully!"
+Write-Step "All Issue Templates deployed successfully with valid UTF-8 encoding!"
