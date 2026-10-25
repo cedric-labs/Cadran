@@ -1,12 +1,19 @@
 # scripts/publish-github-release.ps1
 [CmdletBinding()]
 param (
-    [string]$Tag = "v1.0.0",
+    [string]$Tag = "",
     [string]$DistDir = "./dist",
     [string]$Repo = "curvecoder/Cadran"
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($Tag)) {
+    $Tag = (git describe --tags --abbrev=0 2>$null)
+    if ([string]::IsNullOrWhiteSpace($Tag)) {
+        $Tag = "v1.0.0"
+    }
+}
 
 # 1. Retrieve GitHub Token from git credential helper
 $token = $null

@@ -1,11 +1,20 @@
 # scripts/package-release.ps1
 [CmdletBinding()]
 param (
-    [string]$Version = "1.0.0",
+    [string]$Version = "",
     [string]$DistDir = "./dist"
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($Version)) {
+    $latestTag = git describe --tags --abbrev=0 2>$null
+    if ($latestTag -match '^v?(\d+\.\d+\.\d+.*)$') {
+        $Version = $Matches[1]
+    } else {
+        $Version = "1.0.0"
+    }
+}
 
 function Write-Step ($message) {
     Write-Host "`n=== $message ===" -ForegroundColor Cyan
