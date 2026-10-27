@@ -62,9 +62,9 @@ We are excited to announce the release of **Cadran $Tag**!
 Cadran is a modern, local-first, privacy-first personal finance, budget tracking, and wealth management platform built on ASP.NET Core 9, C# 12, Entity Framework Core, and Encrypted SQLite (SQLCipher).
 
 ### What's New in $Tag
-- **Multilingual Support (ES, DE, FR, EN)**: Complete end-to-end user interface and documentation in Spanish and German alongside French and English.
-- **Dynamic Account Types & Statuses**: Single-field multilingual edition with localized KPI group bindings and automatic seed fallbacks.
-- **Automated SemVer 2.0**: Versioning dynamically driven by Git tags and MinVer.
+- **Standardized GitHub Community Health & Issue Forms**: Interactive and structured GitHub Issue forms (`bug_report.yml`, `feature_request.yml`, `config.yml`) with automated deployment and ASCII-safe codepoint conversion.
+- **AwesomeAssertions Test Suite Migration**: Full transition of the entire 640+ unit, integration, and Playwright E2E test suites to Apache 2.0-licensed `AwesomeAssertions 9.6.0`, ensuring 100% open-source autonomy.
+- **Repository Visibility Management**: Tooling for repository visibility management and auditing.
 
 ### Key Features
 - **Local-First & Privacy-First**: 100% data sovereignty. All records stored locally in encrypted SQLite (`cadran.db`). Zero telemetry, zero external scrapers.
