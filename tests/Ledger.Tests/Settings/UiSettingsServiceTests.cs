@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Settings.Services;
 using Ledger.Infrastructure.Configuration;
 using Ledger.Tests.Fixtures;

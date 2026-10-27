@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Tests.E2E.Infrastructure;
 using Ledger.Tests.E2E.Pages;
 

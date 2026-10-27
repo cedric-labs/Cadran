@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Recurring.Services;
 using Xunit;
 

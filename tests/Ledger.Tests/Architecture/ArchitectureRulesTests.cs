@@ -1,5 +1,5 @@
 using System.Text.RegularExpressions;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Domain.Entities;
 using NetArchTest.Rules;
 using Xunit;

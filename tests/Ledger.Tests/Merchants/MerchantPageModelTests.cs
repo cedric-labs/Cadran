@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Categories.Entities;
 using Ledger.Features.Merchants.Entities;
 using Ledger.Features.Merchants.Pages;

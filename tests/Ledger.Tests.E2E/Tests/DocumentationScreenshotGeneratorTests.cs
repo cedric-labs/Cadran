@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Security.Context;
 using Ledger.Tests.E2E.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;

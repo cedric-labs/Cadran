@@ -1,5 +1,5 @@
+using AwesomeAssertions;
 using Cadran.Launcher.Supervision;
-using FluentAssertions;
 
 namespace Cadran.Launcher.Tests.Supervision;
 

@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Reports.Models;
 using Ledger.Features.Reports.Services;
 using Microsoft.Extensions.Localization;

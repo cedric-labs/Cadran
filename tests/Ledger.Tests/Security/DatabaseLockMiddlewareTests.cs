@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Security.Context;
 using Ledger.Infrastructure.Security;
 using Microsoft.AspNetCore.Http;

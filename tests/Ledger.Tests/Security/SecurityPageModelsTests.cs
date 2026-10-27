@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Security.Models;
 using Ledger.Features.Security.Pages;
 using Ledger.Features.Security.Services;

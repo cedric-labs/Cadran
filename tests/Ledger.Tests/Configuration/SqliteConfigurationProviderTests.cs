@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Infrastructure.Configuration;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;

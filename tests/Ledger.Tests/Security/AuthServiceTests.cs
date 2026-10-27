@@ -1,5 +1,5 @@
 using System.Text.Encodings.Web;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Accounts.Services;
 using Ledger.Features.Categories.Services;
 using Ledger.Features.Security.Models;

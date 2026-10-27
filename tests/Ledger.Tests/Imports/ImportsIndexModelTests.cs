@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Accounts.Services;
 using Ledger.Features.Imports.Entities;

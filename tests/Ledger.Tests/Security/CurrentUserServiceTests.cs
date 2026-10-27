@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Security.Context;
 using Microsoft.AspNetCore.Http;
 using Moq;

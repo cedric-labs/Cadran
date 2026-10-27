@@ -1,5 +1,5 @@
 using System.Globalization;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Infrastructure.Configuration;
 using Microsoft.Extensions.Configuration;
 using Xunit;

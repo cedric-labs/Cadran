@@ -1,5 +1,5 @@
 using System.Globalization;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Accounts.Pages;
 using Ledger.Features.Accounts.Services;

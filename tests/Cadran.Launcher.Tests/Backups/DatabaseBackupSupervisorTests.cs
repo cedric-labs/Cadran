@@ -1,6 +1,6 @@
+using AwesomeAssertions;
 using Cadran.Launcher.Backups;
 using Cadran.Launcher.Configuration;
-using FluentAssertions;
 
 namespace Cadran.Launcher.Tests.Backups;
 

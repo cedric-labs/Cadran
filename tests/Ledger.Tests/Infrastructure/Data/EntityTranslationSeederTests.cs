@@ -1,4 +1,4 @@
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Domain.Entities;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Categories.Entities;

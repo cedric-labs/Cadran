@@ -1,5 +1,5 @@
 using System.Text.Json;
-using FluentAssertions;
+using AwesomeAssertions;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Categories.Entities;
 using Ledger.Features.Reports.Entities;
