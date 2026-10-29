@@ -3,10 +3,14 @@
 param (
     [string]$ProjectKey = "Fluxa",
     [string]$SonarHostUrl = $(if ($env:SONAR_HOST_URL) { $env:SONAR_HOST_URL } else { "http://localhost:9000" }),
-    [string]$SonarToken = $(if ($env:SONAR_TOKEN) { $env:SONAR_TOKEN } else { -join ('sqa_', 'REMOVED-TOKEN') })
+    [string]$SonarToken = $env:SONAR_TOKEN
 )
 
 $ErrorActionPreference = 'Stop'
+
+if (-not $SonarToken -and (Test-Path "$PSScriptRoot/.sonar-token")) {
+    $SonarToken = (Get-Content "$PSScriptRoot/.sonar-token" -Raw).Trim()
+}
 
 function Write-Step ($message) {
     Write-Host "`n=== $message ===" -ForegroundColor Cyan

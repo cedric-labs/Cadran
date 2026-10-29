@@ -38,6 +38,7 @@ bld/
 
 ## SonarQube & Test Results
 .sonarqube/
+.sonar-token
 TestResults/
 publish/
 dist/
