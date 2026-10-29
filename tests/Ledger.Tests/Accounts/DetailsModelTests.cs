@@ -23,7 +23,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class DetailsModelTests : IDisposable
+public sealed class DetailsModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -156,7 +156,7 @@ public class DetailsModelTests : IDisposable
 
         result.Should().BeOfType<PageResult>();
         model.Account.Should().NotBeNull();
-        model.Account!.Name.Should().Be("Compte Principal");
+        model.Account.Name.Should().Be("Compte Principal");
         model.Transactions.Should().HaveCount(3);
     }
 
@@ -211,12 +211,12 @@ public class DetailsModelTests : IDisposable
     public async Task OnPostDeleteTransactionAsync_WhenInvoked_RemovesTransaction()
     {
         var model = CreateModel();
-        var tx = _context.Transactions.First(t => t.BankAccountId == _bankAccountId);
+        var tx = await _context.Transactions.FirstAsync(t => t.BankAccountId == _bankAccountId);
 
         var result = await model.OnPostDeleteTransactionAsync(tx.Id);
 
         result.Should().BeOfType<RedirectResult>();
-        _context.Transactions.Any(t => t.Id == tx.Id).Should().BeFalse();
+        (await _context.Transactions.AnyAsync(t => t.Id == tx.Id)).Should().BeFalse();
     }
 
     [Fact]
@@ -540,7 +540,7 @@ public class DetailsModelTests : IDisposable
         resMerchant.Should().BeOfType<JsonResult>();
         var createdAuchan = await _context.CategorizationRules.FirstOrDefaultAsync(r => r.Name == "Règle Auchan");
         createdAuchan.Should().NotBeNull();
-        createdAuchan!.TargetMerchantId.Should().Be(merchant.Id);
+        createdAuchan.TargetMerchantId.Should().Be(merchant.Id);
 
         // 5. Règle avec NewMerchantName (auto-création)
         var newMerchant = new Ledger.Features.Merchants.Entities.Merchant { Id = Guid.NewGuid(), UserId = "test-user-id", Name = "Boulanger", NormalizedName = "BOULANGER" };
@@ -561,7 +561,7 @@ public class DetailsModelTests : IDisposable
         resNewMerchant.Should().BeOfType<JsonResult>();
         var createdBoulanger = await _context.CategorizationRules.FirstOrDefaultAsync(r => r.Name == "Règle Boulanger");
         createdBoulanger.Should().NotBeNull();
-        createdBoulanger!.TargetMerchantId.Should().Be(newMerchant.Id);
+        createdBoulanger.TargetMerchantId.Should().Be(newMerchant.Id);
     }
 
     [Fact]
@@ -657,7 +657,7 @@ public class DetailsModelTests : IDisposable
         });
         resValid.Should().BeOfType<JsonResult>();
 
-        _context.Entry(tx).Reload();
+        await _context.Entry(tx).ReloadAsync();
         tx.IsSplit.Should().BeTrue();
         _context.TransactionSplits.Where(s => s.TransactionId == tx.Id).Should().HaveCount(2);
 
@@ -668,7 +668,7 @@ public class DetailsModelTests : IDisposable
         var resRemove = await model.OnPostRemoveTransactionSplitsAsync(tx.Id);
         resRemove.Should().BeOfType<JsonResult>();
 
-        _context.Entry(tx).Reload();
+        await _context.Entry(tx).ReloadAsync();
         tx.IsSplit.Should().BeFalse();
         _context.TransactionSplits.Where(s => s.TransactionId == tx.Id).Should().BeEmpty();
     }

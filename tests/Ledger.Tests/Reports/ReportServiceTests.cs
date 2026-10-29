@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Ledger.Tests.Reports;
 
-public class ReportServiceTests : IDisposable
+public sealed class ReportServiceTests : IDisposable
 {
     private readonly AppDbContext _dbContext;
     private readonly SqliteConnection _connection;
@@ -85,7 +85,7 @@ public class ReportServiceTests : IDisposable
 
         var fetched = await _service.GetDashboardByIdAsync(created.Id);
         fetched.Should().NotBeNull();
-        fetched!.Name.Should().Be("Mon Tableau de Bord");
+        fetched.Name.Should().Be("Mon Tableau de Bord");
 
         var deleted = await _service.DeleteDashboardAsync(created.Id);
         deleted.Should().BeTrue();
@@ -105,7 +105,7 @@ public class ReportServiceTests : IDisposable
 
         var updated = await _service.UpdateWidgetAsync(widget.Id, "Dépenses révisées", 12, "{}");
         updated.Should().NotBeNull();
-        updated!.Title.Should().Be("Dépenses révisées");
+        updated.Title.Should().Be("Dépenses révisées");
         updated.WidthCols.Should().Be(12);
 
         var deleted = await _service.DeleteWidgetAsync(widget.Id);
@@ -133,7 +133,7 @@ public class ReportServiceTests : IDisposable
 
         // Transactions du mois courant
         var now = DateTime.UtcNow;
-        var firstOfMonth = new DateTime(now.Year, now.Month, 1);
+        var firstOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
         _dbContext.Transactions.AddRange(
             new Transaction

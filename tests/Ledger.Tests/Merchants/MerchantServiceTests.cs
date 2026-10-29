@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Ledger.Tests.Merchants;
 
-public class MerchantServiceTests : IDisposable
+public sealed class MerchantServiceTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -60,7 +60,7 @@ public class MerchantServiceTests : IDisposable
 
         var inDb = await _context.Merchants.FindAsync(merchant.Id);
         inDb.Should().NotBeNull();
-        inDb!.Name.Should().Be("Lidl France");
+        inDb.Name.Should().Be("Lidl France");
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class MerchantServiceTests : IDisposable
 
         // Assert
         updated.Should().NotBeNull();
-        updated!.NormalizedName.Should().Be("amazon prime");
+        updated.NormalizedName.Should().Be("amazon prime");
         updated.ColorHex.Should().Be("#ff9900");
 
         var inDb = await _context.Merchants.FindAsync(merchant.Id);

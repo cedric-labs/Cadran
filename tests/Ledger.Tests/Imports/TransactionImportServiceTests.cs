@@ -16,7 +16,7 @@ using Xunit;
 
 namespace Ledger.Tests.Imports;
 
-public class TransactionImportServiceTests : IDisposable
+public sealed class TransactionImportServiceTests : IDisposable
 {
     private readonly AppDbContext _dbContext;
     private readonly SqliteConnection _connection;
@@ -127,7 +127,7 @@ OFXHEADER:100
 
         var tx = _dbContext.Transactions.FirstOrDefault(t => t.BankAccountId == account.Id);
         tx.Should().NotBeNull();
-        tx!.Amount.Should().Be(32.50m);
+        tx.Amount.Should().Be(32.50m);
         tx.Label.Should().Be("MONOPRIX");
         tx.Reference.Should().Be("OFX-TX-001");
     }
@@ -154,7 +154,7 @@ OFXHEADER:100
         {
             UserId = "test-user-id",
             BankAccountId = account.Id,
-            Date = new DateTime(2026, 3, 1),
+            Date = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
             Amount = 50.00m,
             Type = TransactionType.Debit,
             Label = "STATION ESSENCE",
@@ -200,7 +200,7 @@ OFXHEADER:100
         };
         _dbContext.BankAccounts.Add(account);
 
-        var date = new DateTime(2026, 4, 10);
+        var date = new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc);
         _dbContext.Transactions.AddRange(
             new Transaction
             {
@@ -252,7 +252,7 @@ OFXHEADER:100
             {
                 UserId = "test-user-id",
                 BankAccountId = account.Id,
-                Date = new DateTime(2026, 4, 1),
+                Date = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 100.00m,
                 Type = TransactionType.Debit,
                 Label = "VIREMENT INTERNE",
@@ -262,7 +262,7 @@ OFXHEADER:100
             {
                 UserId = "test-user-id",
                 BankAccountId = account.Id,
-                Date = new DateTime(2026, 4, 2), // 1 day diff (within tolerance)
+                Date = new DateTime(2026, 4, 2, 0, 0, 0, DateTimeKind.Utc), // 1 day diff (within tolerance)
                 Amount = 100.00m,
                 Type = TransactionType.Debit,
                 Label = "VIREMENT INTERNE",
@@ -310,7 +310,7 @@ OFXHEADER:100
         {
             new(
                 Index: 0,
-                Date: new DateTime(2026, 5, 1),
+                Date: new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
                 ValueDate: null,
                 Amount: 60.00m,
                 Type: TransactionType.Debit,
@@ -325,7 +325,7 @@ OFXHEADER:100
         count.Should().Be(1);
         var inserted = _dbContext.Transactions.FirstOrDefault(t => t.Label == "RESTAURANT LE COQ");
         inserted.Should().NotBeNull();
-        inserted!.ImportBatchId.Should().Be(batch.Id);
+        inserted.ImportBatchId.Should().Be(batch.Id);
 
         var updatedBatch = await _dbContext.ImportBatches.FindAsync(batch.Id);
         updatedBatch!.TotalImported.Should().Be(4);

@@ -38,7 +38,6 @@ public sealed class MainLauncherForm : Form
 
     // Éléments de la zone de notification (Systray)
     private readonly NotifyIcon _trayIcon;
-    private readonly ContextMenuStrip _trayContextMenu;
     private readonly ToolStripMenuItem _trayOpenBrowserItem;
     private readonly ToolStripMenuItem _trayStatusItem;
     private readonly ToolStripMenuItem _trayStartServerItem;
@@ -50,7 +49,6 @@ public sealed class MainLauncherForm : Form
     private readonly Label _statusDot;
     private readonly Label _statusLabel;
     private readonly LinkLabel _urlLink;
-    private readonly Label _headerLangLabel;
     private readonly ComboBox _headerLangCombo;
 
     // Onglets principaux
@@ -179,7 +177,7 @@ public sealed class MainLauncherForm : Form
             BackColor = Color.Transparent
         };
 
-        _headerLangLabel = new Label
+        var headerLangLabel = new Label
         {
             Text = "🌐",
             Location = new Point(12, 26),
@@ -198,14 +196,14 @@ public sealed class MainLauncherForm : Form
         _headerLangCombo.SelectedIndex = GetLanguageIndex(cultureCode);
         _headerLangCombo.SelectedIndexChanged += (_, _) => OnLanguageSelectionChanged();
 
-        headerLangPanel.Controls.AddRange([
-            _headerLangLabel,
+        headerLangPanel.Controls.AddRange(
+            headerLangLabel,
             _headerLangCombo
-        ]);
+        );
 
-        headerPanel.Controls.AddRange([
+        headerPanel.Controls.AddRange(
             _statusDot, _statusLabel, _urlLink, headerLangPanel
-        ]);
+        );
 
         // 3. Onglets principaux
         _tabControl = new TabControl
@@ -263,7 +261,7 @@ public sealed class MainLauncherForm : Form
         _dashboardOpenBrowserButton.FlatAppearance.BorderSize = 1;
         _dashboardOpenBrowserButton.Click += (_, _) => OpenBrowser();
 
-        _cardPanel.Controls.AddRange([_cardStatusTitle, _cardStatusDescription, _dashboardOpenBrowserButton]);
+        _cardPanel.Controls.AddRange(_cardStatusTitle, _cardStatusDescription, _dashboardOpenBrowserButton);
 
         // Contrôles du serveur
         _dashboardActionsGroup = new GroupBox
@@ -308,7 +306,7 @@ public sealed class MainLauncherForm : Form
         _dashboardRestartButton.FlatAppearance.BorderSize = 1;
         _dashboardRestartButton.Click += (_, _) => RunAsyncSafe(RestartServerWorkflowAsync, "Redémarrage du serveur");
 
-        _dashboardActionsGroup.Controls.AddRange([_dashboardStartButton, _dashboardStopButton, _dashboardRestartButton]);
+        _dashboardActionsGroup.Controls.AddRange(_dashboardStartButton, _dashboardStopButton, _dashboardRestartButton);
 
         // Sauvegardes rapides
         _dashboardInfoGroup = new GroupBox
@@ -341,9 +339,9 @@ public sealed class MainLauncherForm : Form
         _quickBackupButton.FlatAppearance.BorderColor = Color.FromArgb(205, 210, 215);
         _quickBackupButton.Click += (_, _) => RunAsyncSafe(CreateManualBackupAsync, "Création manuelle de sauvegarde");
 
-        _dashboardInfoGroup.Controls.AddRange([_lastBackupLabel, _quickBackupButton]);
+        _dashboardInfoGroup.Controls.AddRange(_lastBackupLabel, _quickBackupButton);
 
-        dashboardPanel.Controls.AddRange([_cardPanel, _dashboardActionsGroup, _dashboardInfoGroup]);
+        dashboardPanel.Controls.AddRange(_cardPanel, _dashboardActionsGroup, _dashboardInfoGroup);
         _dashboardTab.Controls.Add(dashboardPanel);
 
         // =========================================================================
@@ -388,7 +386,7 @@ public sealed class MainLauncherForm : Form
         ApplyButtonStyle(_openBackupsFolderButton, enabled: true, Color.FromArgb(245, 247, 250), Color.FromArgb(30, 30, 30));
         _openBackupsFolderButton.Click += (_, _) => OpenBackupsFolder();
 
-        backupsHeader.Controls.AddRange([_createBackupButton, _restoreBackupButton, _openBackupsFolderButton]);
+        backupsHeader.Controls.AddRange(_createBackupButton, _restoreBackupButton, _openBackupsFolderButton);
 
         _backupsListView = new ListView
         {
@@ -403,7 +401,7 @@ public sealed class MainLauncherForm : Form
         _backupsListView.Columns.Add(_localizer["Backups.ColSize"], 110);
         _backupsListView.Columns.Add(_localizer["Backups.ColReason"], 160);
 
-        _backupsTab.Controls.AddRange([_backupsListView, backupsHeader]);
+        _backupsTab.Controls.AddRange(_backupsListView, backupsHeader);
 
         // =========================================================================
         // ONGLET 3 : CONSOLE & JOURNAUX
@@ -448,8 +446,8 @@ public sealed class MainLauncherForm : Form
             }
         };
 
-        logsBottomBar.Controls.AddRange([_searchLabel, _searchBox, _autoScrollCheckBox, _clearLogsButton, _copyLogsButton]);
-        _logsTab.Controls.AddRange([_logBox, logsBottomBar]);
+        logsBottomBar.Controls.AddRange(_searchLabel, _searchBox, _autoScrollCheckBox, _clearLogsButton, _copyLogsButton);
+        _logsTab.Controls.AddRange(_logBox, logsBottomBar);
 
         // =========================================================================
         // ONGLET 4 : PARAMÈTRES
@@ -511,7 +509,7 @@ public sealed class MainLauncherForm : Form
         _maxDaysLabel = new Label { Text = _localizer["Settings.MaxDays"], Location = new Point(16, 104), AutoSize = true };
         _maxBackupDaysInput = new NumericUpDown { Location = new Point(220, 102), Width = 90, Minimum = 1, Maximum = 365, Value = _currentSettings.RetentionPolicy.MaxBackupDays };
 
-        _retentionGroupBox.Controls.AddRange([_retentionModeLabel, _retentionModeCombo, _maxFilesLabel, _maxBackupFilesInput, _maxDaysLabel, _maxBackupDaysInput]);
+        _retentionGroupBox.Controls.AddRange(_retentionModeLabel, _retentionModeCombo, _maxFilesLabel, _maxBackupFilesInput, _maxDaysLabel, _maxBackupDaysInput);
 
         _saveSettingsButton = new Button
         {
@@ -525,21 +523,21 @@ public sealed class MainLauncherForm : Form
         ApplyButtonStyle(_saveSettingsButton, enabled: true, BlueColor);
         _saveSettingsButton.Click += (_, _) => SaveSettings();
 
-        settingsPanel.Controls.AddRange([
+        settingsPanel.Controls.AddRange(
             _portLabel, _portInput,
             _autoStartCheckBox, _autoOpenBrowserCheckBox, _startMinimizedCheckBox, _enableAutoBackupsCheckBox,
             _settingsLangLabel, _settingsLangCombo,
             _retentionGroupBox,
             _saveSettingsButton
-        ]);
+        );
         _settingsTab.Controls.Add(settingsPanel);
 
         // Ajout des onglets : Tableau de bord en première position
-        _tabControl.TabPages.AddRange([_dashboardTab, _backupsTab, _logsTab, _settingsTab]);
-        Controls.AddRange([_tabControl, headerPanel]);
+        _tabControl.TabPages.AddRange(_dashboardTab, _backupsTab, _logsTab, _settingsTab);
+        Controls.AddRange(_tabControl, headerPanel);
 
         // 4. Configuration de la zone de notification (Systray)
-        _trayContextMenu = new ContextMenuStrip();
+        var trayContextMenu = new ContextMenuStrip();
         _trayOpenBrowserItem = new ToolStripMenuItem(_localizer["Tray.OpenBrowser"], null, (_, _) => OpenBrowser())
         {
             Font = new Font("Segoe UI", 9f, FontStyle.Bold),
@@ -551,7 +549,8 @@ public sealed class MainLauncherForm : Form
         _trayShowWindowItem = new ToolStripMenuItem(_localizer["Tray.ShowWindow"], null, (_, _) => RestoreFromTray());
         _trayExitItem = new ToolStripMenuItem(_localizer["Tray.Exit"], null, (_, _) => RunAsyncSafe(RequestExitAsync, "Quitter l'application"));
 
-        _trayContextMenu.Items.AddRange([
+        ToolStripItem[] trayItems =
+        [
             _trayOpenBrowserItem,
             new ToolStripSeparator(),
             _trayStatusItem,
@@ -560,14 +559,15 @@ public sealed class MainLauncherForm : Form
             _trayShowWindowItem,
             new ToolStripSeparator(),
             _trayExitItem
-        ]);
+        ];
+        trayContextMenu.Items.AddRange(trayItems);
 
         _trayIcon = new NotifyIcon
         {
             Icon = appIcon ?? SystemIcons.Application,
             Text = _localizer["App.SystrayTitle"],
             Visible = true,
-            ContextMenuStrip = _trayContextMenu
+            ContextMenuStrip = trayContextMenu
         };
         _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
 
@@ -834,7 +834,6 @@ public sealed class MainLauncherForm : Form
                 SetButtonsBusyState(isStarting: false);
                 break;
 
-            case ProcessState.Stopped:
             default:
                 _statusDot.BackColor = RedColor;
                 _statusLabel.Text = _localizer["Header.StatusStopped"];
@@ -1292,7 +1291,7 @@ public sealed class MainLauncherForm : Form
 
         if (InvokeRequired)
         {
-            return (DialogResult)Invoke(() => ShowMessageBox(text, caption, buttons, icon, defaultButton));
+            return Invoke(() => ShowMessageBox(text, caption, buttons, icon, defaultButton));
         }
 
         if (WindowState == FormWindowState.Minimized)

@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Ledger.Tests.Features.Categories;
 
-public class CategoryPagesTests : IDisposable
+public sealed class CategoryPagesTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -125,7 +125,7 @@ public class CategoryPagesTests : IDisposable
         (await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == parentCat.Id)).Should().BeNull();
         var refreshedSub = await _context.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == subCat.Id);
         refreshedSub.Should().NotBeNull();
-        refreshedSub!.ParentCategoryId.Should().BeNull();
+        refreshedSub.ParentCategoryId.Should().BeNull();
     }
 
     [Fact]
@@ -309,9 +309,9 @@ public class CategoryPagesTests : IDisposable
         var redirect = result.Should().BeOfType<RedirectResult>().Subject;
         redirect.Url.Should().Be("/Categories");
 
-        var created = _context.Categories.FirstOrDefault(c => c.Name == "Santé & Bien-être");
+        var created = await _context.Categories.FirstOrDefaultAsync(c => c.Name == "Santé & Bien-être");
         created.Should().NotBeNull();
-        created!.IconName.Should().Be("bi-heart-pulse");
+        created.IconName.Should().Be("bi-heart-pulse");
 
         _mockLocalizedEntityService.Verify(l => l.SetTranslationAsync(
             "Category",

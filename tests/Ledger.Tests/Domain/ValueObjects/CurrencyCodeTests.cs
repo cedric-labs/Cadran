@@ -47,7 +47,7 @@ public class CurrencyCodeTests
         // Assert
         success.Should().BeTrue();
         code.Should().NotBeNull();
-        code!.Value.Value.Should().Be("JPY");
+        code.Value.Value.Should().Be("JPY");
     }
 
     [Fact]

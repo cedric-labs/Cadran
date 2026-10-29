@@ -12,7 +12,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class TransactionStatusAndTypeServicesTests : IDisposable
+public sealed class TransactionStatusAndTypeServicesTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -71,7 +71,7 @@ public class TransactionStatusAndTypeServicesTests : IDisposable
         var def = await _statusService.GetDefaultStatusAsync();
 
         def.Should().NotBeNull();
-        def!.Code.Should().Be("Cleared");
+        def.Code.Should().Be("Cleared");
         def.IsDefault.Should().BeTrue();
     }
 
@@ -134,7 +134,7 @@ public class TransactionStatusAndTypeServicesTests : IDisposable
         updated.IsDefault.Should().BeTrue();
 
         var cleared = statuses.First(s => s.Code == "Cleared");
-        _context.Entry(cleared).Reload();
+        await _context.Entry(cleared).ReloadAsync();
         cleared.IsDefault.Should().BeFalse();
     }
 

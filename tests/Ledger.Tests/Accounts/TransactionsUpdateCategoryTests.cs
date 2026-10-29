@@ -21,7 +21,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class TransactionsUpdateCategoryTests : IDisposable
+public sealed class TransactionsUpdateCategoryTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;

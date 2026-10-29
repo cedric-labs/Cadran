@@ -205,7 +205,7 @@ public class ProgramTests : IClassFixture<AppWebApplicationFactory>
     public void ConfigureLocalization_WhenDefaultThreadCulture_UsesEuroSymbol()
     {
         CultureInfo.DefaultThreadCurrentCulture.Should().NotBeNull();
-        CultureInfo.DefaultThreadCurrentCulture!.NumberFormat.CurrencySymbol.Should().Be("€");
+        CultureInfo.DefaultThreadCurrentCulture.NumberFormat.CurrencySymbol.Should().Be("€");
         CultureInfo.DefaultThreadCurrentUICulture!.NumberFormat.CurrencySymbol.Should().Be("€");
     }
 

@@ -19,7 +19,7 @@ using Xunit;
 
 namespace Ledger.Tests.RulesEngine;
 
-public class RulesEngineMerchantTests : IDisposable
+public sealed class RulesEngineMerchantTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -103,7 +103,7 @@ public class RulesEngineMerchantTests : IDisposable
         result.Should().BeOfType<RedirectToPageResult>();
         var rule = _context.CategorizationRules.FirstOrDefault(r => r.Name == "Règle Carrefour");
         rule.Should().NotBeNull();
-        rule!.TargetMerchantId.Should().Be(existingMerchant.Id);
+        rule.TargetMerchantId.Should().Be(existingMerchant.Id);
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public class RulesEngineMerchantTests : IDisposable
 
         var rule = _context.CategorizationRules.FirstOrDefault(r => r.Name == "Règle Lidl");
         rule.Should().NotBeNull();
-        rule!.TargetMerchantId.Should().Be(newMerchant.Id);
+        rule.TargetMerchantId.Should().Be(newMerchant.Id);
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public class RulesEngineMerchantTests : IDisposable
 
         var updatedRule = await _context.CategorizationRules.FindAsync(rule.Id);
         updatedRule.Should().NotBeNull();
-        updatedRule!.Name.Should().Be("Règle Monoprix Modifiée");
+        updatedRule.Name.Should().Be("Règle Monoprix Modifiée");
         updatedRule.TargetMerchantId.Should().Be(newMerchant.Id);
         updatedRule.Priority.Should().Be(5);
     }
@@ -252,6 +252,6 @@ public class RulesEngineMerchantTests : IDisposable
         result.Should().BeOfType<RedirectToPageResult>();
         var updatedRule = await _context.CategorizationRules.FindAsync(rule.Id);
         updatedRule.Should().NotBeNull();
-        updatedRule!.TargetMerchantId.Should().BeNull();
+        updatedRule.TargetMerchantId.Should().BeNull();
     }
 }

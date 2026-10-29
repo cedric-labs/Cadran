@@ -16,7 +16,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class AccountCustomTypesAndStatusesPageModelTests : IDisposable
+public sealed class AccountCustomTypesAndStatusesPageModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;

@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class TransactionsSplitTests : IDisposable
+public sealed class TransactionsSplitTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -220,7 +220,7 @@ public class TransactionsSplitTests : IDisposable
             .FirstOrDefaultAsync(t => t.Id == tx.Id);
 
         updatedTx.Should().NotBeNull();
-        updatedTx!.IsSplit.Should().BeTrue();
+        updatedTx.IsSplit.Should().BeTrue();
         updatedTx.Splits.Should().HaveCount(2);
         updatedTx.Splits.Sum(s => s.Amount).Should().Be(100m);
     }
@@ -260,7 +260,7 @@ public class TransactionsSplitTests : IDisposable
             .FirstOrDefaultAsync(t => t.Id == tx.Id);
 
         updatedTx.Should().NotBeNull();
-        updatedTx!.IsSplit.Should().BeFalse();
+        updatedTx.IsSplit.Should().BeFalse();
         updatedTx.Splits.Should().BeEmpty();
     }
 
@@ -356,7 +356,7 @@ public class TransactionsSplitTests : IDisposable
             .FirstOrDefaultAsync(t => t.Id == tx.Id);
 
         updatedTx.Should().NotBeNull();
-        updatedTx!.IsSplit.Should().BeTrue();
+        updatedTx.IsSplit.Should().BeTrue();
         updatedTx.Splits.Should().HaveCount(2);
         updatedTx.Splits.Sum(s => s.Amount).Should().Be(80m);
     }
@@ -396,7 +396,7 @@ public class TransactionsSplitTests : IDisposable
             .FirstOrDefaultAsync(t => t.Id == tx.Id);
 
         updatedTx.Should().NotBeNull();
-        updatedTx!.IsSplit.Should().BeFalse();
+        updatedTx.IsSplit.Should().BeFalse();
         updatedTx.Splits.Should().BeEmpty();
     }
 
@@ -448,8 +448,8 @@ public class TransactionsSplitTests : IDisposable
         var solutionDir = dir?.FullName;
         solutionDir.Should().NotBeNullOrEmpty("Solution root must be found");
 
-        var detailsViewPath = Path.Combine(solutionDir!, "Ledger", "Features", "Accounts", "Pages", "Details.cshtml");
-        var transactionsViewPath = Path.Combine(solutionDir!, "Ledger", "Features", "Accounts", "Pages", "Transactions.cshtml");
+        var detailsViewPath = Path.Combine(solutionDir, "Ledger", "Features", "Accounts", "Pages", "Details.cshtml");
+        var transactionsViewPath = Path.Combine(solutionDir, "Ledger", "Features", "Accounts", "Pages", "Transactions.cshtml");
 
         File.Exists(detailsViewPath).Should().BeTrue("Details.cshtml must exist");
         File.Exists(transactionsViewPath).Should().BeTrue("Transactions.cshtml must exist");

@@ -23,7 +23,7 @@ using Xunit;
 
 namespace Ledger.Tests.Imports;
 
-public class ImportsIndexModelTests : IDisposable
+public sealed class ImportsIndexModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -209,7 +209,7 @@ public class ImportsIndexModelTests : IDisposable
 
         result.Should().BeOfType<PageResult>();
         model.LastResult.Should().NotBeNull();
-        model.LastResult!.TotalImported.Should().Be(1);
+        model.LastResult.TotalImported.Should().Be(1);
     }
 
     [Fact]
@@ -283,7 +283,7 @@ public class ImportsIndexModelTests : IDisposable
 
         result.Should().BeOfType<PageResult>();
         model.LastResult.Should().NotBeNull();
-        model.LastResult!.TotalImported.Should().Be(2);
+        model.LastResult.TotalImported.Should().Be(2);
 
         // Verify account had its OfxAccountId updated
         var updatedAccount = await _context.BankAccounts.FindAsync(_account.Id);
@@ -498,11 +498,11 @@ public class ImportsIndexModelTests : IDisposable
 
         result.Should().BeOfType<PageResult>();
         model.LastResult.Should().NotBeNull();
-        model.LastResult!.TotalImported.Should().Be(5);
+        model.LastResult.TotalImported.Should().Be(5);
 
         var createdAccount = _context.BankAccounts.FirstOrDefault(a => a.Name == "Nouveau Livret");
         createdAccount.Should().NotBeNull();
-        createdAccount!.Type.Should().Be(AccountType.Savings);
+        createdAccount.Type.Should().Be(AccountType.Savings);
         createdAccount.InitialBalance.Should().Be(250m);
         createdAccount.OfxAccountId.Should().Be("OFX12345");
     }

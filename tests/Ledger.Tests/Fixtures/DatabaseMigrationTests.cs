@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Ledger.Tests.Fixtures;
 
-public class DatabaseMigrationTests : IDisposable
+public sealed class DatabaseMigrationTests : IDisposable
 {
     private readonly SqliteConnection _connection;
 

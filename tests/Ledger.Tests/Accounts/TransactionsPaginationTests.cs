@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class TransactionsPaginationTests : IDisposable
+public sealed class TransactionsPaginationTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -133,7 +133,7 @@ public class TransactionsPaginationTests : IDisposable
         _context.Banks.Add(bank);
         _context.BankAccounts.Add(account);
 
-        var baseDate = new DateTime(2026, 1, 1);
+        var baseDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
         for (int i = 0; i < 75; i++)
         {
             _context.Transactions.Add(new Transaction

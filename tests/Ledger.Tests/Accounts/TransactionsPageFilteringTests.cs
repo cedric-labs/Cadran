@@ -24,7 +24,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class TransactionsPageFilteringTests : IDisposable
+public sealed class TransactionsPageFilteringTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -409,7 +409,7 @@ public class TransactionsPageFilteringTests : IDisposable
         resMerchant.Should().BeOfType<JsonResult>();
         var ruleWithMerchant = await _context.CategorizationRules.FirstOrDefaultAsync(r => r.Name == "Regle Carrefour Market");
         ruleWithMerchant.Should().NotBeNull();
-        ruleWithMerchant!.TargetMerchantId.Should().Be(merchant.Id);
+        ruleWithMerchant.TargetMerchantId.Should().Be(merchant.Id);
 
         // 4. Rule creation with NewMerchantName (auto-creation)
         var newMerchant = new Ledger.Features.Merchants.Entities.Merchant { Id = Guid.NewGuid(), UserId = "test-user-id", Name = "Monoprix", NormalizedName = "MONOPRIX" };
@@ -430,7 +430,7 @@ public class TransactionsPageFilteringTests : IDisposable
         resNewMerchant.Should().BeOfType<JsonResult>();
         var ruleWithNewMerchant = await _context.CategorizationRules.FirstOrDefaultAsync(r => r.Name == "Regle Monoprix");
         ruleWithNewMerchant.Should().NotBeNull();
-        ruleWithNewMerchant!.TargetMerchantId.Should().Be(newMerchant.Id);
+        ruleWithNewMerchant.TargetMerchantId.Should().Be(newMerchant.Id);
     }
 
     [Fact]

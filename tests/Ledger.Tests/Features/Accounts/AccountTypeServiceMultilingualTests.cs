@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Ledger.Tests.Features.Accounts;
 
-public class AccountTypeServiceMultilingualTests : IDisposable
+public sealed class AccountTypeServiceMultilingualTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;

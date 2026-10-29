@@ -44,7 +44,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
         result.IsSuccess.Should().BeTrue();
         result.BackupFilePath.Should().NotBeNull();
         File.Exists(result.BackupFilePath).Should().BeTrue();
-        (await File.ReadAllTextAsync(result.BackupFilePath!)).Should().Be("ORIGINAL_DATABASE_CONTENT");
+        (await File.ReadAllTextAsync(result.BackupFilePath)).Should().Be("ORIGINAL_DATABASE_CONTENT");
     }
 
     [Fact]

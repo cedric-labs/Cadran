@@ -8,7 +8,7 @@ using Xunit;
 
 namespace Ledger.Tests.Settings;
 
-public class UiSettingsServiceTests : IDisposable
+public sealed class UiSettingsServiceTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -60,14 +60,14 @@ public class UiSettingsServiceTests : IDisposable
     public void GetSalaryMonthBounds_StartDay25_CalculatesAccurately()
     {
         // Arrange
-        var refDate = new DateTime(2026, 10, 14);
+        var refDate = new DateTime(2026, 10, 14, 0, 0, 0, DateTimeKind.Utc);
 
         // Act
         var (start, end) = _service.GetSalaryMonthBounds(refDate, 25);
 
         // Assert
-        start.Should().Be(new DateTime(2026, 9, 25));
-        end.Should().Be(new DateTime(2026, 10, 24));
+        start.Should().Be(new DateTime(2026, 9, 25, 0, 0, 0, DateTimeKind.Utc));
+        end.Should().Be(new DateTime(2026, 10, 24, 0, 0, 0, DateTimeKind.Utc));
     }
 
     [Fact]

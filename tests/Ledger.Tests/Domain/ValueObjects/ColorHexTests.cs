@@ -47,7 +47,7 @@ public class ColorHexTests
         // Assert
         success.Should().BeTrue();
         color.Should().NotBeNull();
-        color!.Value.Value.Should().Be("#ef4444");
+        color.Value.Value.Should().Be("#ef4444");
     }
 
     [Fact]

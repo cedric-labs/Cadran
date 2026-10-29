@@ -17,7 +17,7 @@ using Xunit;
 
 namespace Ledger.Tests.Merchants;
 
-public class MerchantPageModelTests : IDisposable
+public sealed class MerchantPageModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;

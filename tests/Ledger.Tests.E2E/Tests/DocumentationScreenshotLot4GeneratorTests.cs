@@ -27,7 +27,7 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
+    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
 
     [Fact]
     public async Task GenerateLot4Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
@@ -142,7 +142,7 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
                     Name = "Supermarkets & Groceries",
                     Pattern = "(?i)(carrefour|auchan|lidl|monoprix|leclerc)",
                     Priority = 10,
-                    TargetCategoryId = catFood?.Id ?? categories.First().Id,
+                    TargetCategoryId = catFood?.Id ?? categories[0].Id,
                     TargetMerchantId = carrefour.Id
                 },
                 new CategorizationRule
@@ -151,7 +151,7 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
                     Name = "Electricity & Energy Bills",
                     Pattern = "(?i)(edf|engie|totalenergies)",
                     Priority = 20,
-                    TargetCategoryId = catUtilities?.Id ?? categories.First().Id
+                    TargetCategoryId = catUtilities?.Id ?? categories[0].Id
                 },
                 new CategorizationRule
                 {
@@ -159,7 +159,7 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
                     Name = "Apartment Monthly Lease",
                     Pattern = "(?i)(loyer|immobilier|bail)",
                     Priority = 30,
-                    TargetCategoryId = catHousing?.Id ?? categories.First().Id
+                    TargetCategoryId = catHousing?.Id ?? categories[0].Id
                 }
             );
             await db.SaveChangesAsync();
@@ -217,7 +217,7 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
                 {
                     UserId = userId,
                     BankAccountId = checkingAcc.Id,
-                    Date = new DateTime(now.Year, now.Month, 5),
+                    Date = new DateTime(now.Year, now.Month, 5, 0, 0, 0, DateTimeKind.Utc),
                     Label = "Immobilier Paris - Apartment Monthly Rent",
                     Amount = 950.00m,
                     Type = TransactionType.Debit,
@@ -228,7 +228,7 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
                 {
                     UserId = userId,
                     BankAccountId = checkingAcc.Id,
-                    Date = new DateTime(now.Year, now.Month, 10),
+                    Date = new DateTime(now.Year, now.Month, 10, 0, 0, 0, DateTimeKind.Utc),
                     Label = "Fiber High-Speed Internet & Mobile",
                     Amount = 39.99m,
                     Type = TransactionType.Debit,

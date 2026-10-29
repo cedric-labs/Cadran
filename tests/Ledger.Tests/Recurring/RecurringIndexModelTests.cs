@@ -21,7 +21,7 @@ using Xunit;
 
 namespace Ledger.Tests.Recurring;
 
-public class RecurringIndexModelTests : IDisposable
+public sealed class RecurringIndexModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -162,7 +162,7 @@ public class RecurringIndexModelTests : IDisposable
 
         var redirect = result.Should().BeOfType<RedirectToPageResult>().Subject;
         redirect.RouteValues!["year"].Should().Be(2026);
-        redirect.RouteValues!["month"].Should().Be(10);
+        redirect.RouteValues["month"].Should().Be(10);
 
         _mockRecurringService.Verify(r => r.CreateAsync(It.Is<RecurringExpense>(e =>
             e.Name == "Netflix" && e.ExpectedAmount == 17.99m && e.Pattern == "NETFLIX")), Times.Once);
@@ -219,7 +219,7 @@ public class RecurringIndexModelTests : IDisposable
 
         var redirect = result.Should().BeOfType<RedirectToPageResult>().Subject;
         redirect.RouteValues!["year"].Should().Be(2026);
-        redirect.RouteValues!["month"].Should().Be(10);
+        redirect.RouteValues["month"].Should().Be(10);
         _mockRecurringService.Verify(r => r.DeleteAsync(expenseId), Times.Once);
     }
 

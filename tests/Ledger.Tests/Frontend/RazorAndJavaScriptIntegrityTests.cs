@@ -149,7 +149,15 @@ public partial class RazorAndJavaScriptIntegrityTests
                 {
                     if (File.Exists(tempFile))
                     {
-                        try { File.Delete(tempFile); } catch { }
+                        try
+                        {
+                            File.Delete(tempFile);
+                        }
+                        catch (IOException)
+                        {
+                            // Node peut encore tenir le fichier ouvert à la fin du test ; le fichier reste dans %TEMP%,
+                            // purgé par le système, et n'influence pas le résultat de la vérification.
+                        }
                     }
                 }
             }

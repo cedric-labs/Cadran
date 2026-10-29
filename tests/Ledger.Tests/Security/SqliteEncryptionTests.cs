@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Ledger.Tests.Security;
 
-public class SqliteEncryptionTests : IDisposable
+public sealed class SqliteEncryptionTests : IDisposable
 {
     private readonly string _testDbPath;
 

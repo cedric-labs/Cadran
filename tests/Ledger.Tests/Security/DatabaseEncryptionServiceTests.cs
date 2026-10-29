@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Ledger.Tests.Security;
 
-public class DatabaseEncryptionServiceTests : IDisposable
+public sealed class DatabaseEncryptionServiceTests : IDisposable
 {
     private readonly string _testDbPath;
     private readonly string _testKeyPath;
@@ -150,7 +150,7 @@ public class DatabaseEncryptionServiceTests : IDisposable
         success1.Should().BeFalse();
         error1.Should().Contain("8 characters");
 
-        var (success2, error2) = await _service.EncryptDatabaseAsync("", rememberOnDevice: false);
+        var (success2, _) = await _service.EncryptDatabaseAsync("", rememberOnDevice: false);
         success2.Should().BeFalse();
     }
 

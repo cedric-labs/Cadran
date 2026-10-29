@@ -25,7 +25,7 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
+    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
 
     [Fact]
     public async Task GenerateLot3Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
@@ -37,7 +37,7 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         keyHolder.SetKey(null, isEncrypted: false);
 
         // 1. Initialiser le compte utilisateur et ses opérations bancaires réalistes
-        var (userId, checkingAccId, splitTxId, regularTxId) = await SeedUserDataAndTransactionsAsync();
+        var (_, _, splitTxId, regularTxId) = await SeedUserDataAndTransactionsAsync();
 
         // 2. Se connecter dans Playwright avec cet utilisateur et activer la langue anglaise
         await LoginAndSetEnglishAsync();
@@ -211,7 +211,7 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
             UserId = userId,
             TransactionId = splitTx.Id,
             Amount = 100.00m,
-            CategoryId = catFood?.Id ?? categories.First().Id,
+            CategoryId = catFood?.Id ?? categories[0].Id,
             MerchantId = carrefour.Id,
             Notes = "Fresh groceries & vegetables"
         };
@@ -220,7 +220,7 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
             UserId = userId,
             TransactionId = splitTx.Id,
             Amount = 42.30m,
-            CategoryId = catHome?.Id ?? catFood?.Id ?? categories.First().Id,
+            CategoryId = catHome?.Id ?? catFood?.Id ?? categories[0].Id,
             MerchantId = carrefour.Id,
             Notes = "Cleaning supplies & household items"
         };

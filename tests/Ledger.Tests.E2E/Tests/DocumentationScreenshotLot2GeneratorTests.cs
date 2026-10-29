@@ -24,7 +24,7 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
+    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
 
     [Fact]
     public async Task GenerateLot2Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
@@ -36,13 +36,13 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         keyHolder.SetKey(null, isEncrypted: false);
 
         // 1. Initialiser le compte utilisateur et ses données financières de démonstration réalistes
-        var (userId, accountCheckingId) = await SeedUserDataAndAccountsAsync();
+        var (_, accountCheckingId) = await SeedUserDataAndAccountsAsync();
 
         // 2. Se connecter dans Playwright avec cet utilisateur et activer la langue anglaise
         await LoginAndSetEnglishAsync();
 
         // 3. Écran 06 - Dashboard & Net Worth Overview (/Accounts)
-        await CaptureDashboardScreenAsync(accountCheckingId);
+        await CaptureDashboardScreenAsync();
 
         // 4. Écran 07 - Create Bank Account (/Accounts/CreateAccount)
         await CaptureCreateAccountScreenAsync();
@@ -297,7 +297,7 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         await Page.GotoAsync($"{BaseUrl}/SetLanguage?culture=en&returnUrl=%2FAccounts", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
     }
 
-    private async Task CaptureDashboardScreenAsync(Guid checkingAccountId)
+    private async Task CaptureDashboardScreenAsync()
     {
         await Page.SetViewportSizeAsync(1440, 880);
         await Page.GotoAsync($"{BaseUrl}/Accounts", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });

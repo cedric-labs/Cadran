@@ -221,11 +221,7 @@ public partial class ArchitectureRulesTests
                             violations.Add($"{relative}:{i + 1} => {testName}");
                         }
                     }
-                    else if (line.StartsWith('[') || line.StartsWith("//", StringComparison.Ordinal) || line.StartsWith("/*", StringComparison.Ordinal))
-                    {
-                        continue;
-                    }
-                    else if (!string.IsNullOrWhiteSpace(line))
+                    else if (!string.IsNullOrWhiteSpace(line) && !IsAttributeOrCommentLine(line))
                     {
                         hasTestAttribute = false;
                     }
@@ -235,6 +231,9 @@ public partial class ArchitectureRulesTests
 
         violations.Should().BeEmpty("tout test unitaire ou d'intégration doit respecter strictement le motif MethodeCible_ScenarioOuCondition_ResultatAttendu (Règle 7 d'AGENTS.md)");
     }
+
+    private static bool IsAttributeOrCommentLine(string line) =>
+        line.StartsWith('[') || line.StartsWith("//", StringComparison.Ordinal) || line.StartsWith("/*", StringComparison.Ordinal);
 
     private static string FindSolutionDir()
     {

@@ -47,10 +47,6 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
 
             return BackupResult.Success(targetFilePath);
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
         catch (IOException ex)
         {
             return BackupResult.Failure($"Échec d'E/S lors de la création de la sauvegarde : {ex.Message}");
@@ -132,10 +128,6 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
             PurgeTemporaryWalFiles(databaseFilePath);
 
             return RestoreResult.Success();
-        }
-        catch (OperationCanceledException)
-        {
-            throw;
         }
         catch (IOException ex)
         {

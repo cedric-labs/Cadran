@@ -22,7 +22,7 @@ using Xunit;
 
 namespace Ledger.Tests.Reports;
 
-public class ReportsIndexModelTests : IDisposable
+public sealed class ReportsIndexModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -119,7 +119,7 @@ public class ReportsIndexModelTests : IDisposable
 
         model.ActiveTab.Should().Be("dashboards");
         model.CurrentDashboard.Should().NotBeNull();
-        model.CurrentDashboard!.Id.Should().Be(_defaultDashboard.Id);
+        model.CurrentDashboard.Id.Should().Be(_defaultDashboard.Id);
         model.Dashboards.Should().ContainSingle(d => d.Name == "Tableau Principal");
     }
 

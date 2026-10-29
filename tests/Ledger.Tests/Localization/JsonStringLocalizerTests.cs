@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Ledger.Tests.Localization;
 
-public class JsonStringLocalizerTests : IDisposable
+public sealed class JsonStringLocalizerTests : IDisposable
 {
     private readonly string _tempDir;
 

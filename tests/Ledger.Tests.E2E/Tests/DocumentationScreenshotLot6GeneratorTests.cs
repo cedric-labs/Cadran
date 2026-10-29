@@ -24,7 +24,7 @@ public sealed class DocumentationScreenshotLot6GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
+    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
 
     [Fact]
     public async Task GenerateLot6Screenshots_WhenExecuted_CapturesAllScreensInEnglish()

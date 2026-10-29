@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Ledger.Tests.RulesEngine;
 
-public class RulesEngineServiceTests : IDisposable
+public sealed class RulesEngineServiceTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -78,7 +78,7 @@ public class RulesEngineServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 28),
+            Date = new DateTime(2026, 1, 28, 0, 0, 0, DateTimeKind.Utc),
             Label = "VIREMENT SALAIRE ENTREPRISE",
             Amount = 3000m,
             Type = TransactionType.Credit
@@ -100,7 +100,7 @@ public class RulesEngineServiceTests : IDisposable
         transaction.CategoryId.Should().Be(_catSalaryId);
         transaction.BudgetDate.Should().NotBeNull();
         // Report au 1er février
-        transaction.BudgetDate.Should().Be(new DateTime(2026, 2, 1));
+        transaction.BudgetDate.Should().Be(new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc));
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public class RulesEngineServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 15),
+            Date = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc),
             Label = "PAIEMENT CARREFOUR MARKET 75",
             Amount = 52.40m,
             Type = TransactionType.Debit
@@ -163,7 +163,7 @@ public class RulesEngineServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 2, 10),
+            Date = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
             Label = "PAIEMENT CB LIDL LENS 62",
             Amount = 35.80m,
             Type = TransactionType.Debit

@@ -98,7 +98,7 @@ public class LanguageServiceTests
             {
                 var langInfo = result.FirstOrDefault(l => string.Equals(l.Code, code, StringComparison.OrdinalIgnoreCase));
                 langInfo.Should().NotBeNull($"Language {code} should have been discovered");
-                langInfo!.FlagEmoji.Should().Be(expectedFlag);
+                langInfo.FlagEmoji.Should().Be(expectedFlag);
             }
 
             service.IsSupported(null!).Should().BeFalse();
@@ -139,14 +139,14 @@ public class LanguageServiceTests
 
         var matchedFr = options.SupportedCultures.FirstOrDefault(c => c.Name == "fr");
         matchedFr.Should().NotBeNull();
-        matchedFr!.NumberFormat.CurrencySymbol.Should().Be("€");
+        matchedFr.NumberFormat.CurrencySymbol.Should().Be("€");
 
         var amount = 123.45m;
         amount.ToString("C2", matchedFr).Should().Be("123,45 €");
 
         var matchedEn = options.SupportedCultures.FirstOrDefault(c => c.Name == "en");
         matchedEn.Should().NotBeNull();
-        matchedEn!.NumberFormat.CurrencySymbol.Should().Be("€");
+        matchedEn.NumberFormat.CurrencySymbol.Should().Be("€");
         amount.ToString("C2", matchedEn).Should().Be("€123.45");
 
         // Test with RequestLocalizationMiddleware
@@ -163,7 +163,7 @@ public class LanguageServiceTests
 
         var feature = httpContext.Features.Get<Microsoft.AspNetCore.Localization.IRequestCultureFeature>();
         feature.Should().NotBeNull();
-        feature!.RequestCulture.Culture.NumberFormat.CurrencySymbol.Should().Be("€");
+        feature.RequestCulture.Culture.NumberFormat.CurrencySymbol.Should().Be("€");
 
         // Test with Cookie for "en"
         var httpContextEn = new Microsoft.AspNetCore.Http.DefaultHttpContext();
@@ -172,7 +172,7 @@ public class LanguageServiceTests
 
         var featureEn = httpContextEn.Features.Get<Microsoft.AspNetCore.Localization.IRequestCultureFeature>();
         featureEn.Should().NotBeNull();
-        featureEn!.RequestCulture.Culture.NumberFormat.CurrencySymbol.Should().Be("€");
+        featureEn.RequestCulture.Culture.NumberFormat.CurrencySymbol.Should().Be("€");
         123.45m.ToString("C2", featureEn.RequestCulture.Culture).Should().Be("€123.45");
     }
 }

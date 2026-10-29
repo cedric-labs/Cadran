@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Ledger.Tests.Fixtures;
 
-public class CompleteDatabaseInitializationTests : IDisposable
+public sealed class CompleteDatabaseInitializationTests : IDisposable
 {
     private readonly string _tempDbPath;
     private readonly string _connectionString;

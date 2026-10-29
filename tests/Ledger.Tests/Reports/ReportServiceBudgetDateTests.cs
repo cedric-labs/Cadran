@@ -13,7 +13,7 @@ using Xunit;
 
 namespace Ledger.Tests.Reports;
 
-public class ReportServiceBudgetDateTests : IDisposable
+public sealed class ReportServiceBudgetDateTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -77,8 +77,8 @@ public class ReportServiceBudgetDateTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = TestUserId,
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 9, 28),
-            BudgetDate = new DateTime(2026, 10, 1),
+            Date = new DateTime(2026, 9, 28, 0, 0, 0, DateTimeKind.Utc),
+            BudgetDate = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc),
             Amount = 3000m,
             Type = TransactionType.Credit,
             Label = "VIREMENT SALAIRE EMPLOYEUR",
@@ -91,7 +91,7 @@ public class ReportServiceBudgetDateTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = TestUserId,
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 9, 15),
+            Date = new DateTime(2026, 9, 15, 0, 0, 0, DateTimeKind.Utc),
             BudgetDate = null,
             Amount = 500m,
             Type = TransactionType.Credit,
@@ -103,23 +103,13 @@ public class ReportServiceBudgetDateTests : IDisposable
         await _context.SaveChangesAsync();
 
         var dashboard = await _reportService.CreateDashboardAsync("Dashboard Test");
-        var widgetIncome = await _reportService.AddWidgetAsync(
+        await _reportService.AddWidgetAsync(
             dashboard.Id,
             "Revenus",
             "KpiIncome",
             widthCols: 3,
             configJson: "{\"Period\":\"current_month\"}" // Si le mois courant est simulé, testons les dates directement
         );
-
-        // Testons avec un widget ciblant le mois de septembre
-        var widgetSept = new ReportWidget
-        {
-            Id = Guid.NewGuid(),
-            DashboardId = dashboard.Id,
-            Title = "Revenus Septembre",
-            WidgetType = "KpiIncome",
-            ConfigJson = "{\"Period\":\"last_month\"}"
-        };
 
         // Si aujourd'hui est en octobre 2026 :
         // Pour valider précisément sans dépendre du mois de l'horloge système courante,
@@ -143,7 +133,7 @@ public class ReportServiceBudgetDateTests : IDisposable
             UserId = TestUserId,
             BankAccountId = _bankAccountId,
             Date = DateTime.Today.AddMonths(-1), // Transaction du mois dernier
-            BudgetDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1), // Rattachée au mois en cours
+            BudgetDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1, 0, 0, 0, DateTimeKind.Utc), // Rattachée au mois en cours
             Amount = 2800m,
             Type = TransactionType.Credit,
             Label = "SALAIRE RATTACHÉ CE MOIS",

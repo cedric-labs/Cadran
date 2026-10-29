@@ -14,7 +14,7 @@ using Xunit;
 
 namespace Ledger.Tests.Reports;
 
-public class PivotReportServiceTests : IDisposable
+public sealed class PivotReportServiceTests : IDisposable
 {
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;
@@ -90,7 +90,7 @@ public class PivotReportServiceTests : IDisposable
                 Id = Guid.NewGuid(),
                 UserId = "test-user-id",
                 BankAccountId = _bankAccountId,
-                Date = new DateTime(2026, 1, 5),
+                Date = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 800m,
                 Type = TransactionType.Debit,
                 Label = "LOYER JANVIER",
@@ -100,7 +100,7 @@ public class PivotReportServiceTests : IDisposable
                 Id = Guid.NewGuid(),
                 UserId = "test-user-id",
                 BankAccountId = _bankAccountId,
-                Date = new DateTime(2026, 1, 15),
+                Date = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 150m,
                 Type = TransactionType.Debit,
                 Label = "CARREFOUR MARKET",
@@ -110,7 +110,7 @@ public class PivotReportServiceTests : IDisposable
                 Id = Guid.NewGuid(),
                 UserId = "test-user-id",
                 BankAccountId = _bankAccountId,
-                Date = new DateTime(2026, 2, 5),
+                Date = new DateTime(2026, 2, 5, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 800m,
                 Type = TransactionType.Debit,
                 Label = "LOYER FEVRIER",
@@ -120,7 +120,7 @@ public class PivotReportServiceTests : IDisposable
                 Id = Guid.NewGuid(),
                 UserId = "test-user-id",
                 BankAccountId = _bankAccountId,
-                Date = new DateTime(2026, 2, 10),
+                Date = new DateTime(2026, 2, 10, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 200m,
                 Type = TransactionType.Debit,
                 Label = "CARREFOUR DRIVE",
@@ -130,7 +130,7 @@ public class PivotReportServiceTests : IDisposable
                 Id = Guid.NewGuid(),
                 UserId = "test-user-id",
                 BankAccountId = _bankAccountId,
-                Date = new DateTime(2026, 1, 28),
+                Date = new DateTime(2026, 1, 28, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 2500m,
                 Type = TransactionType.Credit,
                 Label = "VIR SALAIRE SOCIETE",
@@ -157,8 +157,8 @@ public class PivotReportServiceTests : IDisposable
             ColumnDimension = PivotColumnDimension.Month,
             MetricType = PivotMetricType.Sum,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 2, 28)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Act
@@ -171,13 +171,13 @@ public class PivotReportServiceTests : IDisposable
 
         var housingRow = result.Rows.FirstOrDefault(r => r.Label == "Logement");
         housingRow.Should().NotBeNull();
-        housingRow!.RowTotal.Should().Be(1600m); // 800 (jan) + 800 (fev)
+        housingRow.RowTotal.Should().Be(1600m); // 800 (jan) + 800 (fev)
         housingRow.CellValues["2026-01"].Should().Be(800m);
         housingRow.CellValues["2026-02"].Should().Be(800m);
 
         var foodRow = result.Rows.FirstOrDefault(r => r.Label == "Alimentation");
         foodRow.Should().NotBeNull();
-        foodRow!.RowTotal.Should().Be(350m); // 150 + 200
+        foodRow.RowTotal.Should().Be(350m); // 150 + 200
     }
 
     [Fact]
@@ -191,8 +191,8 @@ public class PivotReportServiceTests : IDisposable
             ColumnDimension = PivotColumnDimension.Month,
             MetricType = PivotMetricType.Sum,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 2, 28)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Act
@@ -216,8 +216,8 @@ public class PivotReportServiceTests : IDisposable
             ColumnDimension = PivotColumnDimension.Month,
             MetricType = PivotMetricType.Sum,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 2, 28)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Act
@@ -241,8 +241,8 @@ public class PivotReportServiceTests : IDisposable
             ColumnDimension = PivotColumnDimension.Month,
             MetricType = PivotMetricType.Count,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 2, 28)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Act
@@ -267,12 +267,11 @@ public class PivotReportServiceTests : IDisposable
 
         // Act
         var saved = await _pivotService.SavePivotReportAsync("Mon TCD Test", "Description", query, isDefault: true);
-        var list = await _pivotService.GetSavedPivotReportsAsync();
         var retrieved = await _pivotService.GetSavedPivotReportByIdAsync(saved.Id);
 
         // Assert
         retrieved.Should().NotBeNull();
-        retrieved!.Name.Should().Be("Mon TCD Test");
+        retrieved.Name.Should().Be("Mon TCD Test");
         retrieved.IsDefault.Should().BeTrue();
     }
 
@@ -285,8 +284,8 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 28),
-            BudgetDate = new DateTime(2026, 2, 1),
+            Date = new DateTime(2026, 1, 28, 0, 0, 0, DateTimeKind.Utc),
+            BudgetDate = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc),
             Amount = 300m,
             Type = TransactionType.Debit,
             Label = "DEPENSE DECALEE",
@@ -298,8 +297,8 @@ public class PivotReportServiceTests : IDisposable
         var query = new PivotQueryDto
         {
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 2, 28),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 2, 28, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.DebitsOnly,
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month
@@ -334,7 +333,7 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 10),
+            Date = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc),
             Amount = 80m,
             Type = TransactionType.Debit,
             Label = "AUCHAN VELIZY",
@@ -345,7 +344,7 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 12),
+            Date = new DateTime(2026, 1, 12, 0, 0, 0, DateTimeKind.Utc),
             Amount = 45m,
             Type = TransactionType.Debit,
             Label = "CARREFOUR CITY",
@@ -357,8 +356,8 @@ public class PivotReportServiceTests : IDisposable
         var query = new PivotQueryDto
         {
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 1, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.DebitsOnly,
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month
@@ -387,8 +386,8 @@ public class PivotReportServiceTests : IDisposable
         var query = new PivotQueryDto
         {
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 1, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.DebitsOnly,
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month
@@ -425,7 +424,7 @@ public class PivotReportServiceTests : IDisposable
             BankAccountId = _bankAccountId,
             CategoryId = _catFoodId,
             MerchantId = merchant.Id,
-            Date = new DateTime(2026, 1, 10),
+            Date = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc),
             Label = "PAIEMENT CB LIDL LENS 62",
             Amount = 40m,
             Type = TransactionType.Debit
@@ -438,7 +437,7 @@ public class PivotReportServiceTests : IDisposable
             BankAccountId = _bankAccountId,
             CategoryId = _catFoodId,
             MerchantId = merchant.Id,
-            Date = new DateTime(2026, 1, 15),
+            Date = new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc),
             Label = "PAIEMENT CARTE LIDL VENDIN LE VIEIL",
             Amount = 60m,
             Type = TransactionType.Debit
@@ -450,8 +449,8 @@ public class PivotReportServiceTests : IDisposable
         var query = new PivotQueryDto
         {
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 1, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.DebitsOnly,
             RowDimension = PivotRowDimension.Merchant,
             ColumnDimension = PivotColumnDimension.Month
@@ -475,7 +474,7 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 3, 10),
+            Date = new DateTime(2026, 3, 10, 0, 0, 0, DateTimeKind.Utc),
             Amount = 100m,
             Type = TransactionType.Debit,
             Label = "SUPERMARCHE & BRICOLAGE",
@@ -511,8 +510,8 @@ public class PivotReportServiceTests : IDisposable
         var query = new PivotQueryDto
         {
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 3, 1),
-            EndDate = new DateTime(2026, 3, 31),
+            StartDate = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 3, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.DebitsOnly,
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month
@@ -526,10 +525,10 @@ public class PivotReportServiceTests : IDisposable
         var housingRow = result.Rows.FirstOrDefault(r => r.RowKey == _catHousingId.ToString());
 
         foodRow.Should().NotBeNull();
-        foodRow!.CellValues["2026-03"].Should().Be(60m);
+        foodRow.CellValues["2026-03"].Should().Be(60m);
 
         housingRow.Should().NotBeNull();
-        housingRow!.CellValues["2026-03"].Should().Be(40m);
+        housingRow.CellValues["2026-03"].Should().Be(40m);
 
         result.GrandTotal.Should().Be(100m);
     }
@@ -554,7 +553,7 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 4, 15),
+            Date = new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc),
             Amount = 30m,
             Type = TransactionType.Credit,
             Label = "REMBOURSEMENT CARREFOUR",
@@ -567,7 +566,7 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 4, 20),
+            Date = new DateTime(2026, 4, 20, 0, 0, 0, DateTimeKind.Utc),
             Amount = 50m,
             Type = TransactionType.Debit,
             Label = "REGULARISATION SALAIRE TROP-PERCU",
@@ -580,8 +579,8 @@ public class PivotReportServiceTests : IDisposable
         var query = new PivotQueryDto
         {
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 4, 1),
-            EndDate = new DateTime(2026, 4, 30),
+            StartDate = new DateTime(2026, 4, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 4, 30, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.All,
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month
@@ -595,11 +594,11 @@ public class PivotReportServiceTests : IDisposable
         var salaryRow = result.Rows.FirstOrDefault(r => r.RowKey == catSalary.Id.ToString());
 
         foodRow.Should().NotBeNull();
-        foodRow!.CellHasAnomalies["2026-04"].Should().BeTrue();
+        foodRow.CellHasAnomalies["2026-04"].Should().BeTrue();
         foodRow.CellValues["2026-04"].Should().Be(-30m); // Inversé / déduction
 
         salaryRow.Should().NotBeNull();
-        salaryRow!.CellHasAnomalies["2026-04"].Should().BeTrue();
+        salaryRow.CellHasAnomalies["2026-04"].Should().BeTrue();
         salaryRow.CellValues["2026-04"].Should().Be(-50m);
     }
 
@@ -634,7 +633,7 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 5, 12),
+            Date = new DateTime(2026, 5, 12, 0, 0, 0, DateTimeKind.Utc),
             Amount = 150m,
             Type = TransactionType.Debit,
             Label = "ACHAT GLOBAL",
@@ -669,8 +668,8 @@ public class PivotReportServiceTests : IDisposable
         var query = new PivotQueryDto
         {
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 5, 1),
-            EndDate = new DateTime(2026, 5, 31),
+            StartDate = new DateTime(2026, 5, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 5, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.DebitsOnly,
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month
@@ -708,7 +707,7 @@ public class PivotReportServiceTests : IDisposable
 
         var byId = await _pivotService.GetSavedPivotReportByIdAsync(saved.Id);
         byId.Should().NotBeNull();
-        byId!.Name.Should().Be("Mon Rapport Mensuel");
+        byId.Name.Should().Be("Mon Rapport Mensuel");
 
         // 3. Update existing
         var updated = await _pivotService.SavePivotReportAsync("Mon Rapport Renommé", "Nouvelle desc", query, existingId: saved.Id);
@@ -731,8 +730,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.All
         };
 
@@ -753,8 +752,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.All
         };
 
@@ -774,8 +773,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Quarter,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
             FlowFilter = PivotFlowFilter.All
         };
 
@@ -807,8 +806,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var rowKey = $"{_catHousingId}__m__Loyer Bailleur";
@@ -828,7 +827,7 @@ public class PivotReportServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 10),
+            Date = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc),
             Amount = 45m,
             Type = TransactionType.Debit,
             Label = "ACHAT SANS CATEGORIE",
@@ -842,8 +841,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Test "uncategorized"
@@ -872,8 +871,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Account,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var accDetail = await _pivotService.GetCellDetailAsync(queryAccount, _bankAccountId.ToString(), "2026-01");
@@ -885,8 +884,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Merchant,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var merchantDetail = await _pivotService.GetCellDetailAsync(queryMerchant, "Carrefour", "2026-01");
@@ -902,8 +901,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Quarter,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var qDetail = await _pivotService.GetCellDetailAsync(queryQuarter, _catHousingId.ToString(), "2026-Q1");
@@ -915,8 +914,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Year,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var yearDetail = await _pivotService.GetCellDetailAsync(queryYear, _catHousingId.ToString(), "2026");
@@ -936,8 +935,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
             SelectedAccountIds = new List<Guid> { _bankAccountId },
             SelectedCategoryIds = new List<Guid> { _catHousingId }
         };
@@ -996,8 +995,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 12, 31),
-            EndDate = new DateTime(2026, 1, 1)
+            StartDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
         };
         var resInverted = await _pivotService.ComputePivotAsync(queryInverted);
         resInverted.Should().NotBeNull();
@@ -1027,8 +1026,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
             SearchTerm = "LOYER",
             FlowFilter = PivotFlowFilter.CreditsOnly
         };
@@ -1041,8 +1040,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31),
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
             SelectedCategoryIds = new List<Guid> { _catHousingId } // Housing est le parent de Rent
         };
         var resParentCat = await _pivotService.ComputePivotAsync(queryParentCat);
@@ -1059,8 +1058,8 @@ public class PivotReportServiceTests : IDisposable
             ColumnDimension = PivotColumnDimension.Month,
             MetricType = PivotMetricType.Average,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var result = await _pivotService.ComputePivotAsync(query);
@@ -1069,7 +1068,7 @@ public class PivotReportServiceTests : IDisposable
         result.Rows.Should().NotBeEmpty();
         var rentRow = result.Rows.FirstOrDefault(r => r.Label == "Logement");
         rentRow.Should().NotBeNull();
-        rentRow!.MonthlyAverage.Should().BeGreaterThan(0);
+        rentRow.MonthlyAverage.Should().BeGreaterThan(0);
     }
 
     [Fact]
@@ -1080,8 +1079,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Quarter,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var resQuarter = await _pivotService.ComputePivotAsync(queryQuarter);
@@ -1092,8 +1091,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Year,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2025, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var resYear = await _pivotService.ComputePivotAsync(queryYear);
@@ -1108,8 +1107,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Account,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var resAccount = await _pivotService.ComputePivotAsync(queryAccount);
@@ -1120,8 +1119,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Merchant,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2026, 1, 1),
-            EndDate = new DateTime(2026, 12, 31)
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var resMerchant = await _pivotService.ComputePivotAsync(queryMerchant);
@@ -1136,8 +1135,8 @@ public class PivotReportServiceTests : IDisposable
             RowDimension = PivotRowDimension.Category,
             ColumnDimension = PivotColumnDimension.Month,
             PeriodPreset = PivotPeriodPreset.Custom,
-            StartDate = new DateTime(2020, 1, 1),
-            EndDate = new DateTime(2020, 1, 31)
+            StartDate = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2020, 1, 31, 0, 0, 0, DateTimeKind.Utc)
         };
 
         var result = await _pivotService.ComputePivotAsync(query);

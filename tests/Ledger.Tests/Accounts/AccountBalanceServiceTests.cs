@@ -10,7 +10,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class AccountBalanceServiceTests : IDisposable
+public sealed class AccountBalanceServiceTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -208,13 +208,13 @@ public class AccountBalanceServiceTests : IDisposable
         };
         _context.BankAccounts.Add(account);
 
-        var cutoffDate = new DateTime(2026, 6, 15);
+        var cutoffDate = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc);
         _context.Transactions.AddRange(
             new Transaction
             {
                 UserId = "test-user-id",
                 BankAccountId = account.Id,
-                Date = new DateTime(2026, 6, 10),
+                Date = new DateTime(2026, 6, 10, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 50m,
                 Type = TransactionType.Credit,
                 Label = "Avant cutoff"
@@ -223,7 +223,7 @@ public class AccountBalanceServiceTests : IDisposable
             {
                 UserId = "test-user-id",
                 BankAccountId = account.Id,
-                Date = new DateTime(2026, 6, 15),
+                Date = new DateTime(2026, 6, 15, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 20m,
                 Type = TransactionType.Debit,
                 Label = "Jour du cutoff"
@@ -232,7 +232,7 @@ public class AccountBalanceServiceTests : IDisposable
             {
                 UserId = "test-user-id",
                 BankAccountId = account.Id,
-                Date = new DateTime(2026, 6, 20),
+                Date = new DateTime(2026, 6, 20, 0, 0, 0, DateTimeKind.Utc),
                 Amount = 80m,
                 Type = TransactionType.Credit,
                 Label = "Après cutoff (ignoré)"

@@ -7,7 +7,7 @@ using Xunit;
 
 namespace Ledger.Tests.Features.Categories;
 
-public class CategorySeedServiceTests : IDisposable
+public sealed class CategorySeedServiceTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly Microsoft.Data.Sqlite.SqliteConnection _connection;

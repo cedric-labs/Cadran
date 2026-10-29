@@ -42,19 +42,19 @@ public class CsvStatementParserTests
         result.Should().HaveCount(3);
 
         // 1ère opération : Débit 45.50
-        result[0].Date.Should().Be(new DateTime(2026, 1, 15));
+        result[0].Date.Should().Be(new DateTime(2026, 1, 15, 0, 0, 0, DateTimeKind.Utc));
         result[0].Label.Should().Be("CARREFOUR MARKET");
         result[0].Amount.Should().Be(45.50m);
         result[0].Type.Should().Be(TransactionType.Debit);
 
         // 2ème opération : Crédit 2500.00
-        result[1].Date.Should().Be(new DateTime(2026, 1, 28));
+        result[1].Date.Should().Be(new DateTime(2026, 1, 28, 0, 0, 0, DateTimeKind.Utc));
         result[1].Label.Should().Be("VIREMENT SALAIRE");
         result[1].Amount.Should().Be(2500.00m);
         result[1].Type.Should().Be(TransactionType.Credit);
 
         // 3ème opération : Débit 17.99
-        result[2].Date.Should().Be(new DateTime(2026, 1, 30));
+        result[2].Date.Should().Be(new DateTime(2026, 1, 30, 0, 0, 0, DateTimeKind.Utc));
         result[2].Label.Should().Be("PRLV SEPA NETFLIX");
         result[2].Amount.Should().Be(17.99m);
         result[2].Type.Should().Be(TransactionType.Debit);

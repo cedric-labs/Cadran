@@ -5,7 +5,7 @@ using Xunit;
 
 namespace Ledger.Tests.Fixtures;
 
-public class SqliteWalConnectionInterceptorTests : IDisposable
+public sealed class SqliteWalConnectionInterceptorTests : IDisposable
 {
     private readonly string _dbFilePath;
     private readonly SqliteConnection _connection;

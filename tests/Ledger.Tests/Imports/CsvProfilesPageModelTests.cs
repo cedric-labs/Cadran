@@ -15,7 +15,7 @@ using Xunit;
 
 namespace Ledger.Tests.Imports;
 
-public class CsvProfilesPageModelTests : IDisposable
+public sealed class CsvProfilesPageModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -92,7 +92,7 @@ public class CsvProfilesPageModelTests : IDisposable
 
         var saved = _context.CsvMappingProfiles.FirstOrDefault(p => p.Name == "BoursoBank CSV");
         saved.Should().NotBeNull();
-        saved!.Delimiter.Should().Be(";");
+        saved.Delimiter.Should().Be(";");
     }
 
     [Fact]
@@ -105,6 +105,6 @@ public class CsvProfilesPageModelTests : IDisposable
         var result = await _pageModel.OnPostDeleteAsync(profile.Id);
 
         result.Should().BeOfType<RedirectToPageResult>();
-        _context.CsvMappingProfiles.Find(profile.Id).Should().BeNull();
+        (await _context.CsvMappingProfiles.FindAsync(profile.Id)).Should().BeNull();
     }
 }

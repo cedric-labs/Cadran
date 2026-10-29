@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Ledger.Tests.Recurring;
 
-public class RecurringExpenseServiceTests : IDisposable
+public sealed class RecurringExpenseServiceTests : IDisposable
 {
     private static readonly string[] ExpectedSpotifyNames = ["Spotify Solo", "Spotify Famille"];
     private readonly Ledger.Infrastructure.Data.AppDbContext _context;
@@ -46,7 +46,7 @@ public class RecurringExpenseServiceTests : IDisposable
 
         // Simuler 4 prélèvements mensuels Netflix réguliers dans les 12 derniers mois
         var today = DateTime.Today;
-        var baseDate = new DateTime(today.Year, today.Month, 10).AddMonths(-4);
+        var baseDate = new DateTime(today.Year, today.Month, 10, 0, 0, 0, DateTimeKind.Utc).AddMonths(-4);
         var txList = new List<Transaction>();
 
         for (int i = 0; i < 4; i++)
@@ -81,7 +81,7 @@ public class RecurringExpenseServiceTests : IDisposable
         candidates.Should().NotBeEmpty();
         var netflix = candidates.FirstOrDefault(c => c.SuggestedName.Contains("NETFLIX", StringComparison.OrdinalIgnoreCase));
         netflix.Should().NotBeNull();
-        netflix!.OccurrencesCount.Should().Be(4);
+        netflix.OccurrencesCount.Should().Be(4);
         netflix.AverageAmount.Should().Be(17.99m);
         netflix.ExpectedDayOfMonth.Should().Be(10);
         netflix.Frequency.Should().Be(RecurringFrequency.Monthly);
@@ -101,7 +101,7 @@ public class RecurringExpenseServiceTests : IDisposable
             LastAmount = 17.99m,
             Frequency = RecurringFrequency.Monthly,
             ExpectedDayOfMonth = 10,
-            LastDate = new DateTime(2026, 1, 10)
+            LastDate = new DateTime(2026, 1, 10, 0, 0, 0, DateTimeKind.Utc)
         };
 
         // Act 1
@@ -164,8 +164,8 @@ public class RecurringExpenseServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 10, 28),
-            BudgetDate = new DateTime(2026, 11, 1),
+            Date = new DateTime(2026, 10, 28, 0, 0, 0, DateTimeKind.Utc),
+            BudgetDate = new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc),
             Amount = 3200m,
             Type = TransactionType.Credit,
             Label = "VIREMENT SALAIRE",
@@ -178,8 +178,8 @@ public class RecurringExpenseServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 11, 25),
-            BudgetDate = new DateTime(2026, 12, 1),
+            Date = new DateTime(2026, 11, 25, 0, 0, 0, DateTimeKind.Utc),
+            BudgetDate = new DateTime(2026, 12, 1, 0, 0, 0, DateTimeKind.Utc),
             Amount = 500m,
             Type = TransactionType.Credit,
             Label = "PRIME FIN D'ANNEE",
@@ -523,7 +523,7 @@ public class RecurringExpenseServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 28),
+            Date = new DateTime(2026, 1, 28, 0, 0, 0, DateTimeKind.Utc),
             Amount = 3200m,
             Type = TransactionType.Credit,
             Label = "VIR REMUNERATION SOCIETE",
@@ -535,7 +535,7 @@ public class RecurringExpenseServiceTests : IDisposable
             Id = Guid.NewGuid(),
             UserId = "test-user-id",
             BankAccountId = _bankAccountId,
-            Date = new DateTime(2026, 1, 5),
+            Date = new DateTime(2026, 1, 5, 0, 0, 0, DateTimeKind.Utc),
             Amount = 39.99m,
             Type = TransactionType.Debit,
             Label = "FREEBOX SAS PRLV"

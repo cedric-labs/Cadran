@@ -20,7 +20,7 @@ using Xunit;
 
 namespace Ledger.Tests.RulesEngine;
 
-public class RulesEngineIndexModelTests : IDisposable
+public sealed class RulesEngineIndexModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -112,7 +112,7 @@ public class RulesEngineIndexModelTests : IDisposable
 
         var updatedRule = await _context.CategorizationRules.FindAsync(rule.Id);
         updatedRule.Should().NotBeNull();
-        updatedRule!.Name.Should().Be("New Rule Name");
+        updatedRule.Name.Should().Be("New Rule Name");
         updatedRule.Pattern.Should().Be("AUCHAN DRIVE*");
         updatedRule.Priority.Should().Be(5);
         updatedRule.ShiftToNextMonth.Should().BeTrue();
@@ -174,7 +174,7 @@ public class RulesEngineIndexModelTests : IDisposable
         var redirectResult = result.Should().BeOfType<RedirectToPageResult>().Subject;
         var createdRule = _context.CategorizationRules.FirstOrDefault(r => r.Name == "SNCF Rule");
         createdRule.Should().NotBeNull();
-        redirectResult.Fragment.Should().Be($"rule-{createdRule!.Id}");
+        redirectResult.Fragment.Should().Be($"rule-{createdRule.Id}");
         model.TempData["UpdatedRuleId"]!.ToString().Should().Be(createdRule.Id.ToString());
         model.TempData["SuccessMessage"]!.ToString().Should().Contain("SNCF Rule");
     }
@@ -207,7 +207,7 @@ public class RulesEngineIndexModelTests : IDisposable
         result.Should().BeOfType<RedirectToPageResult>();
         var createdRule = _context.CategorizationRules.FirstOrDefault(r => r.Name == "Carburant Total");
         createdRule.Should().NotBeNull();
-        createdRule!.TargetMerchantId.Should().Be(newMerchant.Id);
+        createdRule.TargetMerchantId.Should().Be(newMerchant.Id);
     }
 
     [Fact]

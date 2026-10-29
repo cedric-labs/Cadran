@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Ledger.Tests.Configuration;
 
-public class LocalizedEntityServiceTests : IDisposable
+public sealed class LocalizedEntityServiceTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;

@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Ledger.Tests.Infrastructure.Data;
 
-public class EntityTranslationSeederTests : IDisposable
+public sealed class EntityTranslationSeederTests : IDisposable
 {
     private readonly SqliteConnection _connection;
     private readonly AppDbContext _context;
@@ -56,7 +56,7 @@ public class EntityTranslationSeederTests : IDisposable
             .FirstOrDefaultAsync(t => t.EntityType == "CustomAccountType" && t.EntityId == accountType.Id);
 
         translation.Should().NotBeNull();
-        translation!.LanguageCode.Should().Be("en");
+        translation.LanguageCode.Should().Be("en");
         translation.Field.Should().Be("Name");
         translation.Translation.Should().Be("Checking Account");
     }
@@ -85,7 +85,7 @@ public class EntityTranslationSeederTests : IDisposable
             .FirstOrDefaultAsync(t => t.EntityType == "Category" && t.EntityId == category.Id);
 
         translation.Should().NotBeNull();
-        translation!.LanguageCode.Should().Be("en");
+        translation.LanguageCode.Should().Be("en");
         translation.Field.Should().Be("Name");
         translation.Translation.Should().Be("Groceries & Supermarket");
     }

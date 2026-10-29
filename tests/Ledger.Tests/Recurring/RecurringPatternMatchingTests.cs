@@ -11,21 +11,11 @@ public class RecurringPatternMatchingTests
     [InlineData("PRLV SEPA SPOTIFY", null, "SPOTIFY", true)]
     [InlineData("PRLV EDF CLIENT 12345", null, "EDF", true)]
     [InlineData("PAIEMENT CB RESTAURANT LE BISTROT", null, "NETFLIX", false)]
-    public void MatchesPattern_DirectSubstring_ShouldMatch(string label, string? rawLabel, string pattern, bool expected)
-    {
-        // Act
-        var result = RecurringExpenseService.MatchesPattern(label, rawLabel, pattern);
-
-        // Assert
-        result.Should().Be(expected);
-    }
-
-    [Theory]
     [InlineData("PRLV FREE TELECOM PARIS", null, "FREE*TELECOM", true)]
     [InlineData("PRLV FREE MOBILE 4G", null, "FREE*MOBILE", true)]
     [InlineData("PRLV FREEBOX MENSUEL", null, "FREE*MOBILE", false)]
     [InlineData("VIR SEPA DE ASSURANCE AXA FRANCE", null, "ASSURANCE%AXA", true)]
-    public void MatchesPattern_Wildcards_ShouldMatch(string label, string? rawLabel, string pattern, bool expected)
+    public void MatchesPattern_WhenSubstringOrWildcardPattern_ReturnsExpectedMatch(string label, string? rawLabel, string pattern, bool expected)
     {
         // Act
         var result = RecurringExpenseService.MatchesPattern(label, rawLabel, pattern);

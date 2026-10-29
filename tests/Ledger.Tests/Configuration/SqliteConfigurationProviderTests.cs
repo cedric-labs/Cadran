@@ -6,7 +6,7 @@ using Xunit;
 
 namespace Ledger.Tests.Configuration;
 
-public class SqliteConfigurationProviderTests : IDisposable
+public sealed class SqliteConfigurationProviderTests : IDisposable
 {
     private readonly string _dbFilePath;
     private readonly string _connectionString;

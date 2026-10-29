@@ -18,7 +18,7 @@ using Xunit;
 
 namespace Ledger.Tests.Accounts;
 
-public class CreateAndEditAccountModelTests : IDisposable
+public sealed class CreateAndEditAccountModelTests : IDisposable
 {
     private readonly AppDbContext _context;
     private readonly SqliteConnection _connection;
@@ -170,7 +170,7 @@ public class CreateAndEditAccountModelTests : IDisposable
 
         var created = _context.BankAccounts.FirstOrDefault(a => a.Name == "Compte Courant Perso");
         created.Should().NotBeNull();
-        created!.BankId.Should().Be(_bank.Id);
+        created.BankId.Should().Be(_bank.Id);
         created.Type.Should().Be(AccountType.Checking);
         created.InitialBalance.Should().Be(250m);
     }
@@ -200,7 +200,7 @@ public class CreateAndEditAccountModelTests : IDisposable
 
         var createdAccount = _context.BankAccounts.FirstOrDefault(a => a.Name == "Compte Pro");
         createdAccount.Should().NotBeNull();
-        createdAccount!.BankId.Should().Be(createdBank!.Id);
+        createdAccount.BankId.Should().Be(createdBank.Id);
     }
 
     [Fact]

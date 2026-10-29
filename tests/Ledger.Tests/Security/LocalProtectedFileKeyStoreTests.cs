@@ -4,7 +4,7 @@ using Xunit;
 
 namespace Ledger.Tests.Security;
 
-public class LocalProtectedFileKeyStoreTests : IDisposable
+public sealed class LocalProtectedFileKeyStoreTests : IDisposable
 {
     private readonly string _testKeyPath;
 
@@ -126,11 +126,11 @@ public class LocalProtectedFileKeyStoreTests : IDisposable
         var originalText = "CrossPlatformSecretPassphrase123!";
         var originalBytes = System.Text.Encoding.UTF8.GetBytes(originalText);
 
-        var encryptedBytes = (byte[])encryptMethod!.Invoke(null, new object[] { originalBytes })!;
+        var encryptedBytes = (byte[])encryptMethod.Invoke(null, new object[] { originalBytes })!;
         encryptedBytes.Should().NotBeNull();
         encryptedBytes.Length.Should().BeGreaterThan(originalBytes.Length);
 
-        var decryptedBytes = (byte[])decryptMethod!.Invoke(null, new object[] { encryptedBytes })!;
+        var decryptedBytes = (byte[])decryptMethod.Invoke(null, new object[] { encryptedBytes })!;
         var decryptedText = System.Text.Encoding.UTF8.GetString(decryptedBytes);
 
         decryptedText.Should().Be(originalText);
@@ -147,7 +147,7 @@ public class LocalProtectedFileKeyStoreTests : IDisposable
         {
             try
             {
-                decryptMethod!.Invoke(null, new object[] { shortBytes });
+                decryptMethod.Invoke(null, new object[] { shortBytes });
             }
             catch (System.Reflection.TargetInvocationException ex) when (ex.InnerException != null)
             {

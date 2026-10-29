@@ -11,8 +11,6 @@ public sealed class NavbarComponent(IPage page) : BasePage(page)
     private ILocator LoginLink => Page.Locator("a.nav-link[href='/Security/Login']");
     private ILocator RegisterButton => Page.Locator("a.btn-primary[href='/Security/Register']");
     private ILocator AccountsLink => Page.Locator("a.nav-link[href='/Accounts']");
-    private ILocator TransactionsLink => Page.Locator("a.nav-link[href='/Transactions']");
-    private ILocator CategoriesLink => Page.Locator("a.nav-link[href='/Categories']");
     private ILocator LanguageDropdownToggle => Page.Locator("button.dropdown-toggle:has(i.bi-translate)");
     private ILocator LanguageBadge => Page.Locator("button.dropdown-toggle span.small");
     private ILocator UserDropdownToggle => Page.Locator("a.dropdown-toggle:has(i.bi-person-fill)");
