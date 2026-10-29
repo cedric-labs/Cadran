@@ -25,7 +25,7 @@ namespace Ledger.Tests.E2E.Tests;
 public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture webFixture, PlaywrightFixture playwrightFixture)
     : E2ETestBase(webFixture, playwrightFixture)
 {
-    private static readonly string ArtifactsDirectory = @"C:\Users\user\.gemini\antigravity\brain\bdc279ef-1c47-4c3b-8899-6796af37fe8a";
+    private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
     private string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
 
