@@ -148,7 +148,7 @@ public class DatabaseEncryptionServiceTests : IDisposable
     {
         var (success1, error1) = await _service.EncryptDatabaseAsync("short", rememberOnDevice: false);
         success1.Should().BeFalse();
-        error1.Should().Contain("8 caractères");
+        error1.Should().Contain("8 characters");
 
         var (success2, error2) = await _service.EncryptDatabaseAsync("", rememberOnDevice: false);
         success2.Should().BeFalse();
@@ -172,7 +172,7 @@ public class DatabaseEncryptionServiceTests : IDisposable
         // 1. ChangePassphrase when database not encrypted
         var (s1, e1) = await _service.ChangePassphraseAsync("current", "short", false);
         s1.Should().BeFalse();
-        e1.Should().Contain("n'est pas chiffrée");
+        e1.Should().Contain("is not encrypted");
 
         // Mark as encrypted
         _keyHolder.SetKey("ValidOldPassword123!", isEncrypted: true);
@@ -180,12 +180,12 @@ public class DatabaseEncryptionServiceTests : IDisposable
         // 2. ChangePassphrase with invalid current
         var (s2, e2) = await _service.ChangePassphraseAsync("WrongCurrentPassword", "ValidNewPassword123!", false);
         s2.Should().BeFalse();
-        e2.Should().Contain("incorrecte");
+        e2.Should().Contain("passphrase is wrong");
 
         // 3. Decrypt with invalid current
         var (s3, e3) = await _service.DecryptDatabaseToPlainAsync("WrongPassphrase");
         s3.Should().BeFalse();
-        e3.Should().Contain("incorrecte");
+        e3.Should().Contain("passphrase is wrong");
 
         // 4. Unlock with whitespace
         var unlockEmpty = await _service.UnlockDatabaseAsync("   ", false);

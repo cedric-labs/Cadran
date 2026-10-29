@@ -72,9 +72,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="StatementForge" Version="1.0.0" />
-    <PackageReference Include="SqliteForge" Version="1.0.0" />
-    <PackageReference Include="LocaleForge" Version="1.0.0" />
+    <PackageReference Include="StatementForge" Version="1.1.1" />
+    <PackageReference Include="SqliteForge" Version="1.1.1" />
+    <PackageReference Include="LocaleForge" Version="1.1.1" />
   </ItemGroup>
 
 </Project>

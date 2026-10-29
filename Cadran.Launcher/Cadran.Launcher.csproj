@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="LocaleForge" Version="1.0.0" />
+    <PackageReference Include="LocaleForge" Version="1.1.1" />
   </ItemGroup>
 
 </Project>
