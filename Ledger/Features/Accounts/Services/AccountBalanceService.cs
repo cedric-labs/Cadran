@@ -21,20 +21,7 @@ public sealed class AccountBalanceService(
             .FirstOrDefaultAsync(a => a.Id == accountId, cancellationToken)
 .ConfigureAwait(false) ?? throw new KeyNotFoundException($"Compte bancaire {accountId} non trouvé.");
 
-        decimal initial = account.InitialBalance;
-        decimal currentCredit = account.Transactions.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
-        decimal currentDebit = account.Transactions.Where(t => t.Type == TransactionType.Debit).Sum(t => t.Amount);
-        decimal currentBalance = initial + currentCredit - currentDebit;
-
-        decimal clearedCredit = account.Transactions
-            .Where(t => t.Type == TransactionType.Credit && t.Status != TransactionStatus.Pending)
-            .Sum(t => t.Amount);
-        decimal clearedDebit = account.Transactions
-            .Where(t => t.Type == TransactionType.Debit && t.Status != TransactionStatus.Pending)
-            .Sum(t => t.Amount);
-        decimal clearedBalance = initial + clearedCredit - clearedDebit;
-
-        decimal pendingBalance = currentBalance - clearedBalance;
+        var balances = AccountBalances.Of(account);
 
         string? customTypeName = account.CustomAccountType?.Name;
         if (account.CustomAccountType != null)
@@ -52,9 +39,9 @@ public sealed class AccountBalanceService(
             account.Name,
             account.Bank?.Name ?? "Banque",
             account.Type,
-            currentBalance,
-            clearedBalance,
-            pendingBalance,
+            balances.Current,
+            balances.Cleared,
+            balances.Pending,
             account.Currency,
             account.CustomAccountTypeId,
             customTypeName,
@@ -74,9 +61,7 @@ public sealed class AccountBalanceService(
 
         var summaries = new List<AccountBalanceSummaryDto>();
 
-        decimal totalLiquid = 0m;
-        decimal totalSavings = 0m;
-        decimal totalDebts = 0m;
+        var totals = new NetWorthTotals();
 
         var typeIds = accounts
             .Select(a => a.CustomAccountTypeId)
@@ -91,13 +76,7 @@ public sealed class AccountBalanceService(
 
         foreach (var account in accounts)
         {
-            decimal credits = account.Transactions.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
-            decimal debits = account.Transactions.Where(t => t.Type == TransactionType.Debit).Sum(t => t.Amount);
-            decimal balance = account.InitialBalance + credits - debits;
-
-            decimal clearedCredits = account.Transactions.Where(t => t.Type == TransactionType.Credit && t.Status != TransactionStatus.Pending).Sum(t => t.Amount);
-            decimal clearedDebits = account.Transactions.Where(t => t.Type == TransactionType.Debit && t.Status != TransactionStatus.Pending).Sum(t => t.Amount);
-            decimal clearedBalance = account.InitialBalance + clearedCredits - clearedDebits;
+            var balances = AccountBalances.Of(account);
 
             string? localizedTypeName = account.CustomAccountType?.Name;
             if (account.CustomAccountTypeId != null && typeTranslations.TryGetValue(account.CustomAccountTypeId.Value, out var trans) && !string.IsNullOrWhiteSpace(trans))
@@ -110,9 +89,9 @@ public sealed class AccountBalanceService(
                 account.Name,
                 account.Bank?.Name ?? "Banque",
                 account.Type,
-                balance,
-                clearedBalance,
-                balance - clearedBalance,
+                balances.Current,
+                balances.Cleared,
+                balances.Pending,
                 account.Currency,
                 account.CustomAccountTypeId,
                 localizedTypeName,
@@ -122,55 +101,10 @@ public sealed class AccountBalanceService(
 
             summaries.Add(summary);
 
-            // Classification selon le type configurable en base de données si défini, sinon fallback sur l'enum
-            AccountCategoryGroup effectiveGroup;
-            if (account.CustomAccountType != null)
-            {
-                effectiveGroup = account.CustomAccountType.CategoryGroup;
-            }
-            else if (account.Type.IsLiquid())
-            {
-                effectiveGroup = AccountCategoryGroup.Liquid;
-            }
-            else if (account.Type == AccountType.CreditCard)
-            {
-                effectiveGroup = AccountCategoryGroup.Liquid;
-            }
-            else
-            {
-                effectiveGroup = AccountCategoryGroup.Savings;
-            }
-
-            if (effectiveGroup == AccountCategoryGroup.Liquid)
-            {
-                if (account.Type == AccountType.CreditCard && balance < 0)
-                {
-                    totalDebts += Math.Abs(balance);
-                }
-                else if (balance >= 0)
-                {
-                    totalLiquid += balance;
-                }
-                else
-                {
-                    totalDebts += Math.Abs(balance);
-                }
-            }
-            else if (effectiveGroup == AccountCategoryGroup.Debt)
-            {
-                if (balance < 0) totalDebts += Math.Abs(balance);
-                else totalLiquid += balance;
-            }
-            else
-            {
-                // Savings ou Investment
-                totalSavings += balance;
-            }
+            totals.Add(account, balances.Current);
         }
 
-        decimal netWorth = totalLiquid + totalSavings - totalDebts;
-
-        return new DashboardSummaryDto(netWorth, totalLiquid, totalSavings, totalDebts, summaries);
+        return new DashboardSummaryDto(totals.NetWorth, totals.Liquid, totals.Savings, totals.Debts, summaries);
     }
 
     public async Task<decimal> CalculateBalanceAtDateAsync(Guid accountId, DateTime targetDate, CancellationToken cancellationToken = default)
