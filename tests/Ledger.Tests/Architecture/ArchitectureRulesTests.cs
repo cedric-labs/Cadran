@@ -232,6 +232,38 @@ public partial class ArchitectureRulesTests
         violations.Should().BeEmpty("tout test unitaire ou d'intégration doit respecter strictement le motif MethodeCible_ScenarioOuCondition_ResultatAttendu (Règle 7 d'AGENTS.md)");
     }
 
+    [Fact]
+    public void SourceFiles_WhenUsingPrimaryConstructors_DoNotCopyParametersIntoFields()
+    {
+        // Arrange
+        var solutionDir = FindSolutionDir();
+        var projectDirs = new[]
+        {
+            Path.Combine(solutionDir, "Ledger"),
+            Path.Combine(solutionDir, "Cadran.Launcher"),
+        };
+        var violations = new List<string>();
+
+        // Act
+        foreach (var projectDir in projectDirs)
+        {
+            foreach (var file in EnumerateSourceFiles(projectDir, "*.cs"))
+            {
+                var lines = File.ReadAllLines(file);
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    if (PrimaryConstructorFieldCopyRegex().IsMatch(lines[i]))
+                    {
+                        violations.Add($"{Path.GetRelativePath(solutionDir, file)}:{i + 1}: {lines[i].Trim()}");
+                    }
+                }
+            }
+        }
+
+        // Assert
+        violations.Should().BeEmpty("les paramètres des constructeurs primaires ne doivent pas être recopiés dans des champs private readonly (Règle 11 d'AGENTS.md)");
+    }
+
     private static bool IsAttributeOrCommentLine(string line) =>
         line.StartsWith('[') || line.StartsWith("//", StringComparison.Ordinal) || line.StartsWith("/*", StringComparison.Ordinal);
 
@@ -264,4 +296,7 @@ public partial class ArchitectureRulesTests
 
     [GeneratedRegex(@"<(?:script|link)\b[^>]*(?:src|href)\s*=\s*[""']https?://|@import\s+url\s*\(\s*[""']?https?://", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
     private static partial Regex ExternalCdnLinkRegex();
+
+    [GeneratedRegex(@"private readonly [\w.]+(<[^>]+>)?\?? _\w+ = [a-z]\w*;", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
+    private static partial Regex PrimaryConstructorFieldCopyRegex();
 }
