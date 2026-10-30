@@ -678,24 +678,13 @@ public sealed class MainLauncherForm : Form
             _retentionGroupBox.Text = _localizer["Settings.RetentionGroup"];
             _retentionModeLabel.Text = _localizer["Settings.RetentionMode"];
 
-            var currentRetentionIdx = _retentionModeCombo.SelectedIndex;
-            _retentionModeCombo.Items.Clear();
-            _retentionModeCombo.Items.AddRange([
-                _localizer["Settings.ModeFileCount"].Value,
-                _localizer["Settings.ModeDays"].Value,
-                _localizer["Settings.ModeBoth"].Value
-            ]);
-            _retentionModeCombo.SelectedIndex = Math.Clamp(currentRetentionIdx, 0, 2);
+            RefreshRetentionModeItems();
 
             _maxFilesLabel.Text = _localizer["Settings.MaxFiles"];
             _maxDaysLabel.Text = _localizer["Settings.MaxDays"];
             _saveSettingsButton.Text = _localizer["Settings.Save"];
 
-            _trayOpenBrowserItem.Text = _localizer["Tray.OpenBrowser"];
-            _trayStartServerItem.Text = _localizer["Tray.StartServer"];
-            _trayStopServerItem.Text = _localizer["Tray.StopServer"];
-            _trayShowWindowItem.Text = _localizer["Tray.ShowWindow"];
-            _trayExitItem.Text = _localizer["Tray.Exit"];
+            ApplyTrayLocalization();
 
             UpdateStateDisplay(_processSupervisor.State);
             RefreshBackupsList();
@@ -704,6 +693,28 @@ public sealed class MainLauncherForm : Form
         {
             _isUpdatingLanguage = false;
         }
+    }
+
+    // Reconstruit les libellés du mode de rétention dans la langue active en conservant le mode choisi.
+    private void RefreshRetentionModeItems()
+    {
+        var currentRetentionIdx = _retentionModeCombo.SelectedIndex;
+        _retentionModeCombo.Items.Clear();
+        _retentionModeCombo.Items.AddRange([
+            _localizer["Settings.ModeFileCount"].Value,
+            _localizer["Settings.ModeDays"].Value,
+            _localizer["Settings.ModeBoth"].Value
+        ]);
+        _retentionModeCombo.SelectedIndex = Math.Clamp(currentRetentionIdx, 0, 2);
+    }
+
+    private void ApplyTrayLocalization()
+    {
+        _trayOpenBrowserItem.Text = _localizer["Tray.OpenBrowser"];
+        _trayStartServerItem.Text = _localizer["Tray.StartServer"];
+        _trayStopServerItem.Text = _localizer["Tray.StopServer"];
+        _trayShowWindowItem.Text = _localizer["Tray.ShowWindow"];
+        _trayExitItem.Text = _localizer["Tray.Exit"];
     }
 
     private async Task InitializeLauncherAsync()
