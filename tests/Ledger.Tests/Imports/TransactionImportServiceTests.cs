@@ -638,4 +638,69 @@ OFXHEADER:100
         result.BatchId.Should().BeNull();
         _dbContext.ImportBatches.Should().BeEmpty();
     }
+
+    private async Task<BankAccount> AddAccountWithDebitsAsync(params (DateTime Date, string Label)[] debits)
+    {
+        var bank = new Bank { UserId = "test-user-id", Name = "LCL" };
+        var account = new BankAccount { UserId = "test-user-id", BankId = bank.Id, Name = "Compte", Type = AccountType.Checking };
+        _dbContext.Banks.Add(bank);
+        _dbContext.BankAccounts.Add(account);
+        foreach (var (date, label) in debits)
+        {
+            _dbContext.Transactions.Add(new Transaction
+            {
+                UserId = "test-user-id",
+                BankAccountId = account.Id,
+                Date = date,
+                Amount = 42m,
+                Type = TransactionType.Debit,
+                Label = label,
+                RawLabel = label
+            });
+        }
+
+        await _dbContext.SaveChangesAsync();
+        return account;
+    }
+
+    [Fact]
+    public async Task FindExistingDuplicatesAsync_WhenSameDayAndAmountButUnrelatedLabels_ReturnsNoGroup()
+    {
+        var day = new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc);
+        var account = await AddAccountWithDebitsAsync((day, "BOULANGERIE DUPONT"), (day, "GARAGE RENAULT LENS"));
+
+        var duplicates = await _service.FindExistingDuplicatesAsync(account.Id);
+
+        duplicates.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FindExistingDuplicatesAsync_WhenSameLabelBeyondToleranceDays_ReturnsNoGroup()
+    {
+        var account = await AddAccountWithDebitsAsync(
+            (new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), "ABONNEMENT FIBRE"),
+            (new DateTime(2026, 4, 15, 0, 0, 0, DateTimeKind.Utc), "ABONNEMENT FIBRE"));
+
+        var duplicates = await _service.FindExistingDuplicatesAsync(account.Id);
+
+        duplicates.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task FindExistingDuplicatesAsync_WhenExactAndNearbyGroupsCoexist_ReturnsGroupsNewestFirstWithoutReusingTransactions()
+    {
+        var account = await AddAccountWithDebitsAsync(
+            (new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc), "RELAIS H GARE"),
+            (new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc), "RELAIS H GARE"),
+            (new DateTime(2026, 4, 12, 0, 0, 0, DateTimeKind.Utc), "RELAIS H GARE"),
+            (new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc), "COTISATION ASSO"),
+            (new DateTime(2026, 2, 3, 0, 0, 0, DateTimeKind.Utc), "COTISATION ASSO"));
+
+        var duplicates = await _service.FindExistingDuplicatesAsync(account.Id);
+
+        duplicates.Select(g => g.Transactions.Count).Should().Equal(2, 2);
+        duplicates[0].Date.Should().Be(new DateTime(2026, 4, 10, 0, 0, 0, DateTimeKind.Utc));
+        duplicates[1].Date.Should().Be(new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc));
+        duplicates.SelectMany(g => g.Transactions).Select(t => t.Id).Should().OnlyHaveUniqueItems();
+    }
 }
