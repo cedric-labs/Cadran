@@ -3,10 +3,14 @@
 [CmdletBinding()]
 param (
     [string]$SourceDir = (Join-Path ([System.IO.Path]::GetTempPath()) 'cadran-doc-screenshots'),
-    [string]$TargetDir = (Join-Path $PSScriptRoot '..\docs\images\screens')
+    [string]$TargetDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
+
+if ([string]::IsNullOrWhiteSpace($TargetDir)) {
+    $TargetDir = Join-Path (Split-Path -Parent $MyInvocation.MyCommand.Path) '..\docs\images\screens'
+}
 
 if (-not (Test-Path $SourceDir)) {
     throw "Aucune capture dans '$SourceDir' : lancer d'abord les tests E2E (dotnet test tests/Ledger.Tests.E2E --filter DocumentationScreenshot)."
