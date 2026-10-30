@@ -64,8 +64,9 @@ We are excited to announce the release of **Cadran $Tag**!
 Cadran is a modern, local-first, privacy-first personal finance, budget tracking, and wealth management platform built on ASP.NET Core 9, C# 12, Entity Framework Core, and Encrypted SQLite (SQLCipher).
 
 ### What's New in $Tag
-- **Shared frameworks updated**: LocaleForge 1.1.1, StatementForge 1.1.1 and SqliteForge 1.1.1. SqliteForge error messages are now in English.
-- **Build hygiene**: rebuilt binaries no longer embed local build paths, and the SonarQube token is read from the environment or a local ignored file.
+- **Packaging**: the Windows archive no longer ships a standalone launcher executable; use the archive contents.
+- **Fixes**: the error page is served on `/Error` to match the exception handler, `UpdatedAtUtc` is again overwritten on modified entities, and cancellation is propagated with narrower exception handling in services.
+- **Tests**: end-to-end coverage of two-factor login and database unlock.
 
 ### Key Features
 - **Local-First & Privacy-First**: 100% data sovereignty. All records stored locally in encrypted SQLite (`cadran.db`). Zero telemetry, zero external scrapers.
