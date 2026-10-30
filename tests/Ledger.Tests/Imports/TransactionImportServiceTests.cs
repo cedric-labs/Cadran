@@ -453,4 +453,189 @@ OFXHEADER:100
 
         await act.Should().ThrowAsync<OperationCanceledException>();
     }
+
+    private async Task<BankAccount> AddAccountAsync(string? ofxAccountId = null)
+    {
+        var bank = new Bank { UserId = "test-user-id", Name = "Banque Test" };
+        _dbContext.Banks.Add(bank);
+        var account = new BankAccount
+        {
+            UserId = "test-user-id",
+            BankId = bank.Id,
+            Name = "Compte Test",
+            OfxAccountId = ofxAccountId
+        };
+        _dbContext.BankAccounts.Add(account);
+        await _dbContext.SaveChangesAsync();
+        return account;
+    }
+
+    private static MemoryStream BuildOfxStream(string? accountId, params (string FitId, string Amount, string Name)[] lines)
+    {
+        var builder = new StringBuilder("<OFX>\n<BANKMSGSRSV1>\n<STMTTRNRS>\n<STMTRS>\n");
+        if (accountId is not null)
+        {
+            builder.Append("<BANKACCTFROM>\n<ACCTID>").Append(accountId).Append("</ACCTID>\n</BANKACCTFROM>\n");
+        }
+
+        builder.Append("<BANKTRANLIST>\n");
+        foreach (var (fitId, amount, name) in lines)
+        {
+            builder.Append("<STMTTRN>\n<DTPOSTED>20260301\n<TRNAMT>").Append(amount)
+                .Append("\n<FITID>").Append(fitId).Append("\n<NAME>").Append(name).Append("\n</STMTTRN>\n");
+        }
+
+        builder.Append("</BANKTRANLIST>\n</STMTRS>\n</STMTTRNRS>\n</BANKMSGSRSV1>\n</OFX>");
+        return new MemoryStream(Encoding.Latin1.GetBytes(builder.ToString()));
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenOfxAccountIdMatchesNoAccount_RequestsAccountSelection()
+    {
+        using var stream = BuildOfxStream("99999999", ("FIT-1", "-10.00", "BOULANGERIE"));
+
+        var result = await _service.ImportStatementAsync(null, "releve.ofx", stream);
+
+        result.Success.Should().BeFalse();
+        result.RequiresAccountSelection.Should().BeTrue();
+        result.DetectedOfxAcctId.Should().Be("99999999");
+        _dbContext.Transactions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenOfxHasNoAccountIdAndNoSelection_RequestsAccountSelection()
+    {
+        using var stream = BuildOfxStream(null, ("FIT-1", "-10.00", "BOULANGERIE"));
+
+        var result = await _service.ImportStatementAsync(null, "releve.ofx", stream);
+
+        result.Success.Should().BeFalse();
+        result.RequiresAccountSelection.Should().BeTrue();
+        result.DetectedOfxAcctId.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenAccountIsSelectedManually_ReportsTargetAccountWithoutOfxMatch()
+    {
+        var account = await AddAccountAsync();
+        using var stream = BuildOfxStream(null, ("FIT-1", "-10.00", "BOULANGERIE"));
+
+        var result = await _service.ImportStatementAsync(account.Id, "releve.ofx", stream);
+
+        result.Success.Should().BeTrue();
+        result.AutoMatchedByOfx.Should().BeFalse();
+        result.TargetBankAccountId.Should().Be(account.Id);
+        result.TargetBankAccountName.Should().Be("Banque Test - Compte Test");
+        result.BatchId.Should().NotBeNull();
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenOfxAccountIdMatchesIgnoringSeparators_AutoMatchesAccount()
+    {
+        var account = await AddAccountAsync("1234-5678 901");
+        using var stream = BuildOfxStream("12345678901", ("FIT-1", "-10.00", "BOULANGERIE"));
+
+        var result = await _service.ImportStatementAsync(null, "releve.ofx", stream);
+
+        result.AutoMatchedByOfx.Should().BeTrue();
+        result.TargetBankAccountId.Should().Be(account.Id);
+        result.TotalImported.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenSimilarTransactionExistsWithOtherReference_ReportsSuspectedDuplicate()
+    {
+        var account = await AddAccountAsync();
+        _dbContext.Transactions.Add(new Transaction
+        {
+            UserId = "test-user-id",
+            BankAccountId = account.Id,
+            Date = new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            Amount = 50.00m,
+            Type = TransactionType.Debit,
+            Label = "STATION ESSENCE",
+            Reference = "ANCIENNE-REF"
+        });
+        await _dbContext.SaveChangesAsync();
+        using var stream = BuildOfxStream(null, ("NOUVELLE-REF", "-50.00", "STATION ESSENCE"));
+
+        var result = await _service.ImportStatementAsync(account.Id, "releve.ofx", stream);
+
+        result.TotalImported.Should().Be(0);
+        result.TotalDuplicatesSkipped.Should().Be(0);
+        result.SuspectedDuplicates.Should().ContainSingle()
+            .Which.ExistingMatchLabel.Should().Contain("Imports.ExistingMatchDesc");
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenSameOperationAppearsTwiceInFile_ReportsSecondAsSuspectedDuplicate()
+    {
+        var account = await AddAccountAsync();
+        using var stream = BuildOfxStream(null, ("FIT-A", "-20.00", "CINEMA"), ("FIT-B", "-20.00", "CINEMA"));
+
+        var result = await _service.ImportStatementAsync(account.Id, "releve.ofx", stream);
+
+        result.TotalParsed.Should().Be(2);
+        result.TotalImported.Should().Be(1);
+        result.SuspectedDuplicates.Should().ContainSingle()
+            .Which.ExistingMatchLabel.Should().Contain("Imports.BatchMatchDesc");
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenSameReferenceAppearsTwiceInFile_CountsSecondAsConfirmedDuplicate()
+    {
+        var account = await AddAccountAsync();
+        using var stream = BuildOfxStream(null, ("FIT-A", "-20.00", "CINEMA"), ("FIT-A", "-35.00", "RESTAURANT"));
+
+        var result = await _service.ImportStatementAsync(account.Id, "releve.ofx", stream);
+
+        result.TotalImported.Should().Be(1);
+        result.TotalDuplicatesSkipped.Should().Be(1);
+        result.SuspectedDuplicates.Should().BeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Pending", TransactionStatus.Pending)]
+    [InlineData("Reconciled", TransactionStatus.Reconciled)]
+    [InlineData("Autre", TransactionStatus.Cleared)]
+    public async Task ImportStatementAsync_WhenDefaultCustomStatusExists_AppliesMappedStatus(string code, TransactionStatus expected)
+    {
+        var account = await AddAccountAsync();
+        var status = new TransactionCustomStatus { UserId = "test-user-id", Name = "Statut", Code = code, IsDefault = true };
+        _dbContext.TransactionStatuses.Add(status);
+        await _dbContext.SaveChangesAsync();
+        using var stream = BuildOfxStream(null, ("FIT-1", "-10.00", "BOULANGERIE"));
+
+        await _service.ImportStatementAsync(account.Id, "releve.ofx", stream);
+
+        var imported = _dbContext.Transactions.Single();
+        imported.Status.Should().Be(expected);
+        imported.CustomStatusId.Should().Be(status.Id);
+    }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenParserFails_ReturnsFailureWithoutImporting()
+    {
+        var account = await AddAccountAsync();
+        var parserMock = new Mock<IBankStatementParser>();
+        parserMock.SetupGet(p => p.SupportedFormat).Returns("CSV");
+        parserMock.Setup(p => p.CanHandle(It.IsAny<string>(), It.IsAny<Stream>())).Returns(true);
+        parserMock
+            .Setup(p => p.ParseAsync(It.IsAny<Stream>(), It.IsAny<CsvMappingProfile?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new InvalidDataException("fichier illisible"));
+        var service = new TransactionImportService(
+            new[] { parserMock.Object },
+            _dbContext,
+            _mockRulesEngine.Object,
+            _mockUiSettings.Object,
+            NullLogger<TransactionImportService>.Instance,
+            _mockLocalizer.Object);
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("x"));
+
+        var result = await service.ImportStatementAsync(account.Id, "releve.csv", stream);
+
+        result.Success.Should().BeFalse();
+        result.BatchId.Should().BeNull();
+        _dbContext.ImportBatches.Should().BeEmpty();
+    }
 }
