@@ -180,48 +180,16 @@ public sealed class AccountTypeService(
             return 0;
         }
 
-        // 1. Identifiants des types de comptes activement utilisés par au moins un compte bancaire
-        var usedTypeIdsList = await dbContext.BankAccounts
-            .IgnoreQueryFilters()
-            .Where(a => a.CustomAccountTypeId != null)
-            .Select(a => a.CustomAccountTypeId)
-            .Distinct()
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-
-        var usedTypeIds = usedTypeIdsList
-            .Where(id => id.HasValue)
-            .Select(id => id.GetValueOrDefault())
-            .ToHashSet();
-
-        // 2. Rattachement préalable des comptes sans type au type approprié
-        var accountsWithoutType = await dbContext.BankAccounts
-            .IgnoreQueryFilters()
-            .Where(a => a.CustomAccountTypeId == null)
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-
-        if (accountsWithoutType.Count > 0)
-        {
-            UntypedAccountLinker.LinkToMatchingTypes(accountsWithoutType, allTypes, usedTypeIds);
-
-            try
-            {
-                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-            }
-            catch (DbUpdateConcurrencyException ex)
-            {
-                // En cas d'initialisation concurrente, les comptes ont déjà été mis à jour par l'autre processus
-                logger.LogWarning(ex, "Concurrence détectée lors du rattachement des types aux comptes sans type.");
-            }
-        }
+        var usedTypeIds = await LoadUsedTypeIdsAsync(cancellationToken).ConfigureAwait(false);
+        await AttachUntypedAccountsAsync(allTypes, usedTypeIds, cancellationToken).ConfigureAwait(false);
 
         var toDelete = DuplicateAccountTypeSelector.SelectRemovable(allTypes, usedTypeIds);
-
         if (toDelete.Count == 0)
         {
             return 0;
         }
 
-        // 4. Suppression des traductions orphelines associées aux doublons supprimés
+        // Suppression des traductions orphelines associées aux doublons supprimés
         var deletedIds = toDelete.Select(t => t.Id).ToHashSet();
         var orphanTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "CustomAccountType" && deletedIds.Contains(t.EntityId))
@@ -248,5 +216,47 @@ public sealed class AccountTypeService(
 
         logger.LogInformation("Nettoyage des types de comptes terminé : {DeletedCount} doublon(s) non utilisé(s) supprimé(s).", toDelete.Count);
         return toDelete.Count;
+    }
+
+    // Identifiants des types de comptes activement utilisés par au moins un compte bancaire
+    private async Task<HashSet<Guid>> LoadUsedTypeIdsAsync(CancellationToken cancellationToken)
+    {
+        var usedTypeIdsList = await dbContext.BankAccounts
+            .IgnoreQueryFilters()
+            .Where(a => a.CustomAccountTypeId != null)
+            .Select(a => a.CustomAccountTypeId)
+            .Distinct()
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        return usedTypeIdsList
+            .Where(id => id.HasValue)
+            .Select(id => id.GetValueOrDefault())
+            .ToHashSet();
+    }
+
+    // Rattachement préalable des comptes sans type au type approprié
+    private async Task AttachUntypedAccountsAsync(List<CustomAccountType> allTypes, HashSet<Guid> usedTypeIds, CancellationToken cancellationToken)
+    {
+        var accountsWithoutType = await dbContext.BankAccounts
+            .IgnoreQueryFilters()
+            .Where(a => a.CustomAccountTypeId == null)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        if (accountsWithoutType.Count == 0)
+        {
+            return;
+        }
+
+        UntypedAccountLinker.LinkToMatchingTypes(accountsWithoutType, allTypes, usedTypeIds);
+
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            // En cas d'initialisation concurrente, les comptes ont déjà été mis à jour par l'autre processus
+            logger.LogWarning(ex, "Concurrence détectée lors du rattachement des types aux comptes sans type.");
+        }
     }
 }
