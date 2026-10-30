@@ -131,40 +131,14 @@ internal static class Program
 
         var suffix = string.Equals(culture, "fr", StringComparison.Ordinal) ? "-fr" : "";
         var cleanPath = Path.Combine(docsDir, $"24-backups-supervision-screen{suffix}.png");
-        bmp.Save(cleanPath, System.Drawing.Imaging.ImageFormat.Png);
-        if (Directory.Exists(artifactsDir))
-        {
-            File.Copy(cleanPath, Path.Combine(artifactsDir, $"24-backups-supervision-screen{suffix}.png"), overwrite: true);
-        }
+        DocumentationScreenshotWriter.Save(bmp, cleanPath, artifactsDir);
 
         using var annotatedBmp = new Bitmap(bmp);
         using var g = Graphics.FromImage(annotatedBmp);
-        g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
-        var items = mainForm.GetScreenshotPinDefinitions();
-        foreach (var item in items)
-        {
-            using var ringPen = new Pen(item.Color, 2f);
-            g.DrawRectangle(ringPen, item.Rect.X - 3, item.Rect.Y - 3, item.Rect.Width + 6, item.Rect.Height + 6);
-
-            var pinX = item.Rect.X - 10;
-            var pinY = item.Rect.Y - 10;
-            using var brush = new SolidBrush(item.Color);
-            g.FillEllipse(brush, pinX, pinY, 24, 24);
-            using var whitePen = new Pen(Color.White, 2f);
-            g.DrawEllipse(whitePen, pinX, pinY, 24, 24);
-
-            using var textBrush = new SolidBrush(Color.White);
-            using var font = new Font("Segoe UI", 9f, FontStyle.Bold);
-            using var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-            g.DrawString(item.Number, font, textBrush, new RectangleF(pinX, pinY, 24, 24), sf);
-        }
+        ScreenshotPinAnnotator.Draw(g, mainForm.GetScreenshotPinDefinitions());
 
         var annotatedPath = Path.Combine(docsDir, $"24-backups-supervision-screen{suffix}-annotated.png");
-        annotatedBmp.Save(annotatedPath, System.Drawing.Imaging.ImageFormat.Png);
-        if (Directory.Exists(artifactsDir))
-        {
-            File.Copy(annotatedPath, Path.Combine(artifactsDir, $"24-backups-supervision-screen{suffix}-annotated.png"), overwrite: true);
-        }
+        DocumentationScreenshotWriter.Save(annotatedBmp, annotatedPath, artifactsDir);
     }
 }
