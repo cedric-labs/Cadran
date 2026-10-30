@@ -12,6 +12,7 @@ namespace Ledger.Features.Settings.Services;
 public sealed class UiSettingsService(
     AppDbContext dbContext,
     ILogger<UiSettingsService> logger,
+    TimeProvider timeProvider,
     Ledger.Features.Security.Context.IDatabaseKeyHolder? keyHolder = null) : IUiSettingsService
 {
     private const string FontSizeKey = "Ui.FontSize";
@@ -457,13 +458,13 @@ public sealed class UiSettingsService(
                 Key = key,
                 Value = value,
                 Description = description,
-                UpdatedAtUtc = DateTime.UtcNow
+                UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
             });
         }
         else
         {
             setting.Value = value;
-            setting.UpdatedAtUtc = DateTime.UtcNow;
+            setting.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);

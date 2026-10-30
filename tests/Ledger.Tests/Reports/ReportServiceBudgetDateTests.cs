@@ -34,8 +34,8 @@ public sealed class ReportServiceBudgetDateTests : IDisposable
         var mockLocalizer = new Mock<IStringLocalizer>();
         mockLocalizer.Setup(l => l[It.IsAny<string>()]).Returns((string key) => new LocalizedString(key, key));
 
-        var recurringService = new RecurringExpenseService(_context);
-        _reportService = new ReportService(_context, mockLocalizedService.Object, recurringService, mockLocalizer.Object);
+        var recurringService = new RecurringExpenseService(_context, TimeProvider.System);
+        _reportService = new ReportService(_context, mockLocalizedService.Object, recurringService, mockLocalizer.Object, TimeProvider.System);
 
         SeedTestData();
     }

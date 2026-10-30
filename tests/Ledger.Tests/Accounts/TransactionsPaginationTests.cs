@@ -58,7 +58,8 @@ public sealed class TransactionsPaginationTests : IDisposable
             _mockRulesEngineService.Object,
             _mockMerchantService.Object,
             _mockRecurringService.Object,
-            _mockLocalizedEntityService.Object)
+            _mockLocalizedEntityService.Object,
+            TimeProvider.System)
         {
             TotalCount = 125,
             EffectivePageSize = 50,
@@ -82,7 +83,8 @@ public sealed class TransactionsPaginationTests : IDisposable
             _mockRulesEngineService.Object,
             _mockMerchantService.Object,
             _mockRecurringService.Object,
-            _mockLocalizedEntityService.Object)
+            _mockLocalizedEntityService.Object,
+            TimeProvider.System)
         {
             TotalCount = 100,
             EffectivePageSize = 50,
@@ -110,7 +112,8 @@ public sealed class TransactionsPaginationTests : IDisposable
             _mockRulesEngineService.Object,
             _mockMerchantService.Object,
             _mockRecurringService.Object,
-            _mockLocalizedEntityService.Object)
+            _mockLocalizedEntityService.Object,
+            TimeProvider.System)
         {
             PageContext = new PageContext(new ActionContext(httpContext, new RouteData(), new PageActionDescriptor(), new ModelStateDictionary())),
             EffectivePageSize = 25
@@ -156,7 +159,8 @@ public sealed class TransactionsPaginationTests : IDisposable
             _mockRulesEngineService.Object,
             _mockMerchantService.Object,
             _mockRecurringService.Object,
-            _mockLocalizedEntityService.Object)
+            _mockLocalizedEntityService.Object,
+            TimeProvider.System)
         {
             Period = "all",
             PageSize = 25,

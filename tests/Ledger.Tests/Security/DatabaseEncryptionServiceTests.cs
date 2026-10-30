@@ -230,6 +230,7 @@ public sealed class DatabaseEncryptionServiceTests : IDisposable
             options.UseSqlite(connectionProvider.GetConnectionString());
         });
         services.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<Ledger.Features.Settings.Services.IUiSettingsService, Ledger.Features.Settings.Services.UiSettingsService>();
         services.AddSingleton<Ledger.Infrastructure.Configuration.ICurrencyService, Ledger.Infrastructure.Configuration.CurrencyService>();
 

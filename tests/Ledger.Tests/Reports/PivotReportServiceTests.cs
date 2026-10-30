@@ -39,7 +39,7 @@ public sealed class PivotReportServiceTests : IDisposable
         _mockUiSettings = new Mock<IUiSettingsService>();
         _mockUiSettings.Setup(s => s.GetSalaryMonthStartDayAsync()).ReturnsAsync(1);
 
-        _pivotService = new PivotReportService(_context, mockLocalizedService.Object, mockLocalizer.Object, _mockUiSettings.Object);
+        _pivotService = new PivotReportService(_context, mockLocalizedService.Object, mockLocalizer.Object, _mockUiSettings.Object, TimeProvider.System);
 
         SeedTestData();
     }
@@ -1155,6 +1155,32 @@ public sealed class PivotReportServiceTests : IDisposable
 
         var deleted = await _pivotService.DeleteSavedPivotReportAsync(nonExistentId);
         deleted.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ComputePivotAsync_WhenTodayIsFixed_ResolvesCurrentMonthFromTimeProvider()
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2025, 4, 18, 9, 0, 0, TimeSpan.Zero));
+        var mockLocalizedService = new Mock<ILocalizedEntityService>();
+        mockLocalizedService
+            .Setup(s => s.GetTranslationsAsync(It.IsAny<string>(), It.IsAny<IEnumerable<Guid>>(), It.IsAny<string>(), It.IsAny<string>()))
+            .ReturnsAsync(new Dictionary<Guid, string>());
+        var mockLocalizer = new Mock<IStringLocalizer>();
+        mockLocalizer.Setup(l => l[It.IsAny<string>()]).Returns((string key) => new LocalizedString(key, key));
+
+        var service = new PivotReportService(_context, mockLocalizedService.Object, mockLocalizer.Object, _mockUiSettings.Object, fakeTime);
+
+        var query = new PivotQueryDto
+        {
+            RowDimension = PivotRowDimension.Category,
+            ColumnDimension = PivotColumnDimension.Month,
+            PeriodPreset = PivotPeriodPreset.CurrentMonth
+        };
+
+        var result = await service.ComputePivotAsync(query);
+
+        result.EffectiveStartDate.Should().Be(new DateTime(2025, 4, 1, 0, 0, 0, DateTimeKind.Utc));
+        result.EffectiveEndDate.Should().Be(new DateTime(2025, 4, 30, 0, 0, 0, DateTimeKind.Utc));
     }
 
     public void Dispose()

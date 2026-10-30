@@ -106,7 +106,7 @@ public sealed class RecurringIndexModelTests : IDisposable
     public async Task OnGetAsync_WhenCalled_LoadsSummaryCategoriesAndAccounts()
     {
         var (pageContext, tempData) = CreateContext();
-        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object)
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -126,7 +126,7 @@ public sealed class RecurringIndexModelTests : IDisposable
     public async Task OnPostSaveAsync_WithInvalidModelState_ShouldReturnPage()
     {
         var (pageContext, tempData) = CreateContext();
-        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object)
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -142,7 +142,7 @@ public sealed class RecurringIndexModelTests : IDisposable
     public async Task OnPostSaveAsync_WhenCreatingNew_ShouldCallCreateAsyncAndRedirect()
     {
         var (pageContext, tempData) = CreateContext();
-        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object)
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = tempData,
@@ -184,7 +184,7 @@ public sealed class RecurringIndexModelTests : IDisposable
         _mockRecurringService.Setup(r => r.GetByIdAsync(expenseId)).ReturnsAsync(existing);
 
         var (pageContext, tempData) = CreateContext();
-        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object)
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = tempData,
@@ -209,7 +209,7 @@ public sealed class RecurringIndexModelTests : IDisposable
     {
         var expenseId = Guid.NewGuid();
         var (pageContext, tempData) = CreateContext();
-        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object)
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -227,7 +227,7 @@ public sealed class RecurringIndexModelTests : IDisposable
     public async Task OnPostConfirmCandidateAsync_Ajax_ShouldReturnJsonResult()
     {
         var (pageContext, tempData) = CreateContext(isAjax: true);
-        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object)
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -254,7 +254,7 @@ public sealed class RecurringIndexModelTests : IDisposable
     public async Task OnPostIgnoreCandidateAsync_Ajax_ShouldCallIgnoreAndReturnJson()
     {
         var (pageContext, tempData) = CreateContext(isAjax: true);
-        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object)
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = tempData
@@ -264,5 +264,22 @@ public sealed class RecurringIndexModelTests : IDisposable
 
         result.Should().BeOfType<JsonResult>();
         _mockRecurringService.Verify(r => r.IgnoreCandidateAsync("PRLV EDF"), Times.Once);
+    }
+
+    [Fact]
+    public async Task OnGetAsync_WhenYearAndMonthOmitted_UsesCurrentDateFromTimeProvider()
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2025, 5, 20, 10, 0, 0, TimeSpan.Zero));
+        var (pageContext, tempData) = CreateContext();
+        var model = new IndexModel(_mockRecurringService.Object, _context, _mockLocalizedEntityService.Object, _mockLocalizer.Object, fakeTime)
+        {
+            PageContext = pageContext,
+            TempData = tempData
+        };
+
+        await model.OnGetAsync(null, null);
+
+        model.SelectedYear.Should().Be(2025);
+        model.SelectedMonth.Should().Be(5);
     }
 }

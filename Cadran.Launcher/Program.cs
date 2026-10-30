@@ -46,8 +46,8 @@ internal static class Program
         var configStore = new LauncherConfigurationStore(configFilePath);
         var settings = configStore.LoadSettings();
 
-        var backupSupervisor = new DatabaseBackupSupervisor(databaseFilePath, backupsDirectory);
-        var processSupervisor = new CadranProcessSupervisor(appExecutablePath, workingDirectory, settings.Port);
+        var backupSupervisor = new DatabaseBackupSupervisor(databaseFilePath, backupsDirectory, TimeProvider.System);
+        var processSupervisor = new CadranProcessSupervisor(appExecutablePath, workingDirectory, settings.Port, TimeProvider.System);
 
         // 4. Lancement de la fenêtre principale
         using var mainForm = new MainLauncherForm(configStore, backupSupervisor, processSupervisor);
@@ -109,8 +109,8 @@ internal static class Program
         var configStore = new LauncherConfigurationStore(configFilePath);
         var settings = configStore.LoadSettings() with { Language = culture };
 
-        var backupSupervisor = new DatabaseBackupSupervisor(databaseFilePath, backupsDirectory);
-        var processSupervisor = new CadranProcessSupervisor("", workingDirectory, settings.Port);
+        var backupSupervisor = new DatabaseBackupSupervisor(databaseFilePath, backupsDirectory, TimeProvider.System);
+        var processSupervisor = new CadranProcessSupervisor("", workingDirectory, settings.Port, TimeProvider.System);
 
         using var mainForm = new MainLauncherForm(configStore, backupSupervisor, processSupervisor);
         mainForm.PrepareForDocumentationScreenshot(culture, tabIndex: 1);

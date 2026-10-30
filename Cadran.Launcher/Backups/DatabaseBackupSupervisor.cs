@@ -8,7 +8,8 @@ namespace Cadran.Launcher.Backups;
 /// </summary>
 /// <param name="databaseFilePath">Chemin d'accès au fichier de base SQLite principal.</param>
 /// <param name="backupDirectoryPath">Chemin du répertoire dédié aux sauvegardes.</param>
-public sealed class DatabaseBackupSupervisor(string databaseFilePath, string backupDirectoryPath) : IDatabaseBackupSupervisor
+/// <param name="timeProvider">Fournisseur d'horloge pour l'horodatage et la rétention des sauvegardes.</param>
+public sealed class DatabaseBackupSupervisor(string databaseFilePath, string backupDirectoryPath, TimeProvider timeProvider) : IDatabaseBackupSupervisor
 {
     private const string BackupFilePrefix = "cadran_backup_";
     private const string SafetyBackupFilePrefix = "cadran_safety_";
@@ -32,7 +33,7 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
                 Directory.CreateDirectory(backupDirectoryPath);
             }
 
-            var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+            var timestamp = timeProvider.GetUtcNow().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
             var sanitizedReason = string.IsNullOrWhiteSpace(reason) ? "manual" : reason.Trim().ToLowerInvariant();
             var targetFileName = $"{BackupFilePrefix}{timestamp}_{sanitizedReason}{BackupExtension}";
             var targetFilePath = Path.Combine(backupDirectoryPath, targetFileName);
@@ -110,7 +111,7 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
                     Directory.CreateDirectory(backupDirectoryPath);
                 }
 
-                var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
+                var timestamp = timeProvider.GetUtcNow().ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
                 var safetyPath = Path.Combine(backupDirectoryPath, $"{SafetyBackupFilePrefix}{timestamp}_before_restore{BackupExtension}");
                 await CopyDatabaseFileAsync(databaseFilePath, safetyPath, cancellationToken).ConfigureAwait(false);
             }
@@ -161,7 +162,7 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
         // Éviction par ancienneté
         if (normalizedOptions.Mode is BackupRetentionMode.Days or BackupRetentionMode.Both)
         {
-            var cutoffDate = DateTimeOffset.UtcNow.AddDays(-normalizedOptions.MaxBackupDays);
+            var cutoffDate = timeProvider.GetUtcNow().AddDays(-normalizedOptions.MaxBackupDays);
             foreach (var file in backupFiles)
             {
                 if (new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero) < cutoffDate)

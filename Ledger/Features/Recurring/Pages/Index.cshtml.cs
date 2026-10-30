@@ -20,7 +20,8 @@ public class IndexModel(
     IRecurringExpenseService recurringService,
     AppDbContext dbContext,
     ILocalizedEntityService localizedEntityService,
-    IStringLocalizer localizer) : PageModel
+    IStringLocalizer localizer,
+    TimeProvider timeProvider) : PageModel
 {
     public MonthlyRecurringSummaryDto Summary { get; set; } = new();
     public List<RecurringExpense> AllExpenses { get; set; } = new();
@@ -67,7 +68,7 @@ public class IndexModel(
 
     public Task OnGetAsync(int? year, int? month, CancellationToken cancellationToken = default)
     {
-        var now = DateTime.Today;
+        var now = timeProvider.GetLocalNow().Date;
         SelectedYear = year ?? now.Year;
         SelectedMonth = month ?? now.Month;
 
@@ -76,7 +77,7 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostSaveAsync(int? year, int? month, CancellationToken cancellationToken = default)
     {
-        var now = DateTime.Today;
+        var now = timeProvider.GetLocalNow().Date;
         SelectedYear = year ?? now.Year;
         SelectedMonth = month ?? now.Month;
 
@@ -135,7 +136,7 @@ public class IndexModel(
     {
         await recurringService.DeleteAsync(id, cancellationToken);
         TempData["SuccessMessage"] = localizer["Recurring.DeletedSuccess"].Value;
-        return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });
+        return RedirectToPage(new { year = year ?? timeProvider.GetLocalNow().Date.Year, month = month ?? timeProvider.GetLocalNow().Date.Month });
     }
 
     public async Task<IActionResult> OnPostConfirmCandidateAsync(string pattern,
@@ -168,7 +169,7 @@ public class IndexModel(
             return new JsonResult(new { success = true, message = string.Format(CultureInfo.CurrentCulture, localizer["Recurring.CandidateConfirmed"].Value, suggestedName) });
         }
 
-        return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });
+        return RedirectToPage(new { year = year ?? timeProvider.GetLocalNow().Date.Year, month = month ?? timeProvider.GetLocalNow().Date.Month });
     }
 
     public async Task<IActionResult> OnPostIgnoreCandidateAsync(string pattern, int? year, int? month, CancellationToken cancellationToken = default)
@@ -181,7 +182,7 @@ public class IndexModel(
             return new JsonResult(new { success = true, message = string.Format(CultureInfo.CurrentCulture, localizer["Recurring.CandidateIgnored"].Value, pattern) });
         }
 
-        return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });
+        return RedirectToPage(new { year = year ?? timeProvider.GetLocalNow().Date.Year, month = month ?? timeProvider.GetLocalNow().Date.Month });
     }
 
     private async Task LoadDataAsync(CancellationToken cancellationToken = default)

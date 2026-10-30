@@ -30,7 +30,8 @@ public static class DatabaseInitializer
             var logger = loggerFactory.CreateLogger("DatabaseInitializer");
 
             var schemaSynchronizer = new DatabaseSchemaSynchronizer(loggerFactory.CreateLogger<DatabaseSchemaSynchronizer>());
-            var referenceDataSeeder = new DatabaseReferenceDataSeeder(loggerFactory.CreateLogger<DatabaseReferenceDataSeeder>());
+            var timeProvider = scope.ServiceProvider.GetService<TimeProvider>() ?? TimeProvider.System;
+            var referenceDataSeeder = new DatabaseReferenceDataSeeder(loggerFactory.CreateLogger<DatabaseReferenceDataSeeder>(), timeProvider);
             var translationSeeder = new EntityTranslationSeeder(loggerFactory.CreateLogger<EntityTranslationSeeder>());
 
             // 1. Synchronisation du schéma SQLite et tables/colonnes complémentaires

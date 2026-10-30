@@ -10,11 +10,13 @@ namespace Cadran.Launcher.Supervision;
 /// <param name="applicationExecutablePath">Chemin physique de l'exécutable serveur Cadran.</param>
 /// <param name="workingDirectory">Répertoire de travail du processus.</param>
 /// <param name="port">Port d'écoute TCP local.</param>
+/// <param name="timeProvider">Fournisseur d'horloge pour l'horodatage des événements de supervision.</param>
 /// <param name="httpClient">Client HTTP pour les requêtes de sonde et de clôture.</param>
 public sealed class CadranProcessSupervisor(
     string applicationExecutablePath,
     string workingDirectory,
     int port,
+    TimeProvider timeProvider,
     HttpClient? httpClient = null) : ICadranProcessSupervisor
 {
     private readonly HttpClient _client = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
@@ -233,8 +235,8 @@ public sealed class CadranProcessSupervisor(
 
     private async Task<bool> WaitForServerReadyAsync(CancellationToken cancellationToken)
     {
-        var deadline = DateTimeOffset.UtcNow.AddSeconds(30);
-        while (DateTimeOffset.UtcNow < deadline && !cancellationToken.IsCancellationRequested)
+        var deadline = timeProvider.GetUtcNow().AddSeconds(30);
+        while (timeProvider.GetUtcNow() < deadline && !cancellationToken.IsCancellationRequested)
         {
             if (_process is null || _process.HasExited)
             {
@@ -291,7 +293,7 @@ public sealed class CadranProcessSupervisor(
 
     private void EmitLog(LogLevel level, string message)
     {
-        var entry = new LogEntry(DateTimeOffset.UtcNow, level, message);
+        var entry = new LogEntry(timeProvider.GetUtcNow(), level, message);
         LogReceived?.Invoke(this, new LogReceivedEventArgs(entry));
     }
 }

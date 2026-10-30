@@ -22,7 +22,8 @@ public abstract class TransactionOperationsPageModelBase(
     IRulesEngineService rulesEngineService,
     IMerchantService merchantService,
     Ledger.Features.Recurring.Services.IRecurringExpenseService recurringExpenseService,
-    ILocalizedEntityService localizedEntityService) : PageModel
+    ILocalizedEntityService localizedEntityService,
+    TimeProvider timeProvider) : PageModel
 {
     protected readonly AppDbContext DbContext = dbContext;
     protected readonly ITransactionStatusService StatusService = statusService;
@@ -661,7 +662,7 @@ public abstract class TransactionOperationsPageModelBase(
             Frequency = dto.Frequency,
             SuggestedCategoryId = dto.TargetCategoryId,
             BankAccountId = dto.TargetBankAccountId,
-            LastDate = DateTime.Today
+            LastDate = timeProvider.GetLocalNow().Date
         };
 
         var created = await RecurringExpenseService.ConfirmCandidateAsync(candidate, cancellationToken);
@@ -755,13 +756,13 @@ public abstract class TransactionOperationsPageModelBase(
                 CategoryId = s.CategoryId,
                 MerchantId = s.MerchantId,
                 Notes = s.Notes?.Trim(),
-                CreatedAtUtc = DateTime.UtcNow
+                CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
             };
             DbContext.TransactionSplits.Add(split);
         }
 
         tx.IsSplit = true;
-        tx.UpdatedAtUtc = DateTime.UtcNow;
+        tx.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
         await DbContext.SaveChangesAsync(cancellationToken);
 
         return new JsonResult(new { success = true, splitsCount = dto.Splits.Count });
@@ -777,7 +778,7 @@ public abstract class TransactionOperationsPageModelBase(
 
         DbContext.TransactionSplits.RemoveRange(tx.Splits);
         tx.IsSplit = false;
-        tx.UpdatedAtUtc = DateTime.UtcNow;
+        tx.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
         await DbContext.SaveChangesAsync(cancellationToken);
 
         return new JsonResult(new { success = true });

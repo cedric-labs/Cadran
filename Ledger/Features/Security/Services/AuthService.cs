@@ -14,7 +14,8 @@ public sealed class AuthService(
     UrlEncoder urlEncoder,
     Ledger.Features.Categories.Services.ICategorySeedService categorySeedService,
     Ledger.Features.Accounts.Services.IAccountTypeService accountTypeService,
-    Ledger.Features.Accounts.Services.ITransactionStatusService transactionStatusService) : IAuthService
+    Ledger.Features.Accounts.Services.ITransactionStatusService transactionStatusService,
+    TimeProvider timeProvider) : IAuthService
 {
     private const string OtpAuthScheme = "otpauth";
 
@@ -25,7 +26,7 @@ public sealed class AuthService(
             UserName = email,
             Email = email,
             FullName = fullName,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
         };
 
         var result = await userManager.CreateAsync(user, password).ConfigureAwait(false);
@@ -55,7 +56,7 @@ public sealed class AuthService(
 
         if (result.Succeeded)
         {
-            user.LastLoginAtUtc = DateTime.UtcNow;
+            user.LastLoginAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             await userManager.UpdateAsync(user).ConfigureAwait(false);
         }
 

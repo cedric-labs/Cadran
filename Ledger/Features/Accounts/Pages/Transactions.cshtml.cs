@@ -18,7 +18,8 @@ public class TransactionsModel(
     IRulesEngineService rulesEngineService,
     IMerchantService merchantService,
     Ledger.Features.Recurring.Services.IRecurringExpenseService recurringExpenseService,
-    Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService)
+    Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService,
+    TimeProvider timeProvider)
     : TransactionOperationsPageModelBase(
         dbContext,
         statusService,
@@ -26,7 +27,8 @@ public class TransactionsModel(
         rulesEngineService,
         merchantService,
         recurringExpenseService,
-        localizedEntityService)
+        localizedEntityService,
+        timeProvider)
 {
     public override string DefaultTableKey => "Transactions";
 

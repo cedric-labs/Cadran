@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ledger.Features.Recurring.Services;
 
-public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurringExpenseService
+public sealed class RecurringExpenseService(AppDbContext dbContext, TimeProvider timeProvider) : IRecurringExpenseService
 {
     public Task<List<RecurringExpense>> GetAllAsync(CancellationToken cancellationToken = default)
     {
@@ -148,13 +148,13 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
                     Key = IgnoredPatternsSettingKey,
                     Value = jsonValue,
                     Description = "Liste des motifs récurrents ignorés définitivement par l'utilisateur",
-                    UpdatedAtUtc = DateTime.UtcNow
+                    UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
                 });
             }
             else
             {
                 setting.Value = jsonValue;
-                setting.UpdatedAtUtc = DateTime.UtcNow;
+                setting.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
             }
 
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -174,7 +174,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
             if (setting != null)
             {
                 setting.Value = System.Text.Json.JsonSerializer.Serialize(currentList);
-                setting.UpdatedAtUtc = DateTime.UtcNow;
+                setting.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
                 await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -199,7 +199,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
             .Where(t => (t.BudgetDate ?? t.Date) >= startOfMonth && (t.BudgetDate ?? t.Date) <= endOfMonth)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        var today = DateTime.Today;
+        var today = timeProvider.GetLocalNow().Date;
         var summary = new MonthlyRecurringSummaryDto
         {
             Year = year,
@@ -291,7 +291,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         var ignoredPatterns = await GetIgnoredPatternsAsync(cancellationToken).ConfigureAwait(false);
 
         // 2. Analyser les transactions de dépenses sur les 12 derniers mois
-        var cutoffDate = DateTime.Today.AddMonths(-12);
+        var cutoffDate = timeProvider.GetLocalNow().Date.AddMonths(-12);
         var transactions = await dbContext.Transactions
             .Include(t => t.Category)
             .Include(t => t.BankAccount)

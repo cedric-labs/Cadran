@@ -14,7 +14,7 @@ namespace Ledger.Infrastructure.Data;
 /// <summary>
 /// Service assurant l'initialisation des paramètres applicatifs par défaut, des polices et des données de référence utilisateur.
 /// </summary>
-public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSeeder> logger)
+public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSeeder> logger, TimeProvider timeProvider)
 {
     /// <summary>
     /// Initialise les données de référence globales et par utilisateur (devises, polices, catégories et types de comptes).
@@ -45,7 +45,7 @@ public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSee
                 Key = "Currencies:Supported",
                 Value = JsonSerializer.Serialize(CurrencyService.DefaultCurrencies),
                 Description = "Liste des devises monétaires configurables du système",
-                UpdatedAtUtc = DateTime.UtcNow
+                UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
             });
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }

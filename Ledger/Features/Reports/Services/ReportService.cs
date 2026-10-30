@@ -15,7 +15,8 @@ public sealed class ReportService(
     AppDbContext dbContext,
     ILocalizedEntityService localizedEntityService,
     IRecurringExpenseService recurringService,
-    IStringLocalizer localizer) : IReportService
+    IStringLocalizer localizer,
+    TimeProvider timeProvider) : IReportService
 {
     private static readonly string[] DefaultPalette = new[]
     {
@@ -225,7 +226,7 @@ public sealed class ReportService(
                 break;
 
             case "KpiRemainingToLive":
-                var now = DateTime.Today;
+                var now = timeProvider.GetLocalNow().Date;
                 var summaryR = await recurringService.GetMonthlySummaryAsync(now.Year, now.Month, cancellationToken).ConfigureAwait(false);
                 result.KpiValue = summaryR.EstimatedRemainingToLive;
                 result.KpiFormattedValue = summaryR.EstimatedRemainingToLive.ToString("C2", CultureInfo.CurrentCulture);
@@ -255,7 +256,7 @@ public sealed class ReportService(
                 break;
 
             case "RecurringGauges":
-                var today = DateTime.Today;
+                var today = timeProvider.GetLocalNow().Date;
                 var monthlyRec = await recurringService.GetMonthlySummaryAsync(today.Year, today.Month, cancellationToken).ConfigureAwait(false);
                 result.RecurringExpected = monthlyRec.TotalExpected;
                 result.RecurringDebited = monthlyRec.TotalDebited;
@@ -322,7 +323,7 @@ public sealed class ReportService(
 
         // Historique sur les 6 derniers mois par défaut
         int monthsCount = 6;
-        var endMonth = DateTime.UtcNow;
+        var endMonth = timeProvider.GetUtcNow().UtcDateTime;
         var startMonth = new DateTime(endMonth.Year, endMonth.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(monthsCount - 1));
         var endOfPeriod = new DateTime(endMonth.Year, endMonth.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1).AddTicks(-1);
 
@@ -368,7 +369,7 @@ public sealed class ReportService(
         result.ChartType = "line";
 
         int monthsCount = 6;
-        var endMonth = DateTime.UtcNow;
+        var endMonth = timeProvider.GetUtcNow().UtcDateTime;
         var startMonth = new DateTime(endMonth.Year, endMonth.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(monthsCount - 1));
         var endOfPeriod = new DateTime(endMonth.Year, endMonth.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1).AddTicks(-1);
 
@@ -452,7 +453,7 @@ public sealed class ReportService(
 
     private (DateTime start, DateTime end, string label) ResolveDateRange(string period)
     {
-        var today = DateTime.Today;
+        var today = timeProvider.GetLocalNow().Date;
         var firstOfCurrentMonth = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
         return period.ToLowerInvariant() switch

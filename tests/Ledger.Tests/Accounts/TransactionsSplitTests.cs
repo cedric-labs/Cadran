@@ -67,7 +67,8 @@ public sealed class TransactionsSplitTests : IDisposable
             _mockRulesEngineService.Object,
             _mockMerchantService.Object,
             _mockRecurringService.Object,
-            _mockLocalizedEntityService.Object)
+            _mockLocalizedEntityService.Object,
+            TimeProvider.System)
         {
             PageContext = new PageContext(new ActionContext(httpContext, new RouteData(), new PageActionDescriptor(), new ModelStateDictionary()))
         };
@@ -285,7 +286,8 @@ public sealed class TransactionsSplitTests : IDisposable
             _mockUiSettingsService.Object,
             _mockRecurringService.Object,
             _mockLocalizedEntityService.Object,
-            _mockMerchantService.Object)
+            _mockMerchantService.Object,
+            TimeProvider.System)
         {
             PageContext = new PageContext(new ActionContext(httpContext, new RouteData(), new PageActionDescriptor(), new ModelStateDictionary()))
         };
@@ -473,6 +475,55 @@ public sealed class TransactionsSplitTests : IDisposable
         transactionsContent.Should().Contain("id=\"splitTransactionModal\"", "Transactions.cshtml must have splitTransactionModal");
         transactionsContent.Should().Contain("SaveTransactionSplits", "Transactions.cshtml must call SaveTransactionSplits");
         transactionsContent.Should().Contain("RemoveTransactionSplits", "Transactions.cshtml must call RemoveTransactionSplits");
+    }
+
+    [Fact]
+    public async Task OnPostSaveTransactionSplitsAsync_WhenTimeIsFixed_SetsUpdatedAtUtcFromTimeProvider()
+    {
+        var fixedUtc = new DateTimeOffset(2025, 3, 15, 18, 0, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        var tx = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            BankAccountId = _bankAccountId,
+            Date = new DateTime(2025, 3, 10, 0, 0, 0, DateTimeKind.Utc),
+            Amount = 100m,
+            Label = "DEPENSE SUPERMARCHE",
+            Type = TransactionType.Debit
+        };
+        _context.Transactions.Add(tx);
+        await _context.SaveChangesAsync();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers.XRequestedWith = "XMLHttpRequest";
+        var model = new TransactionsModel(
+            _context,
+            _mockStatusService.Object,
+            _mockUiSettingsService.Object,
+            _mockRulesEngineService.Object,
+            _mockMerchantService.Object,
+            _mockRecurringService.Object,
+            _mockLocalizedEntityService.Object,
+            fakeTime)
+        {
+            PageContext = new PageContext(new ActionContext(httpContext, new RouteData(), new PageActionDescriptor(), new ModelStateDictionary()))
+        };
+
+        var dto = new TransactionsModel.SaveSplitsDto
+        {
+            TransactionId = tx.Id,
+            Splits = new List<TransactionsModel.SplitLineDto>
+            {
+                new() { Amount = 60m, CategoryId = _catFoodId, Notes = "Courses" },
+                new() { Amount = 40m, CategoryId = _catHousingId, Notes = "Maison" }
+            }
+        };
+
+        await model.OnPostSaveTransactionSplitsAsync(dto);
+
+        var updatedTx = await _context.Transactions.FirstAsync(t => t.Id == tx.Id);
+        updatedTx.UpdatedAtUtc.Should().Be(fixedUtc.UtcDateTime);
     }
 
     public void Dispose()

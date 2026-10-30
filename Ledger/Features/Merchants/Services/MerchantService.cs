@@ -13,7 +13,8 @@ namespace Ledger.Features.Merchants.Services;
 public sealed class MerchantService(
     AppDbContext dbContext,
     ICurrentUserService currentUserService,
-    ILogger<MerchantService> logger) : IMerchantService
+    ILogger<MerchantService> logger,
+    TimeProvider timeProvider) : IMerchantService
 {
 
     public Task<List<Merchant>> GetAllMerchantsAsync(CancellationToken cancellationToken = default)
@@ -59,7 +60,7 @@ public sealed class MerchantService(
             if (defaultCategoryId.HasValue && !existing.DefaultCategoryId.HasValue)
             {
                 existing.DefaultCategoryId = defaultCategoryId.Value;
-                existing.UpdatedAtUtc = DateTime.UtcNow;
+                existing.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
                 await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             return existing;
@@ -143,7 +144,7 @@ public sealed class MerchantService(
         if (!string.IsNullOrWhiteSpace(colorHex))
             merchant.ColorHex = colorHex.Trim();
 
-        merchant.UpdatedAtUtc = DateTime.UtcNow;
+        merchant.UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
 
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Marchand ID {Id} mis à jour avec le nom '{Name}'.", id, trimmed);

@@ -128,7 +128,8 @@ public sealed class TransactionsPageFilteringTests : IDisposable
             _mockRulesEngine.Object,
             _mockMerchantService.Object,
             _mockRecurringService.Object,
-            _mockLocalizedEntityService.Object)
+            _mockLocalizedEntityService.Object,
+            TimeProvider.System)
         {
             PageContext = pageContext,
             TempData = new Microsoft.AspNetCore.Mvc.ViewFeatures.TempDataDictionary(httpContext, Mock.Of<Microsoft.AspNetCore.Mvc.ViewFeatures.ITempDataProvider>())

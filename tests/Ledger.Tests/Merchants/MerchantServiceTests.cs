@@ -27,7 +27,7 @@ public sealed class MerchantServiceTests : IDisposable
         (_context, _connection) = TestDbContextFactory.Create("test-user");
         _mockCurrentUserService = new Mock<ICurrentUserService>();
         _mockCurrentUserService.Setup(u => u.UserId).Returns("test-user");
-        _service = new MerchantService(_context, _mockCurrentUserService.Object, NullLogger<MerchantService>.Instance);
+        _service = new MerchantService(_context, _mockCurrentUserService.Object, NullLogger<MerchantService>.Instance, TimeProvider.System);
 
         var bank = new Bank { Id = Guid.NewGuid(), UserId = "test-user", Name = "Banque Test" };
         var account = new BankAccount { Id = _bankAccountId, UserId = "test-user", BankId = bank.Id, Name = "Compte Courant" };
@@ -251,5 +251,20 @@ public sealed class MerchantServiceTests : IDisposable
         // Assert
         counts[m1.Id].Should().Be(2);
         counts[m2.Id].Should().Be(1);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WhenUpdated_SetsUpdatedAtUtcFromTimeProvider()
+    {
+        var fixedUtc = new DateTimeOffset(2025, 3, 15, 14, 20, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        var service = new MerchantService(_context, _mockCurrentUserService.Object, NullLogger<MerchantService>.Instance, fakeTime);
+
+        var merchant = await service.CreateAsync("Boulangerie Initiale");
+
+        var updated = await service.UpdateAsync(merchant.Id, "Boulangerie Renommée", _categoryId, null, null);
+
+        updated.Should().NotBeNull();
+        updated.UpdatedAtUtc.Should().Be(fixedUtc.UtcDateTime);
     }
 }

@@ -19,7 +19,7 @@ public sealed class CategorySeedServiceTests : IDisposable
         var (context, connection) = TestDbContextFactory.Create(TestUserId);
         _context = context;
         _connection = connection;
-        _service = new CategorySeedService(_context, NullLogger<CategorySeedService>.Instance);
+        _service = new CategorySeedService(_context, NullLogger<CategorySeedService>.Instance, TimeProvider.System);
     }
 
     public void Dispose()
@@ -239,5 +239,19 @@ public sealed class CategorySeedServiceTests : IDisposable
             Translations = { ["fr"] = " ", ["en"] = "", ["it"] = "   " }
         };
         Assert.Equal("Catégorie", dtoAllWhitespace.GetDefaultName());
+    }
+
+    [Fact]
+    public async Task RestoreDefaultCategoriesAsync_WhenTimeIsFixed_SetsCreatedAtUtcFromTimeProvider()
+    {
+        var fixedUtc = new DateTimeOffset(2025, 3, 15, 12, 0, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        var service = new CategorySeedService(_context, NullLogger<CategorySeedService>.Instance, fakeTime);
+
+        var restored = await service.RestoreDefaultCategoriesAsync(TestUserId);
+
+        Assert.Equal(115, restored);
+        var categories = await _context.Categories.IgnoreQueryFilters().Where(c => c.UserId == TestUserId).ToListAsync();
+        Assert.All(categories, c => Assert.Equal(fixedUtc.UtcDateTime, c.CreatedAtUtc));
     }
 }

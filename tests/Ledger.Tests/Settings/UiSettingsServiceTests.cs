@@ -17,7 +17,7 @@ public sealed class UiSettingsServiceTests : IDisposable
     public UiSettingsServiceTests()
     {
         (_context, _connection) = TestDbContextFactory.Create();
-        _service = new UiSettingsService(_context, NullLogger<UiSettingsService>.Instance);
+        _service = new UiSettingsService(_context, NullLogger<UiSettingsService>.Instance, TimeProvider.System);
     }
 
     [Fact]
@@ -221,6 +221,19 @@ public sealed class UiSettingsServiceTests : IDisposable
     {
         var act = async () => await _service.SetTableColumnsConfigAsync("tx", "{}", new CancellationToken(canceled: true));
         return act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public async Task SetFontSizeAsync_WhenTimeIsFixed_SetsUpdatedAtUtcFromTimeProvider()
+    {
+        var fixedUtc = new DateTimeOffset(2025, 3, 15, 16, 45, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        var service = new UiSettingsService(_context, NullLogger<UiSettingsService>.Instance, fakeTime);
+
+        await service.SetFontSizeAsync("16px");
+
+        var setting = await _context.AppSettings.FirstAsync(s => s.Key == "Ui.FontSize");
+        setting.UpdatedAtUtc.Should().Be(fixedUtc.UtcDateTime);
     }
 
     public void Dispose()

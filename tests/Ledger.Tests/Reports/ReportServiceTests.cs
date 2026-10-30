@@ -58,7 +58,8 @@ public sealed class ReportServiceTests : IDisposable
             _dbContext,
             _mockLocalizedEntityService.Object,
             _mockRecurringService.Object,
-            _mockLocalizer.Object);
+            _mockLocalizer.Object,
+            TimeProvider.System);
     }
 
     public void Dispose()
@@ -429,5 +430,45 @@ public sealed class ReportServiceTests : IDisposable
         var afterReset = await _service.GetDashboardsAsync();
         afterReset.Should().NotBeEmpty();
         afterReset.First(d => d.IsDefault).Widgets.Should().NotBeEmpty();
+    }
+
+    [Fact]
+    public async Task ComputeWidgetDataAsync_WhenTodayIsFixed_UsesCurrentMonthPeriod()
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2025, 3, 15, 10, 30, 0, TimeSpan.Zero));
+        var service = new ReportService(
+            _dbContext,
+            _mockLocalizedEntityService.Object,
+            _mockRecurringService.Object,
+            _mockLocalizer.Object,
+            fakeTime);
+
+        var bank = new Bank { Id = Guid.NewGuid(), UserId = "test-user-id", Name = "Banque Test" };
+        var account = new BankAccount { Id = Guid.NewGuid(), UserId = "test-user-id", BankId = bank.Id, Name = "Compte Test" };
+        _dbContext.Banks.Add(bank);
+        _dbContext.BankAccounts.Add(account);
+        _dbContext.Transactions.Add(new Transaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            BankAccountId = account.Id,
+            Date = new DateTime(2025, 3, 10, 0, 0, 0, DateTimeKind.Utc),
+            Amount = 142.50m,
+            Type = TransactionType.Debit,
+            Label = "Dépense Mars 2025"
+        });
+        await _dbContext.SaveChangesAsync();
+
+        var widget = new ReportWidget
+        {
+            DashboardId = Guid.NewGuid(),
+            Title = "Dépenses du mois",
+            WidgetType = "KpiExpenses",
+            ConfigJson = "{\"Period\":\"current_month\"}"
+        };
+
+        var result = await service.ComputeWidgetDataAsync(widget);
+
+        result.KpiValue.Should().Be(142.50m);
     }
 }

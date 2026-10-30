@@ -14,7 +14,7 @@ namespace Ledger.Features.Categories.Services;
 /// Service assurant l'initialisation, la synchronisation et la restauration des catégories par défaut
 /// avec leurs traductions multilingues à partir de Resources/default-categories.json.
 /// </summary>
-public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedService> logger) : ICategorySeedService
+public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedService> logger, TimeProvider timeProvider) : ICategorySeedService
 {
     private static IReadOnlyList<CategoryTemplateDto>? _cachedCatalog;
     private static readonly Lock CatalogLock = new();
@@ -124,7 +124,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
             .GroupBy(c => c.ParentCategoryId.GetValueOrDefault())
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var now = DateTime.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
         var categoriesToAdd = new List<Category>();
         var translationsToAdd = new List<EntityTranslation>();
         var existingTranslationsMap = existingTranslations
@@ -323,7 +323,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         }
 
         var translationsToAdd = new List<EntityTranslation>();
-        var now = DateTime.UtcNow;
+        var now = timeProvider.GetUtcNow().UtcDateTime;
 
         foreach (var cat in categories)
         {

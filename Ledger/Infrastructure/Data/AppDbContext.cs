@@ -22,7 +22,8 @@ namespace Ledger.Infrastructure.Data;
 /// </summary>
 public class AppDbContext(
     DbContextOptions<AppDbContext> options,
-    ICurrentUserService currentUserService) : IdentityDbContext<ApplicationUser>(options)
+    ICurrentUserService currentUserService,
+    TimeProvider? timeProvider = null) : IdentityDbContext<ApplicationUser>(options)
 {
     // Entités Métier
     public DbSet<Bank> Banks => Set<Bank>();
@@ -309,7 +310,7 @@ public class AppDbContext(
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var currentUserId = currentUserService.UserId;
-        var now = DateTime.UtcNow;
+        var now = (timeProvider ?? TimeProvider.System).GetUtcNow().UtcDateTime;
 
         foreach (var entry in ChangeTracker.Entries())
         {
@@ -325,7 +326,7 @@ public class AppDbContext(
                 {
                     baseEntity.CreatedAtUtc = now;
                 }
-                else if (entry.State == EntityState.Modified)
+                else if (entry.State == EntityState.Modified && !entry.Property(nameof(BaseEntity.UpdatedAtUtc)).IsModified)
                 {
                     baseEntity.UpdatedAtUtc = now;
                 }

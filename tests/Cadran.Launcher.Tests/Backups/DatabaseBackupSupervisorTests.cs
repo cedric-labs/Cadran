@@ -35,7 +35,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     public async Task CreateBackupAsync_WhenDatabaseExists_CreatesTimestampedFile()
     {
         // Arrange
-        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath);
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, TimeProvider.System);
 
         // Act
         var result = await supervisor.CreateBackupAsync("test");
@@ -52,7 +52,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     {
         // Arrange
         var missingDbPath = Path.Combine(_testDirectory, "missing.db");
-        var supervisor = new DatabaseBackupSupervisor(missingDbPath, _backupDirectoryPath);
+        var supervisor = new DatabaseBackupSupervisor(missingDbPath, _backupDirectoryPath, TimeProvider.System);
 
         // Act
         var result = await supervisor.CreateBackupAsync("test");
@@ -66,7 +66,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     public async Task GetAvailableBackups_WhenBackupsExist_ReturnsOrderedList()
     {
         // Arrange
-        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath);
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, TimeProvider.System);
         await supervisor.CreateBackupAsync("lancement");
         await Task.Delay(1100); // Décaler le timestamp de la seconde sauvegarde
         await supervisor.CreateBackupAsync("fermeture");
@@ -84,7 +84,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     public async Task RestoreBackupAsync_WhenServerIsRunning_ReturnsFailureWithoutModifyingDatabase()
     {
         // Arrange
-        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath);
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, TimeProvider.System);
         var backup = await supervisor.CreateBackupAsync("initial");
         await File.WriteAllTextAsync(_databaseFilePath, "MODIFIED_CONTENT");
 
@@ -101,7 +101,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     public async Task RestoreBackupAsync_WhenBackupIsValid_ReplacesDatabaseAndCleansWalFiles()
     {
         // Arrange
-        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath);
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, TimeProvider.System);
         var backup = await supervisor.CreateBackupAsync("checkpoint");
 
         // Simuler des modifications et l'apparition de fichiers WAL et SHM
@@ -125,7 +125,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     public void ApplyRetentionPolicy_WhenMaxFilesExceeded_PurgesOldestFiles()
     {
         // Arrange
-        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath);
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, TimeProvider.System);
 
         // Créer manuellement 5 fichiers de sauvegarde avec des dates échelonnées
         for (var i = 1; i <= 5; i++)
@@ -153,7 +153,7 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     public void ApplyRetentionPolicy_WhenMaxDaysExceeded_PurgesExpiredFiles()
     {
         // Arrange
-        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath);
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, TimeProvider.System);
 
         // Créer un fichier vieux de 40 jours et un fichier récent
         var expiredFile = Path.Combine(_backupDirectoryPath, "cadran_backup_20260901_120000_old.db");
@@ -177,5 +177,18 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
         deletedCount.Should().Be(1);
         File.Exists(expiredFile).Should().BeFalse();
         File.Exists(freshFile).Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task CreateBackupAsync_WhenTimeIsFixed_NamesBackupWithTimestamp()
+    {
+        var fixedUtc = new DateTimeOffset(2025, 3, 15, 8, 5, 9, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, fakeTime);
+
+        var result = await supervisor.CreateBackupAsync("manual");
+
+        result.IsSuccess.Should().BeTrue();
+        Path.GetFileName(result.BackupFilePath).Should().Be("cadran_backup_20250315_080509_manual.db");
     }
 }

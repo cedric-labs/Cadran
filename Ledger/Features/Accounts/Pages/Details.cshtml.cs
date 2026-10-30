@@ -19,7 +19,8 @@ public class DetailsModel(
     IUiSettingsService uiSettingsService,
     Ledger.Features.Recurring.Services.IRecurringExpenseService recurringExpenseService,
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService,
-    IMerchantService merchantService)
+    IMerchantService merchantService,
+    TimeProvider timeProvider)
     : TransactionOperationsPageModelBase(
         dbContext,
         statusService,
@@ -27,7 +28,8 @@ public class DetailsModel(
         rulesEngineService,
         merchantService,
         recurringExpenseService,
-        localizedEntityService)
+        localizedEntityService,
+        timeProvider)
 {
     public override string DefaultTableKey => "AccountDetails";
 

@@ -58,7 +58,8 @@ public class AuthServiceTests
             UrlEncoder.Default,
             _mockCategorySeedService.Object,
             _mockAccountTypeService.Object,
-            _mockTransactionStatusService.Object);
+            _mockTransactionStatusService.Object,
+            TimeProvider.System);
     }
 
     [Fact]
@@ -144,5 +145,30 @@ public class AuthServiceTests
     {
         await _service.SignOutAsync();
         _mockSignInManager.Verify(s => s.SignOutAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task LoginUserAsync_WhenLoginSucceeds_SetsLastLoginAtUtcFromTimeProvider()
+    {
+        var fixedUtc = new DateTimeOffset(2025, 3, 15, 9, 15, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        var service = new AuthService(
+            _mockUserManager.Object,
+            _mockSignInManager.Object,
+            UrlEncoder.Default,
+            _mockCategorySeedService.Object,
+            _mockAccountTypeService.Object,
+            _mockTransactionStatusService.Object,
+            fakeTime);
+
+        var user = new ApplicationUser { UserName = "alice", Email = "alice@Ledger.local" };
+        _mockUserManager.Setup(m => m.FindByEmailAsync("alice@Ledger.local")).ReturnsAsync(user);
+        _mockSignInManager.Setup(s => s.PasswordSignInAsync("alice", "ValidPassword!", false, true)).ReturnsAsync(SignInResult.Success);
+        _mockUserManager.Setup(m => m.UpdateAsync(user)).ReturnsAsync(IdentityResult.Success);
+
+        var result = await service.LoginUserAsync("alice@Ledger.local", "ValidPassword!", false);
+
+        result.Should().Be(SignInResult.Success);
+        user.LastLoginAtUtc.Should().Be(fixedUtc.UtcDateTime);
     }
 }

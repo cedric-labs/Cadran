@@ -101,7 +101,8 @@ public sealed class TransactionsUpdateCategoryTests : IDisposable
             _mockRulesEngineService.Object,
             _mockMerchantService.Object,
             _mockRecurringService.Object,
-            _mockLocalizedEntityService.Object)
+            _mockLocalizedEntityService.Object,
+            TimeProvider.System)
         {
             PageContext = new PageContext(new ActionContext(httpContext, new RouteData(), new PageActionDescriptor(), new ModelStateDictionary()))
         };

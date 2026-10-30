@@ -124,6 +124,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
 // 4. SÉCURITÉ, ASP.NET CORE IDENTITY & CONTEXTE UTILISATEUR COURANT
 // ==============================================================================
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>

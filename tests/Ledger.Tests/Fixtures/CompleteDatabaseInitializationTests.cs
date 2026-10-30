@@ -54,6 +54,7 @@ public sealed class CompleteDatabaseInitializationTests : IDisposable
 
         services.AddLogging(builder => builder.AddDebug());
         services.AddMemoryCache();
+        services.AddSingleton(TimeProvider.System);
 
         services.AddDbContext<AppDbContext>(options =>
         {
@@ -157,6 +158,27 @@ public sealed class CompleteDatabaseInitializationTests : IDisposable
         // Act & Assert 4: Running InitializeDatabaseAsync a second time on the same DB must be completely idempotent
         var reinitAct = async () => await DatabaseInitializer.InitializeDatabaseAsync(serviceProvider);
         await reinitAct.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task SeedReferenceDataAsync_WhenTimeIsFixed_SetsCurrencySettingUpdatedAtUtcFromTimeProvider()
+    {
+        var fixedUtc = new DateTimeOffset(2025, 3, 15, 15, 30, 0, TimeSpan.Zero);
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        var (context, connection) = TestDbContextFactory.Create("test-user-id", fakeTime);
+        await using var _ = context;
+        await using var __ = connection;
+
+        var services = new ServiceCollection();
+        var serviceProvider = services.BuildServiceProvider();
+        var seeder = new DatabaseReferenceDataSeeder(
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<DatabaseReferenceDataSeeder>.Instance,
+            fakeTime);
+
+        await seeder.SeedReferenceDataAsync(context, serviceProvider);
+
+        var currencySetting = await context.AppSettings.FirstAsync(s => s.Key == "Currencies:Supported");
+        currencySetting.UpdatedAtUtc.Should().Be(fixedUtc.UtcDateTime);
     }
 
     private static async Task AssertColumnExistsAsync(SqliteConnection conn, string tableName, string columnName)

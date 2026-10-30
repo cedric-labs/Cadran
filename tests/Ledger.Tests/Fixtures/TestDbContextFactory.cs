@@ -7,7 +7,7 @@ namespace Ledger.Tests.Fixtures;
 
 public static class TestDbContextFactory
 {
-    public static (AppDbContext context, SqliteConnection connection) Create(string userId = "test-user-id")
+    public static (AppDbContext context, SqliteConnection connection) Create(string userId = "test-user-id", TimeProvider? timeProvider = null)
     {
         var connection = new SqliteConnection("DataSource=:memory:");
         connection.Open();
@@ -17,7 +17,7 @@ public static class TestDbContextFactory
             .Options;
 
         var mockCurrentUserService = new TestCurrentUserService(userId);
-        var context = new AppDbContext(options, mockCurrentUserService);
+        var context = new AppDbContext(options, mockCurrentUserService, timeProvider);
         context.Database.EnsureCreated();
 
         return (context, connection);

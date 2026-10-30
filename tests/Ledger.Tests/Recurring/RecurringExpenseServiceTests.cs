@@ -20,7 +20,7 @@ public sealed class RecurringExpenseServiceTests : IDisposable
     public RecurringExpenseServiceTests()
     {
         (_context, _connection) = TestDbContextFactory.Create();
-        _recurringService = new RecurringExpenseService(_context);
+        _recurringService = new RecurringExpenseService(_context, TimeProvider.System);
 
         SeedTestData();
     }
@@ -613,6 +613,39 @@ public sealed class RecurringExpenseServiceTests : IDisposable
         // 8. Désignorer le pattern ignoré
         await _recurringService.UnignoreCandidateAsync("PATRON_TEST");
         (await _recurringService.GetIgnoredPatternsAsync()).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DetectCandidatesAsync_WhenTodayIsFixed_IgnoresTransactionsOlderThanTwelveMonths()
+    {
+        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(new DateTimeOffset(2025, 6, 15, 10, 0, 0, TimeSpan.Zero));
+        var service = new RecurringExpenseService(_context, fakeTime);
+
+        var datesInWindow = new[]
+        {
+            new DateTime(2024, 7, 10, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2024, 8, 10, 0, 0, 0, DateTimeKind.Utc),
+            new DateTime(2024, 9, 10, 0, 0, 0, DateTimeKind.Utc)
+        };
+        foreach (var date in datesInWindow)
+        {
+            _context.Transactions.Add(new Transaction
+            {
+                Id = Guid.NewGuid(),
+                UserId = "test-user-id",
+                BankAccountId = _bankAccountId,
+                Date = date,
+                Amount = 29.99m,
+                Type = TransactionType.Debit,
+                Label = "ABONNEMENT FIBRE 2024"
+            });
+        }
+
+        await _context.SaveChangesAsync();
+
+        var candidates = await service.DetectCandidatesAsync();
+
+        candidates.Should().ContainSingle(c => c.Pattern.Contains("ABONNEMENT FIBRE", StringComparison.OrdinalIgnoreCase));
     }
 
     public void Dispose()

@@ -24,6 +24,7 @@ public sealed class PivotReportService(
     ILocalizedEntityService localizedEntityService,
     IStringLocalizer localizer,
     IUiSettingsService uiSettingsService,
+    TimeProvider timeProvider,
     IPivotAggregationCalculator? aggregationCalculator = null) : IPivotReportService
 {
     private readonly IPivotAggregationCalculator _aggregationCalculator = aggregationCalculator ?? new PivotAggregationCalculator(localizer);
@@ -564,7 +565,7 @@ public sealed class PivotReportService(
 
     private async Task<(DateTime Start, DateTime End)> ResolvePeriodDatesAsync(PivotPeriodPreset preset, DateTime? customStart, DateTime? customEnd)
     {
-        var now = DateTime.Today;
+        var now = timeProvider.GetLocalNow().Date;
         DateTime start;
         DateTime end;
 
