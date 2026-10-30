@@ -12,7 +12,7 @@ internal static class Program
     [STAThread]
     private static void Main(string[] args)
     {
-        if (args.Length > 0 && args[0] == "--screenshot")
+        if (args.Length > 0 && string.Equals(args[0], "--screenshot", StringComparison.Ordinal))
         {
             var culture = args.Length > 1 ? args[1] : "en";
             CaptureScreenshot(culture);
@@ -129,7 +129,7 @@ internal static class Program
         Directory.CreateDirectory(docsDir);
         var artifactsDir = @"C:\Users\user\.gemini\antigravity\brain\bdc279ef-1c47-4c3b-8899-6796af37fe8a";
 
-        var suffix = culture == "fr" ? "-fr" : "";
+        var suffix = string.Equals(culture, "fr", StringComparison.Ordinal) ? "-fr" : "";
         var cleanPath = Path.Combine(docsDir, $"24-backups-supervision-screen{suffix}.png");
         bmp.Save(cleanPath, System.Drawing.Imaging.ImageFormat.Png);
         if (Directory.Exists(artifactsDir))

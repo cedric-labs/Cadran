@@ -1,3 +1,4 @@
+using System.Globalization;
 using AwesomeAssertions;
 using Ledger.Features.Security.Context;
 using Ledger.Infrastructure.Data;
@@ -43,7 +44,7 @@ public sealed class DatabaseMigrationTests : IDisposable
         // Verify key tables exist
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('Merchants', 'TransactionSplits', 'EntityTranslations', 'RecurringExpenses');";
-        var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+        var count = Convert.ToInt32(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
         count.Should().Be(4);
     }
 

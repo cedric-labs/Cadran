@@ -32,7 +32,7 @@ public class CurrencyServiceTests
         ]";
 
         var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+            .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Currencies:Supported"] = json
             })
@@ -141,7 +141,7 @@ public class CurrencyServiceTests
     {
         // 1. JSON invalide
         var invalidConfig = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+            .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Currencies:Supported"] = "{ this is not valid json }"
             })
@@ -151,7 +151,7 @@ public class CurrencyServiceTests
 
         // 2. JSON liste vide
         var emptyConfig = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
+            .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Currencies:Supported"] = "[]"
             })

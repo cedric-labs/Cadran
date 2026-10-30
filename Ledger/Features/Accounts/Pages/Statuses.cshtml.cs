@@ -95,7 +95,7 @@ public class StatusesModel(
                 return RedirectToPage();
             }
 
-            if (currentLang == "fr")
+            if (string.Equals(currentLang, "fr", StringComparison.Ordinal))
             {
                 existing.Name = Input.Name.Trim();
             }

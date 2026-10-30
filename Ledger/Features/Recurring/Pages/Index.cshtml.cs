@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Categories.Entities;
 using Ledger.Features.Recurring.Entities;
@@ -160,11 +161,11 @@ public class IndexModel(
         };
 
         await recurringService.ConfirmCandidateAsync(candidate, cancellationToken);
-        TempData["SuccessMessage"] = string.Format(localizer["Recurring.CandidateConfirmed"].Value, suggestedName);
+        TempData["SuccessMessage"] = string.Format(CultureInfo.CurrentCulture, localizer["Recurring.CandidateConfirmed"].Value, suggestedName);
 
         if (Request.Headers.XRequestedWith == "XMLHttpRequest")
         {
-            return new JsonResult(new { success = true, message = string.Format(localizer["Recurring.CandidateConfirmed"].Value, suggestedName) });
+            return new JsonResult(new { success = true, message = string.Format(CultureInfo.CurrentCulture, localizer["Recurring.CandidateConfirmed"].Value, suggestedName) });
         }
 
         return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });
@@ -173,11 +174,11 @@ public class IndexModel(
     public async Task<IActionResult> OnPostIgnoreCandidateAsync(string pattern, int? year, int? month, CancellationToken cancellationToken = default)
     {
         await recurringService.IgnoreCandidateAsync(pattern, cancellationToken);
-        TempData["SuccessMessage"] = string.Format(localizer["Recurring.CandidateIgnored"].Value, pattern);
+        TempData["SuccessMessage"] = string.Format(CultureInfo.CurrentCulture, localizer["Recurring.CandidateIgnored"].Value, pattern);
 
         if (Request.Headers.XRequestedWith == "XMLHttpRequest")
         {
-            return new JsonResult(new { success = true, message = string.Format(localizer["Recurring.CandidateIgnored"].Value, pattern) });
+            return new JsonResult(new { success = true, message = string.Format(CultureInfo.CurrentCulture, localizer["Recurring.CandidateIgnored"].Value, pattern) });
         }
 
         return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });

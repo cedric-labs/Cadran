@@ -217,7 +217,7 @@ public class ProgramTests : IClassFixture<AppWebApplicationFactory>
         {
             builder.ConfigureAppConfiguration((_, config) =>
             {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
+                config.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
                 {
                     ["Server:Port"] = "5055",
                     ["Server:AllowNetworkAccess"] = "true",

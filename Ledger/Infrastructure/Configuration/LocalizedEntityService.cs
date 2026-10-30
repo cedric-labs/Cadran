@@ -130,7 +130,7 @@ public sealed class LocalizedEntityService(AppDbContext dbContext) : ILocalizedE
 
         return translations
             .Where(t => t.EntityId == entityId)
-            .ToDictionary(t => t.LanguageCode, t => t.Translation);
+            .ToDictionary(t => t.LanguageCode, t => t.Translation, StringComparer.OrdinalIgnoreCase);
     }
 
     private static string NormalizeLanguageCode(string? lang)

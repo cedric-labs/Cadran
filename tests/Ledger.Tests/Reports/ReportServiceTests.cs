@@ -1,3 +1,4 @@
+using System.Globalization;
 using AwesomeAssertions;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Categories.Entities;
@@ -51,7 +52,7 @@ public sealed class ReportServiceTests : IDisposable
         _mockLocalizer.Setup(l => l[It.IsAny<string>()])
             .Returns<string>(k => new LocalizedString(k, k));
         _mockLocalizer.Setup(l => l[It.IsAny<string>(), It.IsAny<object[]>()])
-            .Returns<string, object[]>((k, args) => new LocalizedString(k, string.Format(k, args)));
+            .Returns<string, object[]>((k, args) => new LocalizedString(k, string.Format(CultureInfo.CurrentCulture, k, args)));
 
         _service = new ReportService(
             _dbContext,
@@ -350,7 +351,7 @@ public sealed class ReportServiceTests : IDisposable
         };
         var resTop = await _service.ComputeWidgetDataAsync(topWidget);
         resTop.TableRows.Should().NotBeEmpty();
-        resTop.TableRows.Any(r => r.Label == "Common.Uncategorized").Should().BeTrue();
+        resTop.TableRows.Any(r => string.Equals(r.Label, "Common.Uncategorized", StringComparison.Ordinal)).Should().BeTrue();
 
         // 8. TopExpensesList avec topCount <= 0 (repli sur 5)
         var topWidgetFallback = new ReportWidget

@@ -62,7 +62,7 @@ public sealed class AppWebTestFixture : WebApplicationFactory<Program>
 
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            config.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
             {
                 ["Server:AutoLaunchBrowser"] = "false",
                 ["Server:Port"] = null,

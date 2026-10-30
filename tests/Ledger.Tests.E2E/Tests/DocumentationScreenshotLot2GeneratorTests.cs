@@ -127,10 +127,10 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         await db.SaveChangesAsync();
 
         var types = await db.CustomAccountTypes.IgnoreQueryFilters().Where(t => t.UserId == userId).ToListAsync();
-        var checkingType = types.FirstOrDefault(t => t.Code == "Checking");
-        var livretAType = types.FirstOrDefault(t => t.Code == "LivretA");
-        var cardType = types.FirstOrDefault(t => t.Code == "CreditCard");
-        var peaType = types.FirstOrDefault(t => t.Code == "Pea");
+        var checkingType = types.FirstOrDefault(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal));
+        var livretAType = types.FirstOrDefault(t => string.Equals(t.Code, "LivretA", StringComparison.Ordinal));
+        var cardType = types.FirstOrDefault(t => string.Equals(t.Code, "CreditCard", StringComparison.Ordinal));
+        var peaType = types.FirstOrDefault(t => string.Equals(t.Code, "Pea", StringComparison.Ordinal));
 
         var checkingAcc = new BankAccount
         {
@@ -190,15 +190,15 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
 
         // Récupérer catégories et statuts pour des opérations réalistes
         var categories = await db.Categories.IgnoreQueryFilters().Where(c => c.UserId == userId).ToListAsync();
-        var catSalary = categories.FirstOrDefault(c => c.Name.Contains("Salaire") || c.Name.Contains("Revenus"));
-        var catHousing = categories.FirstOrDefault(c => c.Name.Contains("Logement") || c.Name.Contains("immobilier"));
-        var catFood = categories.FirstOrDefault(c => c.Name.Contains("vie courante") || c.Name.Contains("Alimentation"));
-        var catTransport = categories.FirstOrDefault(c => c.Name.Contains("Transports"));
-        var catSubscriptions = categories.FirstOrDefault(c => c.Name.Contains("Abonnements") || c.Name.Contains("Services"));
+        var catSalary = categories.FirstOrDefault(c => c.Name.Contains("Salaire", StringComparison.Ordinal) || c.Name.Contains("Revenus", StringComparison.Ordinal));
+        var catHousing = categories.FirstOrDefault(c => c.Name.Contains("Logement", StringComparison.Ordinal) || c.Name.Contains("immobilier", StringComparison.Ordinal));
+        var catFood = categories.FirstOrDefault(c => c.Name.Contains("vie courante", StringComparison.Ordinal) || c.Name.Contains("Alimentation", StringComparison.Ordinal));
+        var catTransport = categories.FirstOrDefault(c => c.Name.Contains("Transports", StringComparison.Ordinal));
+        var catSubscriptions = categories.FirstOrDefault(c => c.Name.Contains("Abonnements", StringComparison.Ordinal) || c.Name.Contains("Services", StringComparison.Ordinal));
 
         var statuses = await db.TransactionStatuses.IgnoreQueryFilters().Where(s => s.UserId == userId).ToListAsync();
-        var stReconciled = statuses.FirstOrDefault(s => s.Code == "Reconciled");
-        var stCleared = statuses.FirstOrDefault(s => s.Code == "Cleared");
+        var stReconciled = statuses.FirstOrDefault(s => string.Equals(s.Code, "Reconciled", StringComparison.Ordinal));
+        var stCleared = statuses.FirstOrDefault(s => string.Equals(s.Code, "Cleared", StringComparison.Ordinal));
 
         var now = DateTime.Today;
         var sampleTransactions = new List<Transaction>

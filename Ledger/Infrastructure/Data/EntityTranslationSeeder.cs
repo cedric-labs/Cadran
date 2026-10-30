@@ -170,7 +170,7 @@ public sealed class EntityTranslationSeeder(ILogger<EntityTranslationSeeder> log
             var existingTranslations = await context.EntityTranslations.ToListAsync(cancellationToken);
             var existingKeys = existingTranslations
                 .Select(t => $"{t.EntityType.ToLowerInvariant()}:{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}:{t.Field.ToLowerInvariant()}")
-                .ToHashSet();
+                .ToHashSet(StringComparer.Ordinal);
 
             await SeedAccountTypeTranslationsAsync(context, existingKeys, cancellationToken);
             await SeedStatusTranslationsAsync(context, existingKeys, cancellationToken);

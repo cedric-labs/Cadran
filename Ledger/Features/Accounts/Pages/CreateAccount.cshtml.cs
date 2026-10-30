@@ -70,7 +70,7 @@ public class CreateAccountModel(
             cancellationToken);
 
         // Sélectionner par défaut le type Compte de Dépôt s'il existe
-        var defaultType = AvailableAccountTypes.FirstOrDefault(t => t.Code == "Checking") ?? AvailableAccountTypes.FirstOrDefault();
+        var defaultType = AvailableAccountTypes.FirstOrDefault(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal)) ?? AvailableAccountTypes.FirstOrDefault();
         if (defaultType != null)
         {
             Input.CustomAccountTypeId = defaultType.Id;

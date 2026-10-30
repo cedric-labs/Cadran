@@ -129,7 +129,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         var translationsToAdd = new List<EntityTranslation>();
         var existingTranslationsMap = existingTranslations
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}:{t.Field.ToLowerInvariant()}")
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         int restoredCount = 0;
 
@@ -304,7 +304,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
 
         var existingMap = existingTranslations
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}:{t.Field.ToLowerInvariant()}")
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         var templates = GetDefaultCategoryTemplates();
         var flatTemplates = new List<CategoryTemplateDto>();
@@ -389,7 +389,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         var categoryNames = existingTranslations
             .Where(t => t.EntityId == category.Id && string.Equals(t.Field, "Name", StringComparison.OrdinalIgnoreCase))
             .Select(t => NormalizeString(t.Translation))
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         categoryNames.Add(normalizedCategoryName);
 

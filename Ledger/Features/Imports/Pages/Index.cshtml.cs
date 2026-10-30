@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.Text.Json;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Accounts.Services;
@@ -308,18 +309,18 @@ public class IndexModel(
             {
                 var toImport = allSuspected.Where(d => selectedIndices.Contains(d.Index)).ToList();
                 int imported = await importService.ConfirmDuplicatesAsync(batchId, bankAccountId, toImport);
-                StatusNotification = string.Format(localizer["Imports.ConfirmedDuplicatesSuccess"], imported);
+                StatusNotification = string.Format(CultureInfo.CurrentCulture, localizer["Imports.ConfirmedDuplicatesSuccess"], imported);
             }
         }
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Erreur de désérialisation JSON lors de la confirmation des doublons suspects.");
-            StatusNotification = string.Format(localizer["Imports.ConfirmDuplicatesError"], ex.Message);
+            StatusNotification = string.Format(CultureInfo.CurrentCulture, localizer["Imports.ConfirmDuplicatesError"], ex.Message);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Erreur d'opération lors de la confirmation des doublons suspects.");
-            StatusNotification = string.Format(localizer["Imports.ConfirmDuplicatesError"], ex.Message);
+            StatusNotification = string.Format(CultureInfo.CurrentCulture, localizer["Imports.ConfirmDuplicatesError"], ex.Message);
         }
 
         await LoadDataAsync();
@@ -361,7 +362,7 @@ public class IndexModel(
         }
 
         int deletedCount = await importService.DeleteExistingDuplicatesAsync(deduplicateAccountId, transactionIdsToDelete);
-        StatusNotification = string.Format(localizer["Imports.DeletedDuplicatesSuccess"], deletedCount);
+        StatusNotification = string.Format(CultureInfo.CurrentCulture, localizer["Imports.DeletedDuplicatesSuccess"], deletedCount);
 
         // Réactualiser la liste des doublons restants
         SelectedDeduplicateAccountId = deduplicateAccountId;

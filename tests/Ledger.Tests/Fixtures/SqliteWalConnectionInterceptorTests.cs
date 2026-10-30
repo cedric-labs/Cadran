@@ -1,3 +1,4 @@
+using System.Globalization;
 using AwesomeAssertions;
 using Ledger.Infrastructure.Data;
 using Microsoft.Data.Sqlite;
@@ -43,7 +44,7 @@ public sealed class SqliteWalConnectionInterceptorTests : IDisposable
 
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = "PRAGMA foreign_keys;";
-        var foreignKeys = Convert.ToInt64(cmd.ExecuteScalar());
+        var foreignKeys = Convert.ToInt64(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
         foreignKeys.Should().Be(1);
     }
 
@@ -57,7 +58,7 @@ public sealed class SqliteWalConnectionInterceptorTests : IDisposable
 
         using var cmd = _connection.CreateCommand();
         cmd.CommandText = "PRAGMA foreign_keys;";
-        var foreignKeys = Convert.ToInt64(await cmd.ExecuteScalarAsync());
+        var foreignKeys = Convert.ToInt64(await cmd.ExecuteScalarAsync(), CultureInfo.InvariantCulture);
         foreignKeys.Should().Be(1);
     }
 }

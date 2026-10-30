@@ -95,7 +95,7 @@ public sealed class TransactionStatusAndTypeServicesTests : IDisposable
         var currentDefault = await _statusService.GetDefaultStatusAsync();
         currentDefault!.Id.Should().Be(created.Id);
 
-        var previousDefault = (await _statusService.GetAllStatusesAsync()).FirstOrDefault(s => s.Code == "Cleared");
+        var previousDefault = (await _statusService.GetAllStatusesAsync()).FirstOrDefault(s => string.Equals(s.Code, "Cleared", StringComparison.Ordinal));
         previousDefault!.IsDefault.Should().BeFalse();
     }
 
@@ -112,7 +112,7 @@ public sealed class TransactionStatusAndTypeServicesTests : IDisposable
     public async Task UpdateAsync_WhenValid_UpdatesPropertiesAndResetsOtherDefaults()
     {
         var statuses = await _statusService.GetAllStatusesAsync();
-        var pending = statuses.First(s => s.Code == "Pending");
+        var pending = statuses.First(s => string.Equals(s.Code, "Pending", StringComparison.Ordinal));
 
         var updateRequest = new TransactionCustomStatus
         {
@@ -133,7 +133,7 @@ public sealed class TransactionStatusAndTypeServicesTests : IDisposable
         updated.IconName.Should().Be("bi-gear");
         updated.IsDefault.Should().BeTrue();
 
-        var cleared = statuses.First(s => s.Code == "Cleared");
+        var cleared = statuses.First(s => string.Equals(s.Code, "Cleared", StringComparison.Ordinal));
         await _context.Entry(cleared).ReloadAsync();
         cleared.IsDefault.Should().BeFalse();
     }
@@ -142,7 +142,7 @@ public sealed class TransactionStatusAndTypeServicesTests : IDisposable
     public async Task DeleteAsync_WhenSystemOrInUse_PreventsDeletion()
     {
         var statuses = await _statusService.GetAllStatusesAsync();
-        var cleared = statuses.First(s => s.Code == "Cleared");
+        var cleared = statuses.First(s => string.Equals(s.Code, "Cleared", StringComparison.Ordinal));
 
         // System status
         var (sysSuccess, sysErr) = await _statusService.DeleteAsync(cleared.Id);
@@ -273,7 +273,7 @@ public sealed class TransactionStatusAndTypeServicesTests : IDisposable
     public async Task DeleteTypeAsync_WhenSystemOrInUse_PreventsDeletion()
     {
         var types = await _accountTypeService.GetAllAccountTypesAsync();
-        var checking = types.First(t => t.Code == "Checking");
+        var checking = types.First(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal));
 
         // System type cannot be deleted
         var (sysSuccess, _) = await _accountTypeService.DeleteAsync(checking.Id);
@@ -321,7 +321,7 @@ public sealed class TransactionStatusAndTypeServicesTests : IDisposable
     public async Task UpdateTypeAsync_WhenValid_UpdatesPropertiesSuccessfully()
     {
         var types = await _accountTypeService.GetAllAccountTypesAsync();
-        var checking = types.First(t => t.Code == "Checking");
+        var checking = types.First(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal));
 
         checking.Name = "Compte Courant Modifié";
         checking.Description = "Nouvelle desc";

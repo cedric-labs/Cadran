@@ -162,7 +162,7 @@ public sealed class AccountTypeService(
 
         if (accountsWithoutType.Count > 0)
         {
-            var defaultMap = defaults.ToDictionary(d => d.Code ?? string.Empty, d => d.Id);
+            var defaultMap = defaults.ToDictionary(d => d.Code ?? string.Empty, d => d.Id, StringComparer.Ordinal);
             foreach (var acc in accountsWithoutType)
             {
                 var code = acc.Type.ToString();
@@ -197,7 +197,7 @@ public sealed class AccountTypeService(
 
         var existingKeySet = existingTranslations
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         var toAdd = new List<EntityTranslation>();
         foreach (var type in types)
@@ -295,8 +295,8 @@ public sealed class AccountTypeService(
             foreach (var acc in accountsWithoutType)
             {
                 var code = acc.Type.ToString();
-                var matchingType = allTypes.FirstOrDefault(t => t.UserId == acc.UserId && string.Equals(t.Code, code, StringComparison.OrdinalIgnoreCase))
-                    ?? allTypes.FirstOrDefault(t => t.UserId == acc.UserId && string.Equals(t.Code, "Checking", StringComparison.OrdinalIgnoreCase));
+                var matchingType = allTypes.FirstOrDefault(t => string.Equals(t.UserId, acc.UserId, StringComparison.Ordinal) && string.Equals(t.Code, code, StringComparison.OrdinalIgnoreCase))
+                    ?? allTypes.FirstOrDefault(t => string.Equals(t.UserId, acc.UserId, StringComparison.Ordinal) && string.Equals(t.Code, "Checking", StringComparison.OrdinalIgnoreCase));
 
                 if (matchingType != null)
                 {

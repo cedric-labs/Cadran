@@ -66,7 +66,7 @@ public class IndexModel(
         {
             Merchant = m,
             TransactionCount = counts.TryGetValue(m.Id, out var count) ? count : 0
-        }).OrderByDescending(x => x.TransactionCount).ThenBy(x => x.Merchant.Name).ToList();
+        }).OrderByDescending(x => x.TransactionCount).ThenBy(x => x.Merchant.Name, StringComparer.CurrentCulture).ToList();
 
         ParentCategories = await dbContext.Categories
             .Include(c => c.SubCategories)

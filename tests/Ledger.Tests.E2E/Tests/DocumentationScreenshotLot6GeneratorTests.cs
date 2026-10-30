@@ -87,7 +87,7 @@ public sealed class DocumentationScreenshotLot6GeneratorTests(AppWebTestFixture 
         }
 
         var types = await db.CustomAccountTypes.IgnoreQueryFilters().Where(t => t.UserId == userId).ToListAsync();
-        var checkingType = types.FirstOrDefault(t => t.Code == "Checking");
+        var checkingType = types.FirstOrDefault(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal));
 
         var checkingAcc = await db.BankAccounts.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.UserId == userId && a.Name == "Main Checking Account");
         if (checkingAcc == null)

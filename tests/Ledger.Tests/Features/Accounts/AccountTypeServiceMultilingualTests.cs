@@ -60,8 +60,8 @@ public sealed class AccountTypeServiceMultilingualTests : IDisposable
         // 17 types x 3 langues (en, es, de) = 51 traductions
         translations.Should().HaveCount(51);
 
-        var checkingType = types.First(t => t.Code == "Checking");
-        var checkingTrans = translations.Where(t => t.EntityId == checkingType.Id).ToDictionary(t => t.LanguageCode, t => t.Translation);
+        var checkingType = types.First(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal));
+        var checkingTrans = translations.Where(t => t.EntityId == checkingType.Id).ToDictionary(t => t.LanguageCode, t => t.Translation, StringComparer.OrdinalIgnoreCase);
 
         checkingTrans["en"].Should().Be("Checking Account");
         checkingTrans["es"].Should().Be("Cuenta Corriente");

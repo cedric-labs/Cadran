@@ -104,10 +104,10 @@ public class PivotRowDto
     public string? ParentRowKey { get; set; }
 
     // Valeur calculée par colonne (Key de la colonne -> Montant/Métrique)
-    public Dictionary<string, decimal> CellValues { get; set; } = new();
+    public Dictionary<string, decimal> CellValues { get; set; } = new(StringComparer.Ordinal);
 
     // Nombre d'opérations par colonne
-    public Dictionary<string, int> CellCounts { get; set; } = new();
+    public Dictionary<string, int> CellCounts { get; set; } = new(StringComparer.Ordinal);
 
     // Total de la ligne
     public decimal RowTotal { get; set; }
@@ -127,12 +127,12 @@ public class PivotRowDto
     /// Indique pour chaque colonne si la cellule contient un flux inversé / anomalie
     /// (ex: un crédit/remboursement dans une catégorie de dépenses, ou un débit dans une catégorie de revenus).
     /// </summary>
-    public Dictionary<string, bool> CellHasAnomalies { get; set; } = new();
+    public Dictionary<string, bool> CellHasAnomalies { get; set; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Indique pour chaque colonne si la valeur nette de la cellule correspond à un flux net créditeur (+).
     /// </summary>
-    public Dictionary<string, bool> CellIsCredit { get; set; } = new();
+    public Dictionary<string, bool> CellIsCredit { get; set; } = new(StringComparer.Ordinal);
 
     // Sous-lignes éventuelles (ex: sous-catégories)
     public List<PivotRowDto> SubRows { get; set; } = new();
@@ -149,7 +149,7 @@ public class PivotResultDto
     public List<PivotRowDto> Rows { get; set; } = new();
 
     // Totaux des colonnes
-    public Dictionary<string, decimal> ColumnTotals { get; set; } = new();
+    public Dictionary<string, decimal> ColumnTotals { get; set; } = new(StringComparer.Ordinal);
 
     // Grand total consolidé
     public decimal GrandTotal { get; set; }

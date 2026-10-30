@@ -45,7 +45,7 @@ public sealed class ReportsPage(IPage page) : BasePage(page)
     public async Task<bool> IsDashboardsTabActiveAsync()
     {
         var classAttr = await DashboardsTab.GetAttributeAsync("class");
-        return classAttr != null && classAttr.Contains("active");
+        return classAttr != null && classAttr.Contains("active", StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -54,6 +54,6 @@ public sealed class ReportsPage(IPage page) : BasePage(page)
     public async Task<bool> IsPivotTabActiveAsync()
     {
         var classAttr = await PivotTab.GetAttributeAsync("class");
-        return classAttr != null && classAttr.Contains("active");
+        return classAttr != null && classAttr.Contains("active", StringComparison.Ordinal);
     }
 }

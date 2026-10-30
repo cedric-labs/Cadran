@@ -282,9 +282,11 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
     public async Task<List<RecurringCandidateDto>> DetectCandidatesAsync(CancellationToken cancellationToken = default)
     {
         // 1. Charger les règles récurrentes déjà existantes et les motifs ignorés
-        var existingExpenses = await dbContext.RecurringExpenses
-            .Select(r => new { r.Id, Name = r.Name.ToLower(), Pattern = r.Pattern.ToLower() })
-            .ToListAsync(cancellationToken);
+        var existingExpenses = (await dbContext.RecurringExpenses
+            .Select(r => new { r.Id, r.Name, r.Pattern })
+            .ToListAsync(cancellationToken))
+            .Select(r => new { r.Id, Name = r.Name.ToLowerInvariant(), Pattern = r.Pattern.ToLowerInvariant() })
+            .ToList();
 
         var ignoredPatterns = await GetIgnoredPatternsAsync(cancellationToken);
 
@@ -357,7 +359,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
             if (txList.Count < 2) continue;
 
             // Si rawKey comporte un suffixe de montant (ex: "AXA (45.00 €)"), en extraire le pattern de recherche
-            var matchingPattern = rawKey.Contains('(') ? rawKey.Substring(0, rawKey.IndexOf('(')).Trim() : rawKey.Trim();
+            var matchingPattern = rawKey.Contains('(', StringComparison.Ordinal) ? rawKey.Substring(0, rawKey.IndexOf('(', StringComparison.Ordinal)).Trim() : rawKey.Trim();
             var cleanPatternLower = matchingPattern.ToLowerInvariant();
             var suggestedName = FormatSuggestedName(rawKey);
             var cleanSuggestedNameLower = suggestedName.Trim().ToLowerInvariant();
@@ -374,12 +376,12 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
 
             // Vérifier si cette charge est déjà couverte par une règle existante
             var matchingExisting = existingExpenses.FirstOrDefault(e =>
-                e.Pattern == cleanPatternLower ||
-                cleanPatternLower.Contains(e.Pattern) ||
-                e.Pattern.Contains(cleanPatternLower) ||
-                e.Name == cleanSuggestedNameLower ||
-                cleanSuggestedNameLower.Contains(e.Name) ||
-                e.Name.Contains(cleanSuggestedNameLower));
+                string.Equals(e.Pattern, cleanPatternLower, StringComparison.Ordinal) ||
+                cleanPatternLower.Contains(e.Pattern, StringComparison.Ordinal) ||
+                e.Pattern.Contains(cleanPatternLower, StringComparison.Ordinal) ||
+                string.Equals(e.Name, cleanSuggestedNameLower, StringComparison.Ordinal) ||
+                cleanSuggestedNameLower.Contains(e.Name, StringComparison.Ordinal) ||
+                e.Name.Contains(cleanSuggestedNameLower, StringComparison.Ordinal));
 
             // Calcul des écarts de jours entre occurrences consécutives
             var intervals = new List<int>();

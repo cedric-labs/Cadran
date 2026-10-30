@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ledger.Infrastructure.Configuration;
 using Ledger.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -125,7 +126,7 @@ public sealed class UiSettingsService(
 
     public async Task SetDefaultDisplayModeAsync(string mode, CancellationToken cancellationToken = default)
     {
-        if (mode != "compact" && mode != "comfort")
+        if (!string.Equals(mode, "compact", StringComparison.Ordinal) && !string.Equals(mode, "comfort", StringComparison.Ordinal))
         {
             mode = "compact";
         }
@@ -160,7 +161,7 @@ public sealed class UiSettingsService(
     {
         if (pageSize <= 0) pageSize = 250;
 
-        await UpsertSettingAsync(TransactionsPageSizeKey, pageSize.ToString(), "Nombre maximum d'opérations chargées par page (0 = illimité, défaut 250)", cancellationToken);
+        await UpsertSettingAsync(TransactionsPageSizeKey, pageSize.ToString(CultureInfo.InvariantCulture), "Nombre maximum d'opérations chargées par page (0 = illimité, défaut 250)", cancellationToken);
         logger.LogInformation("Nombre max d'opérations défini sur {PageSize}", pageSize);
     }
 
@@ -196,7 +197,7 @@ public sealed class UiSettingsService(
     public async Task SetDuplicateToleranceDaysAsync(int days, CancellationToken cancellationToken = default)
     {
         var clampedDays = Math.Clamp(days, 0, 30);
-        await UpsertSettingAsync(DuplicateToleranceDaysKey, clampedDays.ToString(), "Tolérance d'écart en jours pour la détection des doublons d'opérations lors de l'import et du nettoyage", cancellationToken);
+        await UpsertSettingAsync(DuplicateToleranceDaysKey, clampedDays.ToString(CultureInfo.InvariantCulture), "Tolérance d'écart en jours pour la détection des doublons d'opérations lors de l'import et du nettoyage", cancellationToken);
         logger.LogInformation("Tolérance d'écart de doublons définie sur {Days} jours", clampedDays);
     }
 
@@ -385,7 +386,7 @@ public sealed class UiSettingsService(
     public Task SetSalaryMonthStartDayAsync(int day, CancellationToken cancellationToken = default)
     {
         var clampedDay = Math.Clamp(day, 1, 28);
-        return UpsertSettingAsync(SalaryMonthStartDayKey, clampedDay.ToString(), "Jour de début du mois budgétaire / salarial (1 à 28)", cancellationToken);
+        return UpsertSettingAsync(SalaryMonthStartDayKey, clampedDay.ToString(CultureInfo.InvariantCulture), "Jour de début du mois budgétaire / salarial (1 à 28)", cancellationToken);
     }
 
     public (DateTime StartDate, DateTime EndDate) GetSalaryMonthBounds(DateTime refDate, int startDay)
@@ -433,7 +434,7 @@ public sealed class UiSettingsService(
         try
         {
             var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == key, cancellationToken);
-            if (setting != null && int.TryParse(setting.Value, out var value) && predicate(value))
+            if (setting != null && int.TryParse(setting.Value, CultureInfo.InvariantCulture, out var value) && predicate(value))
             {
                 return value;
             }

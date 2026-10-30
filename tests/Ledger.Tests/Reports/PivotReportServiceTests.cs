@@ -169,13 +169,13 @@ public sealed class PivotReportServiceTests : IDisposable
         result.TotalTransactionsCount.Should().Be(4); // 4 débits (salaire exclu)
         result.GrandTotal.Should().Be(1950m); // 800 + 150 + 800 + 200
 
-        var housingRow = result.Rows.FirstOrDefault(r => r.Label == "Logement");
+        var housingRow = result.Rows.FirstOrDefault(r => string.Equals(r.Label, "Logement", StringComparison.Ordinal));
         housingRow.Should().NotBeNull();
         housingRow.RowTotal.Should().Be(1600m); // 800 (jan) + 800 (fev)
         housingRow.CellValues["2026-01"].Should().Be(800m);
         housingRow.CellValues["2026-02"].Should().Be(800m);
 
-        var foodRow = result.Rows.FirstOrDefault(r => r.Label == "Alimentation");
+        var foodRow = result.Rows.FirstOrDefault(r => string.Equals(r.Label, "Alimentation", StringComparison.Ordinal));
         foodRow.Should().NotBeNull();
         foodRow.RowTotal.Should().Be(350m); // 150 + 200
     }
@@ -249,7 +249,7 @@ public sealed class PivotReportServiceTests : IDisposable
         var result = await _pivotService.ComputePivotAsync(query);
 
         // Assert
-        var housingRow = result.Rows.First(r => r.Label == "Logement");
+        var housingRow = result.Rows.First(r => string.Equals(r.Label, "Logement", StringComparison.Ordinal));
         housingRow.RowTotal.Should().Be(2); // 2 opérations
         housingRow.CellValues["2026-01"].Should().Be(1);
         housingRow.CellValues["2026-02"].Should().Be(1);
@@ -308,7 +308,7 @@ public sealed class PivotReportServiceTests : IDisposable
         var result = await _pivotService.ComputePivotAsync(query);
 
         // Assert : La dépense de 300€ doit se retrouver dans la colonne de février 2026 (BudgetDate) et pas janvier
-        var foodRow = result.Rows.First(r => r.Label == "Alimentation");
+        var foodRow = result.Rows.First(r => string.Equals(r.Label, "Alimentation", StringComparison.Ordinal));
         // Janvier = 150€ (du seed initial, l'opération décalée de 300€ en est exclue)
         foodRow.CellValues["2026-01"].Should().Be(150m);
         // Février = 200€ (du seed de février) + 300€ (décalé depuis janvier grâce à BudgetDate) = 500€
@@ -367,15 +367,15 @@ public sealed class PivotReportServiceTests : IDisposable
         var result = await _pivotService.ComputePivotAsync(query);
 
         // Assert
-        var foodRow = result.Rows.First(r => r.Label == "Alimentation");
+        var foodRow = result.Rows.First(r => string.Equals(r.Label, "Alimentation", StringComparison.Ordinal));
         foodRow.SubRows.Should().NotBeEmpty();
 
-        var supermarketSubRow = foodRow.SubRows.First(s => s.Label == "Supermarché");
+        var supermarketSubRow = foodRow.SubRows.First(s => string.Equals(s.Label, "Supermarché", StringComparison.Ordinal));
         supermarketSubRow.SubRows.Should().NotBeEmpty(); // Niveau 3 tiers/marchands
         supermarketSubRow.SubRows.Should().Contain(m => m.Label.Contains("AUCHAN"));
         supermarketSubRow.SubRows.Should().Contain(m => m.Label.Contains("CARREFOUR"));
 
-        var auchanLevel3 = supermarketSubRow.SubRows.First(m => m.Label.Contains("AUCHAN"));
+        var auchanLevel3 = supermarketSubRow.SubRows.First(m => m.Label.Contains("AUCHAN", StringComparison.Ordinal));
         auchanLevel3.CellValues["2026-01"].Should().Be(80m);
     }
 
@@ -461,7 +461,7 @@ public sealed class PivotReportServiceTests : IDisposable
 
         // Assert
         result.Rows.Should().ContainSingle(r => r.Label == "Lidl");
-        var lidlRow = result.Rows.First(r => r.Label == "Lidl");
+        var lidlRow = result.Rows.First(r => string.Equals(r.Label, "Lidl", StringComparison.Ordinal));
         lidlRow.CellValues["2026-01"].Should().Be(100m);
     }
 
@@ -521,8 +521,8 @@ public sealed class PivotReportServiceTests : IDisposable
         var result = await _pivotService.ComputePivotAsync(query);
 
         // Assert
-        var foodRow = result.Rows.FirstOrDefault(r => r.RowKey == _catFoodId.ToString());
-        var housingRow = result.Rows.FirstOrDefault(r => r.RowKey == _catHousingId.ToString());
+        var foodRow = result.Rows.FirstOrDefault(r => string.Equals(r.RowKey, _catFoodId.ToString(), StringComparison.Ordinal));
+        var housingRow = result.Rows.FirstOrDefault(r => string.Equals(r.RowKey, _catHousingId.ToString(), StringComparison.Ordinal));
 
         foodRow.Should().NotBeNull();
         foodRow.CellValues["2026-03"].Should().Be(60m);
@@ -590,8 +590,8 @@ public sealed class PivotReportServiceTests : IDisposable
         var result = await _pivotService.ComputePivotAsync(query);
 
         // Assert
-        var foodRow = result.Rows.FirstOrDefault(r => r.RowKey == _catFoodId.ToString());
-        var salaryRow = result.Rows.FirstOrDefault(r => r.RowKey == catSalary.Id.ToString());
+        var foodRow = result.Rows.FirstOrDefault(r => string.Equals(r.RowKey, _catFoodId.ToString(), StringComparison.Ordinal));
+        var salaryRow = result.Rows.FirstOrDefault(r => string.Equals(r.RowKey, catSalary.Id.ToString(), StringComparison.Ordinal));
 
         foodRow.Should().NotBeNull();
         foodRow.CellHasAnomalies["2026-04"].Should().BeTrue();
@@ -1066,7 +1066,7 @@ public sealed class PivotReportServiceTests : IDisposable
 
         result.Should().NotBeNull();
         result.Rows.Should().NotBeEmpty();
-        var rentRow = result.Rows.FirstOrDefault(r => r.Label == "Logement");
+        var rentRow = result.Rows.FirstOrDefault(r => string.Equals(r.Label, "Logement", StringComparison.Ordinal));
         rentRow.Should().NotBeNull();
         rentRow.MonthlyAverage.Should().BeGreaterThan(0);
     }

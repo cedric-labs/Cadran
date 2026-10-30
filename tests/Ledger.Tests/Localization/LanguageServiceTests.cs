@@ -62,7 +62,7 @@ public class LanguageServiceTests
 
         try
         {
-            var testLangs = new Dictionary<string, string>
+            var testLangs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
                 ["fr"] = "🇫🇷",
                 ["en"] = "🇬🇧",
@@ -137,14 +137,14 @@ public class LanguageServiceTests
             SupportedUICultures = supportedCultures
         };
 
-        var matchedFr = options.SupportedCultures.FirstOrDefault(c => c.Name == "fr");
+        var matchedFr = options.SupportedCultures.FirstOrDefault(c => string.Equals(c.Name, "fr", StringComparison.Ordinal));
         matchedFr.Should().NotBeNull();
         matchedFr.NumberFormat.CurrencySymbol.Should().Be("€");
 
         var amount = 123.45m;
         amount.ToString("C2", matchedFr).Should().Be("123,45 €");
 
-        var matchedEn = options.SupportedCultures.FirstOrDefault(c => c.Name == "en");
+        var matchedEn = options.SupportedCultures.FirstOrDefault(c => string.Equals(c.Name, "en", StringComparison.Ordinal));
         matchedEn.Should().NotBeNull();
         matchedEn.NumberFormat.CurrencySymbol.Should().Be("€");
         amount.ToString("C2", matchedEn).Should().Be("€123.45");

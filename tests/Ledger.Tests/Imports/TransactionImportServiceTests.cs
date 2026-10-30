@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using AwesomeAssertions;
 using Ledger.Features.Accounts.Entities;
@@ -37,7 +38,7 @@ public sealed class TransactionImportServiceTests : IDisposable
         _mockLocalizer.Setup(l => l[It.IsAny<string>()])
             .Returns<string>(k => new LocalizedString(k, k));
         _mockLocalizer.Setup(l => l[It.IsAny<string>(), It.IsAny<object[]>()])
-            .Returns<string, object[]>((k, args) => new LocalizedString(k, string.Format(k, args)));
+            .Returns<string, object[]>((k, args) => new LocalizedString(k, string.Format(CultureInfo.CurrentCulture, k, args)));
 
         var parsers = new IBankStatementParser[]
         {

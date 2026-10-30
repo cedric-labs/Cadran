@@ -167,7 +167,7 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
         var uncategorizedLabel = localizer["Common.Uncategorized"].Value ?? "Sans catégorie";
 
         var topLevelCategories = allCategories.Where(c => !c.ParentCategoryId.HasValue).ToList();
-        var rowsByParentKey = new Dictionary<string, PivotRowDto>();
+        var rowsByParentKey = new Dictionary<string, PivotRowDto>(StringComparer.Ordinal);
 
         foreach (var topCat in topLevelCategories)
         {
@@ -180,10 +180,10 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                 IsIncome = topCat.IsIncome,
                 IconName = topCat.IconName ?? "bi-tag",
                 ColorHex = topCat.ColorHex ?? "#64748b",
-                CellValues = columns.ToDictionary(c => c.Key, _ => 0m),
-                CellCounts = columns.ToDictionary(c => c.Key, _ => 0),
-                CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false),
-                CellIsCredit = columns.ToDictionary(c => c.Key, _ => topCat.IsIncome)
+                CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
+                CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
+                CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
+                CellIsCredit = columns.ToDictionary(c => c.Key, _ => topCat.IsIncome, StringComparer.Ordinal)
             };
         }
 
@@ -195,14 +195,14 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
             IsIncome = false,
             IconName = "bi-question-circle",
             ColorHex = "#94a3b8",
-            CellValues = columns.ToDictionary(c => c.Key, _ => 0m),
-            CellCounts = columns.ToDictionary(c => c.Key, _ => 0),
-            CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false),
-            CellIsCredit = columns.ToDictionary(c => c.Key, _ => false)
+            CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
+            CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
+            CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
+            CellIsCredit = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal)
         };
 
-        var subRowsDict = new Dictionary<string, PivotRowDto>();
-        var thirdRowsDict = new Dictionary<string, PivotRowDto>();
+        var subRowsDict = new Dictionary<string, PivotRowDto>(StringComparer.Ordinal);
+        var thirdRowsDict = new Dictionary<string, PivotRowDto>(StringComparer.Ordinal);
 
         var parentCatIdsWithChildren = allCategories
             .Where(c => c.ParentCategoryId.HasValue)
@@ -212,7 +212,7 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
         foreach (var t in transactions)
         {
             var colKey = GetColumnKeyForDate(t.BudgetDate ?? t.Date, query.ColumnDimension);
-            if (!columns.Any(c => c.Key == colKey))
+            if (!columns.Any(c => string.Equals(c.Key, colKey, StringComparison.Ordinal)))
             {
                 continue;
             }
@@ -311,10 +311,10 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                         Label = childLabel ?? "Sous-catégorie",
                         IconName = childIcon,
                         ColorHex = childColor,
-                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m),
-                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0),
-                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false),
-                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => isChildIncome ?? parentRow.IsIncome)
+                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
+                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
+                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
+                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => isChildIncome ?? parentRow.IsIncome, StringComparer.Ordinal)
                     };
                     subRowsDict[childKey] = subRow;
                     parentRow.SubRows.Add(subRow);
@@ -340,10 +340,10 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                         Label = merchantName,
                         IconName = "bi-shop",
                         ColorHex = childColor,
-                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m),
-                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0),
-                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false),
-                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => subRow.IsIncome)
+                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
+                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
+                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
+                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => subRow.IsIncome, StringComparer.Ordinal)
                     };
                     thirdRowsDict[thirdKey] = thirdRow;
                     subRow.SubRows.Add(thirdRow);
@@ -371,10 +371,10 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                         Label = merchantName,
                         IconName = "bi-shop",
                         ColorHex = parentRow.ColorHex,
-                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m),
-                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0),
-                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false),
-                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => parentRow.IsIncome)
+                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
+                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
+                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
+                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => parentRow.IsIncome, StringComparer.Ordinal)
                     };
                     thirdRowsDict[directThirdKey] = directThirdRow;
                     parentRow.SubRows.Add(directThirdRow);
@@ -461,17 +461,17 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                 SubLabel = acc.Bank?.Name,
                 IconName = acc.CustomAccountType?.IconName ?? "bi-wallet2",
                 ColorHex = acc.CustomAccountType?.ColorHex ?? "#2563eb",
-                CellValues = columns.ToDictionary(c => c.Key, _ => 0m),
-                CellCounts = columns.ToDictionary(c => c.Key, _ => 0),
-                CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false),
-                CellIsCredit = columns.ToDictionary(c => c.Key, _ => false)
+                CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
+                CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
+                CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
+                CellIsCredit = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal)
             };
         }
 
         foreach (var t in transactions)
         {
             var colKey = GetColumnKeyForDate(t.BudgetDate ?? t.Date, query.ColumnDimension);
-            if (!columns.Any(c => c.Key == colKey))
+            if (!columns.Any(c => string.Equals(c.Key, colKey, StringComparison.Ordinal)))
             {
                 continue;
             }
@@ -539,7 +539,7 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
         foreach (var t in transactions)
         {
             var colKey = GetColumnKeyForDate(t.BudgetDate ?? t.Date, query.ColumnDimension);
-            if (!columns.Any(c => c.Key == colKey))
+            if (!columns.Any(c => string.Equals(c.Key, colKey, StringComparison.Ordinal)))
             {
                 continue;
             }
@@ -560,10 +560,10 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                     Label = merchantName,
                     IconName = "bi-shop",
                     ColorHex = "#64748b",
-                    CellValues = columns.ToDictionary(c => c.Key, _ => 0m),
-                    CellCounts = columns.ToDictionary(c => c.Key, _ => 0),
-                    CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false),
-                    CellIsCredit = columns.ToDictionary(c => c.Key, _ => false)
+                    CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
+                    CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
+                    CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
+                    CellIsCredit = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal)
                 };
                 rows[merchantName] = row;
             }

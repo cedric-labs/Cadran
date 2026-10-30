@@ -39,7 +39,7 @@ public sealed class CategoryPagesTests : IDisposable
             .ReturnsAsync(new Dictionary<Guid, string>());
         _mockLocalizedEntityService
             .Setup(l => l.GetAllTranslationsForEntityAsync(It.IsAny<string>(), It.IsAny<Guid>(), It.IsAny<string>()))
-            .ReturnsAsync(new Dictionary<string, string>());
+            .ReturnsAsync(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
 
         _mockLanguageService = new Mock<ILanguageService>();
         _mockLanguageService
@@ -248,7 +248,7 @@ public sealed class CategoryPagesTests : IDisposable
 
         _mockLocalizedEntityService
             .Setup(l => l.GetAllTranslationsForEntityAsync("Category", cat.Id, "Name"))
-            .ReturnsAsync(new Dictionary<string, string> { { "en", "Leisure" } });
+            .ReturnsAsync(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { { "en", "Leisure" } });
 
         var (pageContext, tempData) = CreateContext();
         var model = new CreateOrEditModel(_context, _mockLocalizedEntityService.Object, _mockLanguageService.Object)
@@ -296,7 +296,7 @@ public sealed class CategoryPagesTests : IDisposable
                 IconName = "bi-heart-pulse",
                 ColorHex = "#ef4444",
                 IsIncome = false,
-                TranslationsJson = JsonSerializer.Serialize(new Dictionary<string, string>
+                TranslationsJson = JsonSerializer.Serialize(new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
                     { "fr", "Santé & Bien-être" },
                     { "en", "Health & Wellness" }

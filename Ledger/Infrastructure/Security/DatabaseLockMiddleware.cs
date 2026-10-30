@@ -27,7 +27,7 @@ public sealed class DatabaseLockMiddleware(RequestDelegate next)
             if (!isUnlockPage)
             {
                 var returnUrl = path + context.Request.QueryString.Value;
-                var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || returnUrl == "/"
+                var redirectUrl = string.IsNullOrWhiteSpace(returnUrl) || string.Equals(returnUrl, "/", StringComparison.Ordinal)
                     ? "/Security/UnlockDatabase"
                     : $"/Security/UnlockDatabase?returnUrl={Uri.EscapeDataString(returnUrl)}";
 

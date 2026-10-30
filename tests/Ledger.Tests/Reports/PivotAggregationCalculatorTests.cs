@@ -94,7 +94,7 @@ public class PivotAggregationCalculatorTests
             RowKey = "row-1",
             Label = "Ligne 1",
             RowTotal = 100m,
-            CellValues = new Dictionary<string, decimal> { { "2026-01", 60m }, { "2026-02", 40m } }
+            CellValues = new Dictionary<string, decimal>(StringComparer.Ordinal) { { "2026-01", 60m }, { "2026-02", 40m } }
         };
 
         var row2 = new PivotRowDto
@@ -102,7 +102,7 @@ public class PivotAggregationCalculatorTests
             RowKey = "row-2",
             Label = "Ligne 2",
             RowTotal = 300m,
-            CellValues = new Dictionary<string, decimal> { { "2026-01", 140m }, { "2026-02", 160m } }
+            CellValues = new Dictionary<string, decimal>(StringComparer.Ordinal) { { "2026-01", 140m }, { "2026-02", 160m } }
         };
 
         var result = new PivotResultDto

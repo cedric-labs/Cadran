@@ -23,7 +23,7 @@ public sealed class RulesEngineServiceTests : IDisposable
     {
         (_context, _connection) = TestDbContextFactory.Create();
 
-        var inMemoryConfig = new Dictionary<string, string?>
+        var inMemoryConfig = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase)
         {
             {"Rules:MaxExecutionTimeMs", "500"}
         };

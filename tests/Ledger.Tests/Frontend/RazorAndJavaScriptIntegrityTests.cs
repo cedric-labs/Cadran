@@ -98,7 +98,7 @@ public partial class RazorAndJavaScriptIntegrityTests
 
             for (int sIdx = 0; sIdx < scriptMatches.Count; sIdx++)
             {
-                var scriptContent = scriptMatches[sIdx].Groups[1].Value;
+                var scriptContent = scriptMatches[sIdx].Groups["content"].Value;
                 if (string.IsNullOrWhiteSpace(scriptContent)) continue;
 
                 // Neutraliser les interpolations Razor dans le JS pour que Node puisse valider la syntaxe du JS pur
@@ -130,11 +130,11 @@ public partial class RazorAndJavaScriptIntegrityTests
                         {
                             var err = proc.StandardError.ReadToEnd();
                             // Détecte les vraies erreurs de syntaxe structurelles (fonction orpheline, accolade manquante, parenthèse fermante en trop)
-                            if (err.Contains("SyntaxError") &&
-                                (err.Contains("Unexpected end of input") ||
-                                 err.Contains("Unexpected token '}'") ||
-                                 err.Contains("missing ) after argument list") ||
-                                 err.Contains("Unexpected token '{'")))
+                            if (err.Contains("SyntaxError", StringComparison.Ordinal) &&
+                                (err.Contains("Unexpected end of input", StringComparison.Ordinal) ||
+                                 err.Contains("Unexpected token '}'", StringComparison.Ordinal) ||
+                                 err.Contains("missing ) after argument list", StringComparison.Ordinal) ||
+                                 err.Contains("Unexpected token '{'", StringComparison.Ordinal)))
                             {
                                 violations.Add($"{Path.GetFileName(file)} (bloc script #{sIdx + 1}) :\n{err.Trim()}\n");
                             }
@@ -213,7 +213,7 @@ public partial class RazorAndJavaScriptIntegrityTests
     [GeneratedRegex(@"['""]@Localizer\[[^\]]+\]['""]", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
     private static partial Regex UnsafeLocalizerRegex();
 
-    [GeneratedRegex(@"<script\b[^>]*>(.*?)</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase, matchTimeoutMilliseconds: 2000)]
+    [GeneratedRegex(@"<script\b[^>]*>(?<content>.*?)</script>", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
     private static partial Regex ScriptTagsRegex();
 
     [GeneratedRegex(@"onclick\s*=\s*""[^""]*'(?:@\w+\.Label|@\w+\.Name)'[^""]*""", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]

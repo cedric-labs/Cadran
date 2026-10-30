@@ -325,7 +325,7 @@ public sealed class SqliteEncryptionTests : IDisposable
     public void OpenDatabase_WhenPassphraseHasSpecialCharsAndQuotes_AuthenticatesSuccessfully()
     {
         var complexPass = "P@$$w'o\"rd with sp@c€s & qu'otes!";
-        var escapedPass = complexPass.Replace("'", "''");
+        var escapedPass = complexPass.Replace("'", "''", StringComparison.Ordinal);
 
         // 1. Create plain
         var plainBuilder = new SqliteConnectionStringBuilder

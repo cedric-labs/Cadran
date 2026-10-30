@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Imports.Entities;
@@ -44,13 +45,13 @@ public sealed class TransactionImportService(
 
         if (parser == null)
         {
-            return new ImportResultDto(false, string.Format(localizer["Imports.NoCompatibleParserFound"], fileName), 0, 0, 0, 0, null);
+            return new ImportResultDto(false, string.Format(CultureInfo.CurrentCulture, localizer["Imports.NoCompatibleParserFound"], fileName), 0, 0, 0, 0, null);
         }
 
         // 2. Détection de l'identifiant OFX <ACCTID> si le format est OFX
         string? detectedOfxAcctId = null;
         bool autoMatchedByOfx = false;
-        if (parser.SupportedFormat == "OFX")
+        if (string.Equals(parser.SupportedFormat, "OFX", StringComparison.Ordinal))
         {
             detectedOfxAcctId = await OfxStatementParser.ExtractOfxAccountIdAsync(memoryStream, cancellationToken);
             memoryStream.Position = 0;
@@ -96,7 +97,7 @@ public sealed class TransactionImportService(
             {
                 return new ImportResultDto(
                     Success: false,
-                    Message: string.Format(localizer["Imports.OfxAcctIdNoMatchMessage"], detectedOfxAcctId),
+                    Message: string.Format(CultureInfo.CurrentCulture, localizer["Imports.OfxAcctIdNoMatchMessage"], detectedOfxAcctId),
                     TotalParsed: 0,
                     TotalImported: 0,
                     TotalDuplicatesSkipped: 0,
@@ -106,7 +107,7 @@ public sealed class TransactionImportService(
                     RequiresAccountSelection: true);
             }
 
-            var isOfx = parser.SupportedFormat == "OFX";
+            var isOfx = string.Equals(parser.SupportedFormat, "OFX", StringComparison.Ordinal);
             return new ImportResultDto(
                 Success: false,
                 Message: localizer["Imports.NoMatchingAccountFound"],
@@ -138,7 +139,7 @@ public sealed class TransactionImportService(
         catch (Exception ex)
         {
             logger.LogError(ex, "Erreur lors du parsing du relevé bancaire {FileName}", fileName);
-            return new ImportResultDto(false, string.Format(localizer["Imports.FileReadError"], ex.Message), 0, 0, 0, 0, null);
+            return new ImportResultDto(false, string.Format(CultureInfo.CurrentCulture, localizer["Imports.FileReadError"], ex.Message), 0, 0, 0, 0, null);
         }
 
         if (parsedDtos.Count == 0)
@@ -207,12 +208,12 @@ public sealed class TransactionImportService(
                 string matchDesc;
                 if (matchingExisting != null)
                 {
-                    var refSuffix = string.IsNullOrEmpty(matchingExisting.Reference) ? "" : " | " + string.Format(localizer["Imports.BankRefPrefix"], matchingExisting.Reference);
-                    matchDesc = string.Format(localizer["Imports.ExistingMatchDesc"], matchingExisting.Label, matchingExisting.Date.ToString("dd/MM/yyyy"), matchingExisting.Amount.ToString("C2") + refSuffix);
+                    var refSuffix = string.IsNullOrEmpty(matchingExisting.Reference) ? "" : " | " + string.Format(CultureInfo.CurrentCulture, localizer["Imports.BankRefPrefix"], matchingExisting.Reference);
+                    matchDesc = string.Format(CultureInfo.CurrentCulture, localizer["Imports.ExistingMatchDesc"], matchingExisting.Label, matchingExisting.Date.ToString("dd/MM/yyyy", CultureInfo.CurrentCulture), matchingExisting.Amount.ToString("C2", CultureInfo.CurrentCulture) + refSuffix);
                 }
                 else
                 {
-                    matchDesc = string.Format(localizer["Imports.BatchMatchDesc"], matchingBatch.Label, matchingBatch.Date.ToString("dd/MM/yyyy"));
+                    matchDesc = string.Format(CultureInfo.CurrentCulture, localizer["Imports.BatchMatchDesc"], matchingBatch.Label, matchingBatch.Date.ToString("dd/MM/yyyy", CultureInfo.CurrentCulture));
                 }
 
                 suspectedDuplicates.Add(new SuspectedDuplicateDto(
@@ -302,20 +303,20 @@ public sealed class TransactionImportService(
         string message;
         if (autoMatchedByOfx)
         {
-            message = string.Format(localizer["Imports.OfxAutoMatchedMessage"], accountName, detectedOfxAcctId);
+            message = string.Format(CultureInfo.CurrentCulture, localizer["Imports.OfxAutoMatchedMessage"], accountName, detectedOfxAcctId);
         }
         else
         {
-            message = string.Format(localizer["Imports.AccountImportMessage"], accountName);
+            message = string.Format(CultureInfo.CurrentCulture, localizer["Imports.AccountImportMessage"], accountName);
         }
 
         if (suspectedDuplicates.Count > 0)
         {
-            message += string.Format(localizer["Imports.ImportWithDuplicatesMessage"], newTransactions.Count, suspectedDuplicates.Count);
+            message += string.Format(CultureInfo.CurrentCulture, localizer["Imports.ImportWithDuplicatesMessage"], newTransactions.Count, suspectedDuplicates.Count);
         }
         else
         {
-            message += string.Format(localizer["Imports.ImportSuccessMessage"], newTransactions.Count, confirmedDuplicatesCount, totalCategorized);
+            message += string.Format(CultureInfo.CurrentCulture, localizer["Imports.ImportSuccessMessage"], newTransactions.Count, confirmedDuplicatesCount, totalCategorized);
         }
 
         return new ImportResultDto(

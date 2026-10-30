@@ -25,7 +25,7 @@ public class CreateOrEditModel(
     public Dictionary<Guid, string> CategoryTranslations { get; set; } = new();
 
     // Dictionnaire des traductions pour initialiser le composant UI (code de langue -> valeur traduite)
-    public Dictionary<string, string> ExistingTranslations { get; set; } = new();
+    public Dictionary<string, string> ExistingTranslations { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
     // Liste des langues proposées dans la liste déroulante (découvertes dynamiquement)
     public IReadOnlyList<LanguageInfo> SupportedLanguages { get; set; } = new List<LanguageInfo>();
@@ -209,17 +209,17 @@ public class CreateOrEditModel(
     {
         if (string.IsNullOrWhiteSpace(json))
         {
-            return new Dictionary<string, string>();
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
         try
         {
-            return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>();
+            return JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
         catch (JsonException)
         {
             // Repli gracieux : un JSON de traductions corrompu retourne un dictionnaire vide pour éviter de bloquer l'édition
-            return new Dictionary<string, string>();
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
     }
 }

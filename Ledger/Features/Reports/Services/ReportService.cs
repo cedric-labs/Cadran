@@ -198,7 +198,7 @@ public sealed class ReportService(
             case "KpiExpenses":
                 var totalExp = transactions.Where(t => t.Type == TransactionType.Debit).Sum(t => t.Amount);
                 result.KpiValue = totalExp;
-                result.KpiFormattedValue = totalExp.ToString("C2");
+                result.KpiFormattedValue = totalExp.ToString("C2", CultureInfo.CurrentCulture);
                 result.KpiSubtext = periodLabel;
                 result.KpiIcon = "bi-arrow-down-circle";
                 result.KpiColor = "#ef4444";
@@ -207,7 +207,7 @@ public sealed class ReportService(
             case "KpiIncome":
                 var totalInc = transactions.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
                 result.KpiValue = totalInc;
-                result.KpiFormattedValue = totalInc.ToString("C2");
+                result.KpiFormattedValue = totalInc.ToString("C2", CultureInfo.CurrentCulture);
                 result.KpiSubtext = periodLabel;
                 result.KpiIcon = "bi-arrow-up-circle";
                 result.KpiColor = "#10b981";
@@ -218,7 +218,7 @@ public sealed class ReportService(
                 var inc = transactions.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
                 var net = inc - exp;
                 result.KpiValue = net;
-                result.KpiFormattedValue = (net >= 0 ? "+" : "") + net.ToString("C2");
+                result.KpiFormattedValue = (net >= 0 ? "+" : "") + net.ToString("C2", CultureInfo.CurrentCulture);
                 result.KpiSubtext = periodLabel;
                 result.KpiIcon = "bi-piggy-bank";
                 result.KpiColor = net >= 0 ? "#10b981" : "#ef4444";
@@ -228,8 +228,8 @@ public sealed class ReportService(
                 var now = DateTime.Today;
                 var summaryR = await recurringService.GetMonthlySummaryAsync(now.Year, now.Month, cancellationToken);
                 result.KpiValue = summaryR.EstimatedRemainingToLive;
-                result.KpiFormattedValue = summaryR.EstimatedRemainingToLive.ToString("C2");
-                result.KpiSubtext = string.Format(localizer["Reports.IncomeMinusFixedExpenses"], summaryR.TotalIncome.ToString("C0"), summaryR.TotalExpected.ToString("C0"));
+                result.KpiFormattedValue = summaryR.EstimatedRemainingToLive.ToString("C2", CultureInfo.CurrentCulture);
+                result.KpiSubtext = string.Format(CultureInfo.CurrentCulture, localizer["Reports.IncomeMinusFixedExpenses"], summaryR.TotalIncome.ToString("C0", CultureInfo.CurrentCulture), summaryR.TotalExpected.ToString("C0", CultureInfo.CurrentCulture));
                 result.KpiIcon = "bi-cash-coin";
                 result.KpiColor = summaryR.EstimatedRemainingToLive >= 0 ? "#3b82f6" : "#f59e0b";
                 break;

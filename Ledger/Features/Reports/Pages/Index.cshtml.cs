@@ -101,7 +101,7 @@ public class IndexModel(
 
         await LoadDataAsync(cancellationToken);
 
-        if (ActiveTab == "pivot")
+        if (string.Equals(ActiveTab, "pivot", StringComparison.Ordinal))
         {
             await LoadPivotDataAsync(cancellationToken);
         }
@@ -228,7 +228,7 @@ public class IndexModel(
         if (CurrentDashboard != null)
         {
             SelectedDashboardId = CurrentDashboard.Id;
-            if (ActiveTab == "dashboards")
+            if (string.Equals(ActiveTab, "dashboards", StringComparison.Ordinal))
             {
                 WidgetDataList = await reportService.ComputeDashboardDataAsync(CurrentDashboard.Id, cancellationToken);
             }

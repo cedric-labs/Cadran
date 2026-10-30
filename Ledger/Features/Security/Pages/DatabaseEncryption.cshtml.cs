@@ -46,7 +46,7 @@ public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionServic
             return RedirectToPage();
         }
 
-        if (EncryptInput.NewPassphrase != EncryptInput.ConfirmPassphrase)
+        if (!string.Equals(EncryptInput.NewPassphrase, EncryptInput.ConfirmPassphrase, StringComparison.Ordinal))
         {
             ErrorMessage = "La confirmation de la phrase de passe ne correspond pas.";
             return RedirectToPage();
@@ -79,7 +79,7 @@ public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionServic
             return RedirectToPage();
         }
 
-        if (ChangePassphraseInput.NewPassphrase != ChangePassphraseInput.ConfirmPassphrase)
+        if (!string.Equals(ChangePassphraseInput.NewPassphrase, ChangePassphraseInput.ConfirmPassphrase, StringComparison.Ordinal))
         {
             ErrorMessage = "La confirmation de la nouvelle phrase de passe ne correspond pas.";
             return RedirectToPage();

@@ -43,7 +43,7 @@ public sealed class TransactionStatusService(
     {
         var statuses = await GetAllStatusesAsync(cancellationToken);
         return statuses.FirstOrDefault(s => s.IsDefault)
-            ?? statuses.FirstOrDefault(s => s.Code == "Cleared")
+            ?? statuses.FirstOrDefault(s => string.Equals(s.Code, "Cleared", StringComparison.Ordinal))
             ?? statuses.FirstOrDefault();
     }
 
@@ -236,7 +236,7 @@ public sealed class TransactionStatusService(
 
         var existingKeySet = existingTranslations
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
-            .ToHashSet();
+            .ToHashSet(StringComparer.Ordinal);
 
         var toAdd = new List<EntityTranslation>();
         foreach (var status in statuses)

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Accounts.Services;
 using Ledger.Features.Categories.Entities;
@@ -99,8 +100,8 @@ public abstract class TransactionOperationsPageModelBase(
         EndDate.HasValue ||
         Type.HasValue ||
         (AmountValue.HasValue && !string.IsNullOrWhiteSpace(AmountOperator)) ||
-        (!string.IsNullOrWhiteSpace(RuleFilter) && RuleFilter != "all") ||
-        (!string.IsNullOrWhiteSpace(RecurringFilter) && RecurringFilter != "all");
+        (!string.IsNullOrWhiteSpace(RuleFilter) && !string.Equals(RuleFilter, "all", StringComparison.Ordinal)) ||
+        (!string.IsNullOrWhiteSpace(RecurringFilter) && !string.Equals(RecurringFilter, "all", StringComparison.Ordinal));
 
     protected int BaseFilterCriteriaCount
     {
@@ -111,8 +112,8 @@ public abstract class TransactionOperationsPageModelBase(
             if (Type.HasValue) count++;
             if (StartDate.HasValue || EndDate.HasValue) count++;
             if (AmountValue.HasValue && !string.IsNullOrWhiteSpace(AmountOperator)) count++;
-            if (!string.IsNullOrWhiteSpace(RuleFilter) && RuleFilter != "all") count++;
-            if (!string.IsNullOrWhiteSpace(RecurringFilter) && RecurringFilter != "all") count++;
+            if (!string.IsNullOrWhiteSpace(RuleFilter) && !string.Equals(RuleFilter, "all", StringComparison.Ordinal)) count++;
+            if (!string.IsNullOrWhiteSpace(RecurringFilter) && !string.Equals(RecurringFilter, "all", StringComparison.Ordinal)) count++;
             return count;
         }
     }
@@ -244,7 +245,7 @@ public abstract class TransactionOperationsPageModelBase(
 
     protected async Task<List<Transaction>> ApplyPostEvaluationFiltersAsync(List<Transaction> allFiltered, CancellationToken cancellationToken = default)
     {
-        if (!string.IsNullOrWhiteSpace(RuleFilter) && RuleFilter != "all")
+        if (!string.IsNullOrWhiteSpace(RuleFilter) && !string.Equals(RuleFilter, "all", StringComparison.Ordinal))
         {
             var allMatches = await RulesEngineService.GetMatchesForTransactionsAsync(allFiltered, cancellationToken);
             allFiltered = RuleFilter switch
@@ -256,7 +257,7 @@ public abstract class TransactionOperationsPageModelBase(
             };
         }
 
-        if (!string.IsNullOrWhiteSpace(RecurringFilter) && RecurringFilter != "all")
+        if (!string.IsNullOrWhiteSpace(RecurringFilter) && !string.Equals(RecurringFilter, "all", StringComparison.Ordinal))
         {
             var allRecurringMatches = await RecurringExpenseService.GetMatchesForTransactionsAsync(allFiltered, cancellationToken);
             if (Guid.TryParse(RecurringFilter, out var targetExpenseId))
@@ -312,8 +313,8 @@ public abstract class TransactionOperationsPageModelBase(
                 dict[q.Key] = q.Value.ToString();
             }
         }
-        dict["PageNumber"] = page.ToString();
-        dict["PageSize"] = EffectivePageSize.ToString();
+        dict["PageNumber"] = page.ToString(CultureInfo.InvariantCulture);
+        dict["PageSize"] = EffectivePageSize.ToString(CultureInfo.InvariantCulture);
 
         return string.Join("&", dict
             .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
@@ -426,10 +427,10 @@ public abstract class TransactionOperationsPageModelBase(
                 categoryColor = updatedCategory?.ColorHex ?? "#6c757d",
                 merchantId = targetMerchantId,
                 merchantName = updatedMerchant?.Name ?? "",
-                budgetDate = transaction.BudgetDate?.ToString("yyyy-MM-dd"),
-                budgetDateStr = transaction.BudgetDate?.ToString("yyyy-MM-dd"),
+                budgetDate = transaction.BudgetDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                budgetDateStr = transaction.BudgetDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 isShifted,
-                budgetBadgeText = (isShifted && transaction.BudgetDate.HasValue) ? transaction.BudgetDate.Value.ToString("MM/yyyy") : null,
+                budgetBadgeText = (isShifted && transaction.BudgetDate.HasValue) ? transaction.BudgetDate.Value.ToString("MM/yyyy", CultureInfo.CurrentCulture) : null,
                 notes = transaction.Notes,
                 statusId = transaction.CustomStatusId,
                 statusDisplayName = transaction.GetStatusDisplayName(),
@@ -785,7 +786,7 @@ public abstract class TransactionOperationsPageModelBase(
     private bool IsJsonRequest()
     {
         return Request.Headers.XRequestedWith == "XMLHttpRequest" ||
-               Request.Headers.Accept.ToString().Contains("application/json");
+               Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
     }
 
     private RedirectResult RedirectToRefererOrDefault(Transaction? transaction = null)

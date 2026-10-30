@@ -64,7 +64,7 @@ public sealed class AuthService(
 
     public Task<SignInResult> TwoFactorAuthenticatorSignInAsync(string code, bool rememberMe, bool rememberMachine, CancellationToken cancellationToken = default)
     {
-        var cleanCode = code.Replace(" ", string.Empty).Replace("-", string.Empty);
+        var cleanCode = code.Replace(" ", string.Empty, StringComparison.Ordinal).Replace("-", string.Empty, StringComparison.Ordinal);
         return signInManager.TwoFactorAuthenticatorSignInAsync(cleanCode, rememberMe, rememberMachine);
     }
 
@@ -97,7 +97,7 @@ public sealed class AuthService(
 
     public async Task<bool> VerifyAndEnableMfaAsync(ApplicationUser user, string verificationCode, CancellationToken cancellationToken = default)
     {
-        var cleanCode = verificationCode.Replace(" ", string.Empty).Replace("-", string.Empty);
+        var cleanCode = verificationCode.Replace(" ", string.Empty, StringComparison.Ordinal).Replace("-", string.Empty, StringComparison.Ordinal);
 
         var is2faTokenValid = await userManager.VerifyTwoFactorTokenAsync(
             user,

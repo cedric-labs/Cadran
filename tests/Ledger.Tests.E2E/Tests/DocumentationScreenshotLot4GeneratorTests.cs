@@ -97,7 +97,7 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
         }
 
         var types = await db.CustomAccountTypes.IgnoreQueryFilters().Where(t => t.UserId == userId).ToListAsync();
-        var checkingType = types.FirstOrDefault(t => t.Code == "Checking");
+        var checkingType = types.FirstOrDefault(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal));
 
         var checkingAcc = await db.BankAccounts.IgnoreQueryFilters().FirstOrDefaultAsync(a => a.UserId == userId && a.Name == "Main Checking Account");
         if (checkingAcc == null)
@@ -117,10 +117,10 @@ public sealed class DocumentationScreenshotLot4GeneratorTests(AppWebTestFixture 
         }
 
         var categories = await db.Categories.IgnoreQueryFilters().Where(c => c.UserId == userId).ToListAsync();
-        var catHousing = categories.FirstOrDefault(c => c.Name.Contains("Logement") || c.Name.Contains("Housing"));
-        var catUtilities = categories.FirstOrDefault(c => c.Name.Contains("Énergie") || c.Name.Contains("Utilities") || c.Name.Contains("Factures"));
-        var catFood = categories.FirstOrDefault(c => c.Name.Contains("Alimentation") || c.Name.Contains("Food") || c.Name.Contains("Courses"));
-        var catInternet = categories.FirstOrDefault(c => c.Name.Contains("Abonnements") || c.Name.Contains("Subscriptions"));
+        var catHousing = categories.FirstOrDefault(c => c.Name.Contains("Logement", StringComparison.Ordinal) || c.Name.Contains("Housing", StringComparison.Ordinal));
+        var catUtilities = categories.FirstOrDefault(c => c.Name.Contains("Énergie", StringComparison.Ordinal) || c.Name.Contains("Utilities", StringComparison.Ordinal) || c.Name.Contains("Factures", StringComparison.Ordinal));
+        var catFood = categories.FirstOrDefault(c => c.Name.Contains("Alimentation", StringComparison.Ordinal) || c.Name.Contains("Food", StringComparison.Ordinal) || c.Name.Contains("Courses", StringComparison.Ordinal));
+        var catInternet = categories.FirstOrDefault(c => c.Name.Contains("Abonnements", StringComparison.Ordinal) || c.Name.Contains("Subscriptions", StringComparison.Ordinal));
 
         // Marchand Carrefour
         var carrefour = await db.Merchants.IgnoreQueryFilters().FirstOrDefaultAsync(m => m.UserId == userId && m.Name == "Carrefour Market");

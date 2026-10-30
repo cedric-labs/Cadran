@@ -107,7 +107,7 @@ public class EditAccountModel(
         var customTypeId = account.CustomAccountTypeId;
         if (!customTypeId.HasValue)
         {
-            var match = AvailableAccountTypes.FirstOrDefault(t => t.Code == account.Type.ToString())
+            var match = AvailableAccountTypes.FirstOrDefault(t => string.Equals(t.Code, account.Type.ToString(), StringComparison.Ordinal))
                      ?? AvailableAccountTypes.FirstOrDefault();
             customTypeId = match?.Id;
         }

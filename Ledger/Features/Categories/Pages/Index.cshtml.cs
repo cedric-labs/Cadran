@@ -1,3 +1,4 @@
+using System.Globalization;
 using Ledger.Features.Categories.Entities;
 using Ledger.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -42,7 +43,7 @@ public class IndexModel(
         ParentCategories = all
             .Where(c => c.ParentCategoryId == null)
             .OrderBy(c => c.IsIncome)
-            .ThenBy(c => c.Name)
+            .ThenBy(c => c.Name, StringComparer.CurrentCulture)
             .ToList();
 
         var parentIds = ParentCategories.Select(p => p.Id).ToHashSet();
@@ -67,7 +68,7 @@ public class IndexModel(
         if (restoredCount > 0)
         {
             var pattern = localizer?["Categories.RestoreDefaultsSuccess"]?.Value ?? "{0} catégorie(s) par défaut restaurée(s) avec succès.";
-            StatusMessage = string.Format(pattern, restoredCount);
+            StatusMessage = string.Format(CultureInfo.CurrentCulture, pattern, restoredCount);
             StatusMessageType = "success";
         }
         else

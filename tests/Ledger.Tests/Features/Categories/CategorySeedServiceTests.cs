@@ -61,7 +61,7 @@ public sealed class CategorySeedServiceTests : IDisposable
         // Vérifier le flag salaire
         var salaryCat = allCategories.FirstOrDefault(c => c.IsSalary);
         Assert.NotNull(salaryCat);
-        Assert.Contains("Salaire", salaryCat.Name);
+        Assert.Contains("Salaire", salaryCat.Name, StringComparison.Ordinal);
 
         // Vérifier les traductions créées
         var catIds = allCategories.Select(c => c.Id).ToHashSet();
@@ -69,10 +69,10 @@ public sealed class CategorySeedServiceTests : IDisposable
             .Where(t => t.EntityType == "Category" && catIds.Contains(t.EntityId))
             .ToListAsync();
 
-        var frTranslations = translations.Where(t => t.LanguageCode == "fr").ToList();
-        var enTranslations = translations.Where(t => t.LanguageCode == "en").ToList();
-        var esTranslations = translations.Where(t => t.LanguageCode == "es").ToList();
-        var deTranslations = translations.Where(t => t.LanguageCode == "de").ToList();
+        var frTranslations = translations.Where(t => string.Equals(t.LanguageCode, "fr", StringComparison.Ordinal)).ToList();
+        var enTranslations = translations.Where(t => string.Equals(t.LanguageCode, "en", StringComparison.Ordinal)).ToList();
+        var esTranslations = translations.Where(t => string.Equals(t.LanguageCode, "es", StringComparison.Ordinal)).ToList();
+        var deTranslations = translations.Where(t => string.Equals(t.LanguageCode, "de", StringComparison.Ordinal)).ToList();
 
         Assert.Equal(115, frTranslations.Count);
         Assert.Equal(115, enTranslations.Count);
@@ -80,7 +80,7 @@ public sealed class CategorySeedServiceTests : IDisposable
         Assert.Equal(115, deTranslations.Count);
 
         // Vérifier une traduction spécifique
-        var housingParent = parents.First(p => p.Name == "Logement, immobilier");
+        var housingParent = parents.First(p => string.Equals(p.Name, "Logement, immobilier", StringComparison.Ordinal));
         var housingEn = enTranslations.First(t => t.EntityId == housingParent.Id);
         var housingEs = esTranslations.First(t => t.EntityId == housingParent.Id);
         var housingDe = deTranslations.First(t => t.EntityId == housingParent.Id);
@@ -122,10 +122,10 @@ public sealed class CategorySeedServiceTests : IDisposable
 
         var translations = await _context.EntityTranslations.ToListAsync();
         Assert.NotEmpty(translations);
-        Assert.Contains(translations, t => t.LanguageCode == "en" && t.Translation == "Housing & Real Estate");
-        Assert.Contains(translations, t => t.LanguageCode == "fr" && t.Translation == "Logement, immobilier");
-        Assert.Contains(translations, t => t.LanguageCode == "es" && t.Translation == "Vivienda e inmobiliaria");
-        Assert.Contains(translations, t => t.LanguageCode == "de" && t.Translation == "Wohnen & Immobilien");
+        Assert.Contains(translations, t => string.Equals(t.LanguageCode, "en", StringComparison.Ordinal) && string.Equals(t.Translation, "Housing & Real Estate", StringComparison.Ordinal));
+        Assert.Contains(translations, t => string.Equals(t.LanguageCode, "fr", StringComparison.Ordinal) && string.Equals(t.Translation, "Logement, immobilier", StringComparison.Ordinal));
+        Assert.Contains(translations, t => string.Equals(t.LanguageCode, "es", StringComparison.Ordinal) && string.Equals(t.Translation, "Vivienda e inmobiliaria", StringComparison.Ordinal));
+        Assert.Contains(translations, t => string.Equals(t.LanguageCode, "de", StringComparison.Ordinal) && string.Equals(t.Translation, "Wohnen & Immobilien", StringComparison.Ordinal));
     }
 
     [Theory]

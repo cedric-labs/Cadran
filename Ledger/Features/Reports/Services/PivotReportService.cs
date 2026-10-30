@@ -340,13 +340,13 @@ public sealed class PivotReportService(
             {
                 colStart = new DateTime(monthDate.Year, monthDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
                 colEnd = colStart.AddMonths(1).AddDays(-1);
-                colDisplayLabel = colStart.ToString("MMMM yyyy", CultureInfo.CurrentUICulture);
-                colDisplayLabel = char.ToUpper(colDisplayLabel[0], CultureInfo.CurrentUICulture) + colDisplayLabel[1..];
+                colDisplayLabel = colStart.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+                colDisplayLabel = char.ToUpper(colDisplayLabel[0], CultureInfo.CurrentCulture) + colDisplayLabel[1..];
             }
-            else if (query.ColumnDimension == PivotColumnDimension.Quarter && colKey.Contains("-Q"))
+            else if (query.ColumnDimension == PivotColumnDimension.Quarter && colKey.Contains("-Q", StringComparison.Ordinal))
             {
                 var parts = colKey.Split("-Q");
-                if (parts.Length == 2 && int.TryParse(parts[0], out var year) && int.TryParse(parts[1], out var q))
+                if (parts.Length == 2 && int.TryParse(parts[0], CultureInfo.InvariantCulture, out var year) && int.TryParse(parts[1], CultureInfo.InvariantCulture, out var q))
                 {
                     int qStartMonth = (q - 1) * 3 + 1;
                     colStart = new DateTime(year, qStartMonth, 1, 0, 0, 0, DateTimeKind.Utc);
@@ -354,7 +354,7 @@ public sealed class PivotReportService(
                     colDisplayLabel = $"T{q} {year}";
                 }
             }
-            else if (query.ColumnDimension == PivotColumnDimension.Year && int.TryParse(colKey, out var yr))
+            else if (query.ColumnDimension == PivotColumnDimension.Year && int.TryParse(colKey, CultureInfo.InvariantCulture, out var yr))
             {
                 colStart = new DateTime(yr, 1, 1, 0, 0, 0, DateTimeKind.Utc);
                 colEnd = new DateTime(yr, 12, 31, 0, 0, 0, DateTimeKind.Utc);
@@ -385,7 +385,7 @@ public sealed class PivotReportService(
         string rowDisplayLabel = rowKey;
         List<PivotTransactionItem> filteredItems;
 
-        if (rowKey.Contains("__m__"))
+        if (rowKey.Contains("__m__", StringComparison.Ordinal))
         {
             var parts = rowKey.Split("__m__");
             var catKey = parts[0];
@@ -400,7 +400,7 @@ public sealed class PivotReportService(
                     return false;
                 }
 
-                if (catKey == "uncategorized")
+                if (string.Equals(catKey, "uncategorized", StringComparison.Ordinal))
                 {
                     return !t.CategoryId.HasValue || !categoryMap.ContainsKey(t.CategoryId.Value);
                 }
@@ -419,7 +419,7 @@ public sealed class PivotReportService(
                 return true;
             }).ToList();
         }
-        else if (rowKey == "uncategorized")
+        else if (string.Equals(rowKey, "uncategorized", StringComparison.Ordinal))
         {
             rowDisplayLabel = localizer["Common.Uncategorized"].Value ?? "Sans catégorie";
             filteredItems = flatItems.Where(t => !t.CategoryId.HasValue || !categoryMap.ContainsKey(t.CategoryId.Value)).ToList();
