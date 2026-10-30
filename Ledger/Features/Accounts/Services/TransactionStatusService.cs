@@ -15,14 +15,6 @@ public sealed class TransactionStatusService(
     ICurrentUserService currentUserService,
     ILogger<TransactionStatusService> logger) : ITransactionStatusService
 {
-    private static readonly IReadOnlyDictionary<string, (string En, string Es, string De)> DefaultStatusTranslations =
-        new Dictionary<string, (string En, string Es, string De)>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Reconciled"] = ("Reconciled", "Conciliada", "Abgeglichen"),
-            ["Cleared"] = ("Cleared", "Contabilizada", "Gebucht"),
-            ["Pending"] = ("Pending", "Pendiente", "Ausstehend")
-        };
-
     public async Task<List<TransactionCustomStatus>> GetAllStatusesAsync(CancellationToken cancellationToken = default)
     {
         var userId = currentUserService.UserId;
@@ -156,46 +148,9 @@ public sealed class TransactionStatusService(
             .AnyAsync(s => s.UserId == userId, cancellationToken).ConfigureAwait(false);
         if (hasExisting) return;
 
-        var reconciled = new TransactionCustomStatus
-        {
-            UserId = userId,
-            Name = "Pointée",
-            Code = "Reconciled",
-            Description = "Opération vérifiée et validée avec le relevé bancaire officiel",
-            ColorHex = "#198754",
-            IconName = "bi-check2-all",
-            IsSystem = true,
-            IsDefault = false,
-            DisplayOrder = 1
-        };
+        var defaults = DefaultTransactionStatuses.CreateFor(userId);
 
-        var cleared = new TransactionCustomStatus
-        {
-            UserId = userId,
-            Name = "Comptabilisée",
-            Code = "Cleared",
-            Description = "Opération passée sur le compte bancaire",
-            ColorHex = "#0dcaf0",
-            IconName = "bi-check-lg",
-            IsSystem = true,
-            IsDefault = true,
-            DisplayOrder = 2
-        };
-
-        var pending = new TransactionCustomStatus
-        {
-            UserId = userId,
-            Name = "En attente",
-            Code = "Pending",
-            Description = "Opération engagée non encore passée en banque (chèque non débité, paiement en attente)",
-            ColorHex = "#ffc107",
-            IconName = "bi-hourglass-split",
-            IsSystem = true,
-            IsDefault = false,
-            DisplayOrder = 3
-        };
-
-        dbContext.TransactionStatuses.AddRange(reconciled, cleared, pending);
+        dbContext.TransactionStatuses.AddRange(defaults.All);
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Mettre à jour les transactions existantes qui n'ont pas encore de CustomStatusId
@@ -207,12 +162,7 @@ public sealed class TransactionStatusService(
         {
             foreach (var t in txWithoutStatus)
             {
-                t.CustomStatusId = t.Status switch
-                {
-                    TransactionStatus.Reconciled => reconciled.Id,
-                    TransactionStatus.Pending => pending.Id,
-                    _ => cleared.Id
-                };
+                t.CustomStatusId = defaults.ForLegacyStatus(t.Status).Id;
             }
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -238,50 +188,7 @@ public sealed class TransactionStatusService(
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
             .ToHashSet(StringComparer.Ordinal);
 
-        var toAdd = new List<EntityTranslation>();
-        foreach (var status in statuses)
-        {
-            if (string.IsNullOrEmpty(status.Code) || !DefaultStatusTranslations.TryGetValue(status.Code, out var trans))
-            {
-                continue;
-            }
-
-            if (!existingKeySet.Contains($"{status.Id}:en") && !string.IsNullOrWhiteSpace(trans.En))
-            {
-                toAdd.Add(new EntityTranslation
-                {
-                    EntityType = "TransactionCustomStatus",
-                    EntityId = status.Id,
-                    Field = "Name",
-                    LanguageCode = "en",
-                    Translation = trans.En
-                });
-            }
-
-            if (!existingKeySet.Contains($"{status.Id}:es") && !string.IsNullOrWhiteSpace(trans.Es))
-            {
-                toAdd.Add(new EntityTranslation
-                {
-                    EntityType = "TransactionCustomStatus",
-                    EntityId = status.Id,
-                    Field = "Name",
-                    LanguageCode = "es",
-                    Translation = trans.Es
-                });
-            }
-
-            if (!existingKeySet.Contains($"{status.Id}:de") && !string.IsNullOrWhiteSpace(trans.De))
-            {
-                toAdd.Add(new EntityTranslation
-                {
-                    EntityType = "TransactionCustomStatus",
-                    EntityId = status.Id,
-                    Field = "Name",
-                    LanguageCode = "de",
-                    Translation = trans.De
-                });
-            }
-        }
+        var toAdd = StatusTranslationPlanner.PlanMissing(statuses, existingKeySet);
 
         if (toAdd.Count > 0)
         {
@@ -321,41 +228,7 @@ public sealed class TransactionStatusService(
             .Select(id => id.GetValueOrDefault())
             .ToHashSet();
 
-        var toDelete = new List<TransactionCustomStatus>();
-
-        var groups = allStatuses.GroupBy(s => (
-            UserId: s.UserId,
-            Key: !string.IsNullOrWhiteSpace(s.Code)
-                ? $"CODE:{s.Code.Trim().ToUpperInvariant()}"
-                : $"NAME:{s.Name.Trim().ToUpperInvariant()}"
-        ));
-
-        foreach (var group in groups)
-        {
-            var groupList = group.ToList();
-            if (groupList.Count <= 1)
-            {
-                continue;
-            }
-
-            var usedInGroup = groupList.Where(s => usedStatusIds.Contains(s.Id)).ToList();
-            var unusedInGroup = groupList.Where(s => !usedStatusIds.Contains(s.Id)).ToList();
-
-            if (usedInGroup.Count > 0)
-            {
-                toDelete.AddRange(unusedInGroup);
-            }
-            else
-            {
-                var canonical = unusedInGroup
-                    .OrderBy(s => s.CreatedAtUtc)
-                    .ThenBy(s => s.Id)
-                    .First();
-
-                toDelete.AddRange(unusedInGroup.Where(s => s.Id != canonical.Id));
-            }
-        }
-
+        var toDelete = DuplicateStatusSelector.SelectRemovable(allStatuses, usedStatusIds);
         if (toDelete.Count == 0)
         {
             return 0;
