@@ -16,10 +16,6 @@ public class IndexModel(
     AppDbContext dbContext,
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService) : PageModel
 {
-    private readonly IMerchantService _merchantService = merchantService;
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly Ledger.Infrastructure.Configuration.ILocalizedEntityService _localizedEntityService = localizedEntityService;
-
     public List<MerchantItemViewModel> Merchants { get; set; } = new();
     public List<Category> ParentCategories { get; set; } = new();
     public Dictionary<Guid, string> CategoryTranslations { get; set; } = new();
@@ -57,8 +53,8 @@ public class IndexModel(
 
     private async Task LoadDataAsync(CancellationToken cancellationToken = default)
     {
-        var allMerchants = await _merchantService.GetAllMerchantsAsync(cancellationToken);
-        var counts = await _merchantService.GetTransactionCountsByMerchantAsync(cancellationToken);
+        var allMerchants = await merchantService.GetAllMerchantsAsync(cancellationToken);
+        var counts = await merchantService.GetTransactionCountsByMerchantAsync(cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(SearchTerm))
         {
@@ -72,15 +68,15 @@ public class IndexModel(
             TransactionCount = counts.TryGetValue(m.Id, out var count) ? count : 0
         }).OrderByDescending(x => x.TransactionCount).ThenBy(x => x.Merchant.Name).ToList();
 
-        ParentCategories = await _dbContext.Categories
+        ParentCategories = await dbContext.Categories
             .Include(c => c.SubCategories)
             .Where(c => c.ParentCategoryId == null)
             .OrderBy(c => c.IsIncome)
             .ThenBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
-        var allCategories = await _dbContext.Categories.ToListAsync(cancellationToken);
-        CategoryTranslations = await _localizedEntityService.GetTranslationsAsync(
+        var allCategories = await dbContext.Categories.ToListAsync(cancellationToken);
+        CategoryTranslations = await localizedEntityService.GetTranslationsAsync(
             "Category",
             allCategories.Select(c => c.Id),
             "Name",
@@ -97,7 +93,7 @@ public class IndexModel(
 
         if (Input.Id.HasValue && Input.Id.Value != Guid.Empty)
         {
-            await _merchantService.UpdateAsync(
+            await merchantService.UpdateAsync(
                 Input.Id.Value,
                 Input.Name,
                 Input.DefaultCategoryId,
@@ -108,10 +104,10 @@ public class IndexModel(
         }
         else
         {
-            var merchant = await _merchantService.GetOrCreateByNameAsync(Input.Name, Input.DefaultCategoryId, cancellationToken);
+            var merchant = await merchantService.GetOrCreateByNameAsync(Input.Name, Input.DefaultCategoryId, cancellationToken);
             if (!string.IsNullOrWhiteSpace(Input.ColorHex) || !string.IsNullOrWhiteSpace(Input.IconName))
             {
-                await _merchantService.UpdateAsync(merchant.Id, merchant.Name, Input.DefaultCategoryId, Input.IconName, Input.ColorHex, cancellationToken);
+                await merchantService.UpdateAsync(merchant.Id, merchant.Name, Input.DefaultCategoryId, Input.IconName, Input.ColorHex, cancellationToken);
             }
             TempData["SuccessMessage"] = $"Le tiers « {Input.Name} » a été enregistré.";
         }
@@ -121,14 +117,14 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var merchant = await _merchantService.GetByIdAsync(id, cancellationToken);
+        var merchant = await merchantService.GetByIdAsync(id, cancellationToken);
         if (merchant == null)
         {
             return NotFound();
         }
 
         var name = merchant.Name;
-        await _merchantService.DeleteAsync(id, cancellationToken);
+        await merchantService.DeleteAsync(id, cancellationToken);
         TempData["SuccessMessage"] = $"Le tiers « {name} » a été supprimé et détaché des opérations.";
 
         return RedirectToPage(new { SearchTerm });
@@ -142,8 +138,8 @@ public class IndexModel(
             return RedirectToPage(new { SearchTerm });
         }
 
-        var source = await _merchantService.GetByIdAsync(sourceId, cancellationToken);
-        var target = await _merchantService.GetByIdAsync(targetId, cancellationToken);
+        var source = await merchantService.GetByIdAsync(sourceId, cancellationToken);
+        var target = await merchantService.GetByIdAsync(targetId, cancellationToken);
 
         if (source == null || target == null)
         {
@@ -152,7 +148,7 @@ public class IndexModel(
 
         var sourceName = source.Name;
         var targetName = target.Name;
-        var count = await _merchantService.MergeMerchantsAsync(sourceId, targetId, cancellationToken);
+        var count = await merchantService.MergeMerchantsAsync(sourceId, targetId, cancellationToken);
 
         TempData["SuccessMessage"] = $"« {sourceName} » a été fusionné vers « {targetName} » ({count} opérations réassignées).";
         return RedirectToPage(new { SearchTerm });

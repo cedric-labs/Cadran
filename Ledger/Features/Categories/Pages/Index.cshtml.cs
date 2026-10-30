@@ -16,12 +16,6 @@ public class IndexModel(
     Ledger.Features.Security.Context.ICurrentUserService currentUserService,
     IStringLocalizer? localizer = null) : PageModel
 {
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly Ledger.Infrastructure.Configuration.ILocalizedEntityService _localizedEntityService = localizedEntityService;
-    private readonly Ledger.Features.Categories.Services.ICategorySeedService _categorySeedService = categorySeedService;
-    private readonly Ledger.Features.Security.Context.ICurrentUserService _currentUserService = currentUserService;
-    private readonly IStringLocalizer? _localizer = localizer;
-
     public IReadOnlyList<Category> ParentCategories { get; set; } = new List<Category>();
     public IReadOnlyList<Category> OrphanCategories { get; set; } = new List<Category>();
     public Dictionary<Guid, string> CategoryTranslations { get; set; } = new();
@@ -34,13 +28,13 @@ public class IndexModel(
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId;
+        var currentUserId = currentUserService.UserId;
         if (!string.IsNullOrEmpty(currentUserId))
         {
-            await _categorySeedService.EnsureDefaultCategoriesForUserAsync(currentUserId, cancellationToken);
+            await categorySeedService.EnsureDefaultCategoriesForUserAsync(currentUserId, cancellationToken);
         }
 
-        var all = await _dbContext.Categories
+        var all = await dbContext.Categories
             .Include(c => c.SubCategories)
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
@@ -56,29 +50,29 @@ public class IndexModel(
             .Where(c => c.ParentCategoryId != null && !parentIds.Contains(c.ParentCategoryId.Value))
             .ToList();
 
-        CategoryTranslations = await _localizedEntityService.GetTranslationsAsync("Category", all.Select(c => c.Id), "Name", cancellationToken: cancellationToken);
+        CategoryTranslations = await localizedEntityService.GetTranslationsAsync("Category", all.Select(c => c.Id), "Name", cancellationToken: cancellationToken);
 
         return Page();
     }
 
     public async Task<IActionResult> OnPostRestoreDefaultsAsync(CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId;
+        var currentUserId = currentUserService.UserId;
         if (string.IsNullOrEmpty(currentUserId))
         {
             return Challenge();
         }
 
-        var restoredCount = await _categorySeedService.RestoreDefaultCategoriesAsync(currentUserId, cancellationToken);
+        var restoredCount = await categorySeedService.RestoreDefaultCategoriesAsync(currentUserId, cancellationToken);
         if (restoredCount > 0)
         {
-            var pattern = _localizer?["Categories.RestoreDefaultsSuccess"]?.Value ?? "{0} catégorie(s) par défaut restaurée(s) avec succès.";
+            var pattern = localizer?["Categories.RestoreDefaultsSuccess"]?.Value ?? "{0} catégorie(s) par défaut restaurée(s) avec succès.";
             StatusMessage = string.Format(pattern, restoredCount);
             StatusMessageType = "success";
         }
         else
         {
-            StatusMessage = _localizer?["Categories.RestoreDefaultsNone"]?.Value ?? "Toutes les catégories par défaut sont déjà présentes dans votre compte.";
+            StatusMessage = localizer?["Categories.RestoreDefaultsNone"]?.Value ?? "Toutes les catégories par défaut sont déjà présentes dans votre compte.";
             StatusMessageType = "info";
         }
 
@@ -87,7 +81,7 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var category = await _dbContext.Categories
+        var category = await dbContext.Categories
             .Include(c => c.SubCategories)
             .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
@@ -99,8 +93,8 @@ public class IndexModel(
                 sub.ParentCategoryId = null;
             }
 
-            _dbContext.Categories.Remove(category);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            dbContext.Categories.Remove(category);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
         return RedirectToPage();

@@ -21,11 +21,6 @@ public class IndexModel(
     ILocalizedEntityService localizedEntityService,
     IStringLocalizer localizer) : PageModel
 {
-    private readonly IRecurringExpenseService _recurringService = recurringService;
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly ILocalizedEntityService _localizedEntityService = localizedEntityService;
-    private readonly IStringLocalizer _localizer = localizer;
-
     public MonthlyRecurringSummaryDto Summary { get; set; } = new();
     public List<RecurringExpense> AllExpenses { get; set; } = new();
     public List<RecurringCandidateDto> Candidates { get; set; } = new();
@@ -92,7 +87,7 @@ public class IndexModel(
 
         if (Input.Id.HasValue && Input.Id.Value != Guid.Empty)
         {
-            var existing = await _recurringService.GetByIdAsync(Input.Id.Value, cancellationToken);
+            var existing = await recurringService.GetByIdAsync(Input.Id.Value, cancellationToken);
             if (existing != null)
             {
                 existing.Name = Input.Name.Trim();
@@ -106,8 +101,8 @@ public class IndexModel(
                 existing.IsActive = Input.IsActive;
                 existing.Notes = Input.Notes;
 
-                await _recurringService.UpdateAsync(existing, cancellationToken);
-                TempData["SuccessMessage"] = _localizer["Recurring.UpdatedSuccess"].Value;
+                await recurringService.UpdateAsync(existing, cancellationToken);
+                TempData["SuccessMessage"] = localizer["Recurring.UpdatedSuccess"].Value;
             }
         }
         else
@@ -128,8 +123,8 @@ public class IndexModel(
                 Notes = Input.Notes
             };
 
-            await _recurringService.CreateAsync(newExpense, cancellationToken);
-            TempData["SuccessMessage"] = _localizer["Recurring.CreatedSuccess"].Value;
+            await recurringService.CreateAsync(newExpense, cancellationToken);
+            TempData["SuccessMessage"] = localizer["Recurring.CreatedSuccess"].Value;
         }
 
         return RedirectToPage(new { year = SelectedYear, month = SelectedMonth });
@@ -137,8 +132,8 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id, int? year, int? month, CancellationToken cancellationToken = default)
     {
-        await _recurringService.DeleteAsync(id, cancellationToken);
-        TempData["SuccessMessage"] = _localizer["Recurring.DeletedSuccess"].Value;
+        await recurringService.DeleteAsync(id, cancellationToken);
+        TempData["SuccessMessage"] = localizer["Recurring.DeletedSuccess"].Value;
         return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });
     }
 
@@ -164,12 +159,12 @@ public class IndexModel(
             BankAccountId = bankAccountId
         };
 
-        await _recurringService.ConfirmCandidateAsync(candidate, cancellationToken);
-        TempData["SuccessMessage"] = string.Format(_localizer["Recurring.CandidateConfirmed"].Value, suggestedName);
+        await recurringService.ConfirmCandidateAsync(candidate, cancellationToken);
+        TempData["SuccessMessage"] = string.Format(localizer["Recurring.CandidateConfirmed"].Value, suggestedName);
 
         if (Request.Headers.XRequestedWith == "XMLHttpRequest")
         {
-            return new JsonResult(new { success = true, message = string.Format(_localizer["Recurring.CandidateConfirmed"].Value, suggestedName) });
+            return new JsonResult(new { success = true, message = string.Format(localizer["Recurring.CandidateConfirmed"].Value, suggestedName) });
         }
 
         return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });
@@ -177,12 +172,12 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostIgnoreCandidateAsync(string pattern, int? year, int? month, CancellationToken cancellationToken = default)
     {
-        await _recurringService.IgnoreCandidateAsync(pattern, cancellationToken);
-        TempData["SuccessMessage"] = string.Format(_localizer["Recurring.CandidateIgnored"].Value, pattern);
+        await recurringService.IgnoreCandidateAsync(pattern, cancellationToken);
+        TempData["SuccessMessage"] = string.Format(localizer["Recurring.CandidateIgnored"].Value, pattern);
 
         if (Request.Headers.XRequestedWith == "XMLHttpRequest")
         {
-            return new JsonResult(new { success = true, message = string.Format(_localizer["Recurring.CandidateIgnored"].Value, pattern) });
+            return new JsonResult(new { success = true, message = string.Format(localizer["Recurring.CandidateIgnored"].Value, pattern) });
         }
 
         return RedirectToPage(new { year = year ?? DateTime.Today.Year, month = month ?? DateTime.Today.Month });
@@ -190,18 +185,18 @@ public class IndexModel(
 
     private async Task LoadDataAsync(CancellationToken cancellationToken = default)
     {
-        Summary = await _recurringService.GetMonthlySummaryAsync(SelectedYear, SelectedMonth, cancellationToken);
-        AllExpenses = await _recurringService.GetAllAsync(cancellationToken);
-        Candidates = await _recurringService.DetectCandidatesAsync(cancellationToken);
+        Summary = await recurringService.GetMonthlySummaryAsync(SelectedYear, SelectedMonth, cancellationToken);
+        AllExpenses = await recurringService.GetAllAsync(cancellationToken);
+        Candidates = await recurringService.DetectCandidatesAsync(cancellationToken);
 
-        AvailableCategories = await _dbContext.Categories
+        AvailableCategories = await dbContext.Categories
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
         var catIds = AvailableCategories.Select(c => c.Id).ToList();
-        CategoryTranslations = await _localizedEntityService.GetTranslationsAsync("Category", catIds, "Name", cancellationToken: cancellationToken);
+        CategoryTranslations = await localizedEntityService.GetTranslationsAsync("Category", catIds, "Name", cancellationToken: cancellationToken);
 
-        AvailableAccounts = await _dbContext.BankAccounts
+        AvailableAccounts = await dbContext.BankAccounts
             .Where(a => !a.IsArchived)
             .OrderBy(a => a.Name)
             .ToListAsync(cancellationToken);

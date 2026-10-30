@@ -21,11 +21,6 @@ public class IndexModel(
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService,
     IMerchantService merchantService) : PageModel
 {
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly IRulesEngineService _rulesEngineService = rulesEngineService;
-    private readonly Ledger.Infrastructure.Configuration.ILocalizedEntityService _localizedEntityService = localizedEntityService;
-    private readonly IMerchantService _merchantService = merchantService;
-
     public IReadOnlyList<CategorizationRule> Rules { get; set; } = new List<CategorizationRule>();
     public List<Category> AvailableCategories { get; set; } = new();
     public List<Category> ParentCategories { get; set; } = new();
@@ -103,7 +98,7 @@ public class IndexModel(
         Guid? targetMerchantId = Input.TargetMerchantId;
         if (!targetMerchantId.HasValue && !string.IsNullOrWhiteSpace(Input.NewMerchantName))
         {
-            var createdMerchant = await _merchantService.GetOrCreateByNameAsync(Input.NewMerchantName.Trim(), cancellationToken: cancellationToken);
+            var createdMerchant = await merchantService.GetOrCreateByNameAsync(Input.NewMerchantName.Trim(), cancellationToken: cancellationToken);
             targetMerchantId = createdMerchant.Id;
         }
 
@@ -122,8 +117,8 @@ public class IndexModel(
             IsActive = true
         };
 
-        _dbContext.CategorizationRules.Add(rule);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.CategorizationRules.Add(rule);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         TempData["SuccessMessage"] = $"Règle '{rule.Name}' créée avec succès.";
         TempData["UpdatedRuleId"] = rule.Id.ToString();
@@ -157,7 +152,7 @@ public class IndexModel(
             return Page();
         }
 
-        var rule = await _dbContext.CategorizationRules.FindAsync([Input.Id.Value], cancellationToken);
+        var rule = await dbContext.CategorizationRules.FindAsync([Input.Id.Value], cancellationToken);
         if (rule == null)
         {
             TempData["ErrorMessage"] = "Règle introuvable.";
@@ -167,7 +162,7 @@ public class IndexModel(
         Guid? targetMerchantId = Input.TargetMerchantId;
         if (!targetMerchantId.HasValue && !string.IsNullOrWhiteSpace(Input.NewMerchantName))
         {
-            var createdMerchant = await _merchantService.GetOrCreateByNameAsync(Input.NewMerchantName.Trim(), cancellationToken: cancellationToken);
+            var createdMerchant = await merchantService.GetOrCreateByNameAsync(Input.NewMerchantName.Trim(), cancellationToken: cancellationToken);
             targetMerchantId = createdMerchant.Id;
         }
 
@@ -181,7 +176,7 @@ public class IndexModel(
         rule.MaxAmount = Input.MaxAmount;
         rule.ShiftToNextMonth = Input.ShiftToNextMonth;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         TempData["SuccessMessage"] = $"Règle '{rule.Name}' modifiée avec succès.";
         TempData["UpdatedRuleId"] = rule.Id.ToString();
@@ -190,11 +185,11 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var rule = await _dbContext.CategorizationRules.FindAsync([id], cancellationToken);
+        var rule = await dbContext.CategorizationRules.FindAsync([id], cancellationToken);
         if (rule != null)
         {
-            _dbContext.CategorizationRules.Remove(rule);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            dbContext.CategorizationRules.Remove(rule);
+            await dbContext.SaveChangesAsync(cancellationToken);
             TempData["SuccessMessage"] = $"Règle '{rule.Name}' supprimée avec succès.";
         }
         return RedirectToPage();
@@ -204,7 +199,7 @@ public class IndexModel(
         bool overwriteExisting = false,
         Guid? accountId = null, CancellationToken cancellationToken = default)
     {
-        var count = await _rulesEngineService.ApplyRulesToDatabaseAsync(
+        var count = await rulesEngineService.ApplyRulesToDatabaseAsync(
             overwriteExisting: overwriteExisting,
             bankAccountId: accountId,
             singleRuleId: ruleId,
@@ -225,30 +220,30 @@ public class IndexModel(
 
     private async Task LoadViewDataAsync(CancellationToken cancellationToken = default)
     {
-        Rules = await _dbContext.CategorizationRules
+        Rules = await dbContext.CategorizationRules
             .Include(r => r.TargetCategory)
             .Include(r => r.TargetMerchant)
             .Include(r => r.TargetBankAccount)
             .OrderBy(r => r.Priority)
             .ToListAsync(cancellationToken);
 
-        AvailableCategories = await _dbContext.Categories
+        AvailableCategories = await dbContext.Categories
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
-        AvailableMerchants = await _merchantService.GetAllMerchantsAsync(cancellationToken);
+        AvailableMerchants = await merchantService.GetAllMerchantsAsync(cancellationToken);
 
-        ParentCategories = await _dbContext.Categories
+        ParentCategories = await dbContext.Categories
             .Include(c => c.SubCategories)
             .Where(c => c.ParentCategoryId == null)
             .OrderBy(c => c.IsIncome)
             .ThenBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
-        AvailableAccounts = await _dbContext.BankAccounts
+        AvailableAccounts = await dbContext.BankAccounts
             .OrderBy(a => a.Name)
             .ToListAsync(cancellationToken);
 
-        CategoryTranslations = await _localizedEntityService.GetTranslationsAsync("Category", AvailableCategories.Select(c => c.Id), "Name", cancellationToken: cancellationToken);
+        CategoryTranslations = await localizedEntityService.GetTranslationsAsync("Category", AvailableCategories.Select(c => c.Id), "Name", cancellationToken: cancellationToken);
     }
 }

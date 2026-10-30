@@ -12,9 +12,6 @@ namespace Ledger.Features.Imports.Pages;
 [Authorize]
 public class CsvProfilesModel(AppDbContext dbContext, IStringLocalizer localizer) : PageModel
 {
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly IStringLocalizer _localizer = localizer;
-
     public List<CsvMappingProfile> Profiles { get; set; } = new();
 
     [BindProperty]
@@ -64,7 +61,7 @@ public class CsvProfilesModel(AppDbContext dbContext, IStringLocalizer localizer
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken = default)
     {
-        Profiles = await _dbContext.CsvMappingProfiles.OrderBy(p => p.Name).ToListAsync(cancellationToken);
+        Profiles = await dbContext.CsvMappingProfiles.OrderBy(p => p.Name).ToListAsync(cancellationToken);
         return Page();
     }
 
@@ -72,7 +69,7 @@ public class CsvProfilesModel(AppDbContext dbContext, IStringLocalizer localizer
     {
         if (!ModelState.IsValid)
         {
-            Profiles = await _dbContext.CsvMappingProfiles.OrderBy(p => p.Name).ToListAsync(cancellationToken);
+            Profiles = await dbContext.CsvMappingProfiles.OrderBy(p => p.Name).ToListAsync(cancellationToken);
             return Page();
         }
 
@@ -92,21 +89,21 @@ public class CsvProfilesModel(AppDbContext dbContext, IStringLocalizer localizer
             ReferenceColumnIndex = Input.ReferenceColumnIndex
         };
 
-        _dbContext.CsvMappingProfiles.Add(profile);
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        dbContext.CsvMappingProfiles.Add(profile);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
-        TempData["SuccessMessage"] = _localizer["CsvProfiles.ProfileSavedSuccess"].Value;
+        TempData["SuccessMessage"] = localizer["CsvProfiles.ProfileSavedSuccess"].Value;
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var profile = await _dbContext.CsvMappingProfiles.FindAsync([id], cancellationToken);
+        var profile = await dbContext.CsvMappingProfiles.FindAsync([id], cancellationToken);
         if (profile != null)
         {
-            _dbContext.CsvMappingProfiles.Remove(profile);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            TempData["SuccessMessage"] = _localizer["CsvProfiles.ProfileDeletedSuccess"].Value;
+            dbContext.CsvMappingProfiles.Remove(profile);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            TempData["SuccessMessage"] = localizer["CsvProfiles.ProfileDeletedSuccess"].Value;
         }
         return RedirectToPage();
     }

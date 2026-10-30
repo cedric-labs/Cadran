@@ -23,12 +23,6 @@ public class IndexModel(
     ILocalizedEntityService localizedEntityService,
     IStringLocalizer localizer) : PageModel
 {
-    private readonly IReportService _reportService = reportService;
-    private readonly IPivotReportService _pivotService = pivotService;
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly ILocalizedEntityService _localizedEntityService = localizedEntityService;
-    private readonly IStringLocalizer _localizer = localizer;
-
     // Gestion de l'onglet actif : "dashboards" ou "pivot"
     public string ActiveTab { get; set; } = "dashboards";
 
@@ -117,26 +111,26 @@ public class IndexModel(
     {
         if (string.IsNullOrWhiteSpace(DashInput.Name))
         {
-            TempData["ErrorMessage"] = _localizer["Reports.DashboardNameRequired"].Value;
+            TempData["ErrorMessage"] = localizer["Reports.DashboardNameRequired"].Value;
             return RedirectToPage(new { tab = "dashboards" });
         }
 
-        var created = await _reportService.CreateDashboardAsync(DashInput.Name, DashInput.Description, cancellationToken);
-        TempData["SuccessMessage"] = _localizer["Reports.DashboardCreatedSuccess"].Value;
+        var created = await reportService.CreateDashboardAsync(DashInput.Name, DashInput.Description, cancellationToken);
+        TempData["SuccessMessage"] = localizer["Reports.DashboardCreatedSuccess"].Value;
         return RedirectToPage(new { tab = "dashboards", dashboardId = created.Id });
     }
 
     public async Task<IActionResult> OnPostDeleteDashboardAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await _reportService.DeleteDashboardAsync(id, cancellationToken);
-        TempData["SuccessMessage"] = _localizer["Reports.DashboardDeletedSuccess"].Value;
+        await reportService.DeleteDashboardAsync(id, cancellationToken);
+        TempData["SuccessMessage"] = localizer["Reports.DashboardDeletedSuccess"].Value;
         return RedirectToPage(new { tab = "dashboards" });
     }
 
     public async Task<IActionResult> OnPostResetPresetsAsync(CancellationToken cancellationToken = default)
     {
-        await _reportService.ResetDefaultDashboardAsync(cancellationToken);
-        TempData["SuccessMessage"] = _localizer["Reports.PresetsResetSuccess"].Value;
+        await reportService.ResetDefaultDashboardAsync(cancellationToken);
+        TempData["SuccessMessage"] = localizer["Reports.PresetsResetSuccess"].Value;
         return RedirectToPage(new { tab = "dashboards" });
     }
 
@@ -144,7 +138,7 @@ public class IndexModel(
     {
         if (string.IsNullOrWhiteSpace(WidgInput.Title))
         {
-            TempData["ErrorMessage"] = _localizer["Reports.WidgetTitleRequired"].Value;
+            TempData["ErrorMessage"] = localizer["Reports.WidgetTitleRequired"].Value;
             return RedirectToPage(new { tab = "dashboards", dashboardId = WidgInput.DashboardId });
         }
 
@@ -157,13 +151,13 @@ public class IndexModel(
 
         if (WidgInput.Id.HasValue && WidgInput.Id.Value != Guid.Empty)
         {
-            await _reportService.UpdateWidgetAsync(WidgInput.Id.Value, WidgInput.Title, WidgInput.WidthCols, configJson, cancellationToken);
-            TempData["SuccessMessage"] = _localizer["Reports.WidgetUpdatedSuccess"].Value;
+            await reportService.UpdateWidgetAsync(WidgInput.Id.Value, WidgInput.Title, WidgInput.WidthCols, configJson, cancellationToken);
+            TempData["SuccessMessage"] = localizer["Reports.WidgetUpdatedSuccess"].Value;
         }
         else
         {
-            await _reportService.AddWidgetAsync(WidgInput.DashboardId, WidgInput.Title, WidgInput.WidgetType, WidgInput.WidthCols, configJson, cancellationToken);
-            TempData["SuccessMessage"] = _localizer["Reports.WidgetAddedSuccess"].Value;
+            await reportService.AddWidgetAsync(WidgInput.DashboardId, WidgInput.Title, WidgInput.WidgetType, WidgInput.WidthCols, configJson, cancellationToken);
+            TempData["SuccessMessage"] = localizer["Reports.WidgetAddedSuccess"].Value;
         }
 
         return RedirectToPage(new { tab = "dashboards", dashboardId = WidgInput.DashboardId });
@@ -171,8 +165,8 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostDeleteWidgetAsync(Guid widgetId, Guid dashboardId, CancellationToken cancellationToken = default)
     {
-        await _reportService.DeleteWidgetAsync(widgetId, cancellationToken);
-        TempData["SuccessMessage"] = _localizer["Reports.WidgetDeletedSuccess"].Value;
+        await reportService.DeleteWidgetAsync(widgetId, cancellationToken);
+        TempData["SuccessMessage"] = localizer["Reports.WidgetDeletedSuccess"].Value;
         return RedirectToPage(new { tab = "dashboards", dashboardId });
     }
 
@@ -190,7 +184,7 @@ public class IndexModel(
 
         var queryToSave = TryDeserializePivotQuery(SavePivot.SerializedQueryJson, PivotQuery);
 
-        var saved = await _pivotService.SavePivotReportAsync(
+        var saved = await pivotService.SavePivotReportAsync(
             SavePivot.Name,
             SavePivot.Description,
             queryToSave,
@@ -198,20 +192,20 @@ public class IndexModel(
             SavePivot.IsDefault,
             cancellationToken);
 
-        TempData["SuccessMessage"] = _localizer["Reports.PivotViewSavedSuccess"].Value;
+        TempData["SuccessMessage"] = localizer["Reports.PivotViewSavedSuccess"].Value;
         return RedirectToPage(new { tab = "pivot", savedViewId = saved.Id });
     }
 
     public async Task<IActionResult> OnPostDeletePivotViewAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        await _pivotService.DeleteSavedPivotReportAsync(id, cancellationToken);
-        TempData["SuccessMessage"] = _localizer["Reports.PivotViewDeletedSuccess"].Value;
+        await pivotService.DeleteSavedPivotReportAsync(id, cancellationToken);
+        TempData["SuccessMessage"] = localizer["Reports.PivotViewDeletedSuccess"].Value;
         return RedirectToPage(new { tab = "pivot" });
     }
 
     public async Task<IActionResult> OnGetCellTransactionsAsync(string rowKey, string colKey, string? rowLabel, string? colLabel, CancellationToken cancellationToken = default)
     {
-        var detail = await _pivotService.GetCellDetailAsync(PivotQuery, rowKey, colKey, cancellationToken);
+        var detail = await pivotService.GetCellDetailAsync(PivotQuery, rowKey, colKey, cancellationToken);
         if (!string.IsNullOrWhiteSpace(rowLabel)) detail.RowLabel = rowLabel;
         if (!string.IsNullOrWhiteSpace(colLabel)) detail.ColumnLabel = colLabel;
         return new JsonResult(detail);
@@ -219,7 +213,7 @@ public class IndexModel(
 
     private async Task LoadDataAsync(CancellationToken cancellationToken = default)
     {
-        Dashboards = await _reportService.GetDashboardsAsync(cancellationToken);
+        Dashboards = await reportService.GetDashboardsAsync(cancellationToken);
 
         if (SelectedDashboardId.HasValue)
         {
@@ -236,18 +230,18 @@ public class IndexModel(
             SelectedDashboardId = CurrentDashboard.Id;
             if (ActiveTab == "dashboards")
             {
-                WidgetDataList = await _reportService.ComputeDashboardDataAsync(CurrentDashboard.Id, cancellationToken);
+                WidgetDataList = await reportService.ComputeDashboardDataAsync(CurrentDashboard.Id, cancellationToken);
             }
         }
 
-        AvailableCategories = await _dbContext.Categories
+        AvailableCategories = await dbContext.Categories
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
         var catIds = AvailableCategories.Select(c => c.Id).ToList();
-        CategoryTranslations = await _localizedEntityService.GetTranslationsAsync("Category", catIds, "Name", cancellationToken: cancellationToken);
+        CategoryTranslations = await localizedEntityService.GetTranslationsAsync("Category", catIds, "Name", cancellationToken: cancellationToken);
 
-        AvailableAccounts = await _dbContext.BankAccounts
+        AvailableAccounts = await dbContext.BankAccounts
             .Where(a => !a.IsArchived)
             .OrderBy(a => a.Name)
             .ToListAsync(cancellationToken);
@@ -255,7 +249,7 @@ public class IndexModel(
 
     private async Task LoadPivotDataAsync(CancellationToken cancellationToken = default)
     {
-        SavedViews = await _pivotService.GetSavedPivotReportsAsync(cancellationToken);
+        SavedViews = await pivotService.GetSavedPivotReportsAsync(cancellationToken);
 
         bool hasExplicitFilterParams = Request.Query.ContainsKey("FlowFilter")
             || Request.Query.ContainsKey("RowDimension")
@@ -289,7 +283,7 @@ public class IndexModel(
             }
         }
 
-        PivotResult = await _pivotService.ComputePivotAsync(PivotQuery, cancellationToken);
+        PivotResult = await pivotService.ComputePivotAsync(PivotQuery, cancellationToken);
     }
 
     private static PivotQueryDto TryDeserializePivotQuery(string? json, PivotQueryDto fallback)

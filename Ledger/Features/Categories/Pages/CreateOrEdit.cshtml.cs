@@ -17,10 +17,6 @@ public class CreateOrEditModel(
     ILocalizedEntityService localizedEntityService,
     ILanguageService languageService) : PageModel
 {
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly ILocalizedEntityService _localizedEntityService = localizedEntityService;
-    private readonly ILanguageService _languageService = languageService;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -65,14 +61,14 @@ public class CreateOrEditModel(
     public async Task<IActionResult> OnGetAsync(Guid? id, Guid? parentId = null, CancellationToken cancellationToken = default)
     {
         Id = id;
-        SupportedLanguages = _languageService.GetSupportedLanguages();
+        SupportedLanguages = languageService.GetSupportedLanguages();
 
-        AvailableParentCategories = await _dbContext.Categories
+        AvailableParentCategories = await dbContext.Categories
             .Where(c => c.ParentCategoryId == null && (!id.HasValue || c.Id != id.Value))
             .OrderBy(c => c.Name)
             .ToListAsync(cancellationToken);
 
-        CategoryTranslations = await _localizedEntityService.GetTranslationsAsync(
+        CategoryTranslations = await localizedEntityService.GetTranslationsAsync(
             "Category",
             AvailableParentCategories.Select(c => c.Id),
             "Name",
@@ -80,11 +76,11 @@ public class CreateOrEditModel(
 
         if (id.HasValue)
         {
-            var cat = await _dbContext.Categories.FindAsync([id.Value], cancellationToken);
+            var cat = await dbContext.Categories.FindAsync([id.Value], cancellationToken);
             if (cat == null) return NotFound();
 
             // Récupérer toutes les traductions existantes en base pour cette catégorie
-            ExistingTranslations = await _localizedEntityService.GetAllTranslationsForEntityAsync("Category", cat.Id, "Name", cancellationToken);
+            ExistingTranslations = await localizedEntityService.GetAllTranslationsForEntityAsync("Category", cat.Id, "Name", cancellationToken);
 
             // Si le français n'est pas encore présent dans les traductions spécifiques, y inclure le nom par défaut en base
             if (!ExistingTranslations.ContainsKey("fr") && !string.IsNullOrWhiteSpace(cat.Name))
@@ -111,7 +107,7 @@ public class CreateOrEditModel(
         }
         else if (parentId.HasValue)
         {
-            var parent = await _dbContext.Categories.FindAsync([parentId.Value], cancellationToken);
+            var parent = await dbContext.Categories.FindAsync([parentId.Value], cancellationToken);
             if (parent != null)
             {
                 Input = new InputModel
@@ -129,16 +125,16 @@ public class CreateOrEditModel(
 
     public async Task<IActionResult> OnPostAsync(Guid? id, CancellationToken cancellationToken = default)
     {
-        SupportedLanguages = _languageService.GetSupportedLanguages();
+        SupportedLanguages = languageService.GetSupportedLanguages();
 
         if (!ModelState.IsValid)
         {
-            AvailableParentCategories = await _dbContext.Categories
+            AvailableParentCategories = await dbContext.Categories
                 .Where(c => c.ParentCategoryId == null && (!id.HasValue || c.Id != id.Value))
                 .OrderBy(c => c.Name)
                 .ToListAsync(cancellationToken);
 
-            CategoryTranslations = await _localizedEntityService.GetTranslationsAsync(
+            CategoryTranslations = await localizedEntityService.GetTranslationsAsync(
                 "Category",
                 AvailableParentCategories.Select(c => c.Id),
                 "Name",
@@ -167,7 +163,7 @@ public class CreateOrEditModel(
         Guid targetId;
         if (id.HasValue)
         {
-            var cat = await _dbContext.Categories.FindAsync([id.Value], cancellationToken);
+            var cat = await dbContext.Categories.FindAsync([id.Value], cancellationToken);
             if (cat == null) return NotFound();
 
             cat.Name = canonicalName;
@@ -190,11 +186,11 @@ public class CreateOrEditModel(
                 IsSalary = Input.IsIncome && Input.IsSalary,
                 ParentCategoryId = Input.ParentCategoryId
             };
-            _dbContext.Categories.Add(cat);
+            dbContext.Categories.Add(cat);
             targetId = cat.Id;
         }
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         // Enregistrer les traductions multilingues dynamiques (toutes langues envoyées ou supportées)
         // Mettre à jour chaque langue présente dans le dictionnaire soumis
@@ -202,7 +198,7 @@ public class CreateOrEditModel(
         {
             if (!string.IsNullOrWhiteSpace(langCode))
             {
-                await _localizedEntityService.SetTranslationAsync("Category", targetId, "Name", langCode.Trim(), val?.Trim() ?? string.Empty, cancellationToken);
+                await localizedEntityService.SetTranslationAsync("Category", targetId, "Name", langCode.Trim(), val?.Trim() ?? string.Empty, cancellationToken);
             }
         }
 

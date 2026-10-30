@@ -15,10 +15,6 @@ public class StatusesModel(
     AppDbContext dbContext,
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService) : PageModel
 {
-    private readonly ITransactionStatusService _statusService = statusService;
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly Ledger.Infrastructure.Configuration.ILocalizedEntityService _localizedEntityService = localizedEntityService;
-
     public List<StatusItemViewModel> Statuses { get; set; } = new();
 
     public class StatusItemViewModel
@@ -54,17 +50,17 @@ public class StatusesModel(
 
     public async Task OnGetAsync(CancellationToken cancellationToken = default)
     {
-        var allStatuses = await _statusService.GetAllStatusesAsync(cancellationToken);
+        var allStatuses = await statusService.GetAllStatusesAsync(cancellationToken);
 
         // Récupérer le nombre de transactions associées à chaque statut
-        var counts = await _dbContext.Transactions
+        var counts = await dbContext.Transactions
             .Where(t => t.CustomStatusId != null)
             .GroupBy(t => t.CustomStatusId)
             .Select(g => new { StatusId = g.Key ?? Guid.Empty, Count = g.Count() })
             .ToDictionaryAsync(g => g.StatusId, g => g.Count, cancellationToken);
 
         var currentLang = System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName.ToLowerInvariant();
-        var translations = await _localizedEntityService.GetTranslationsAsync(
+        var translations = await localizedEntityService.GetTranslationsAsync(
             "TransactionCustomStatus",
             allStatuses.Select(s => s.Id),
             "Name",
@@ -92,7 +88,7 @@ public class StatusesModel(
 
         if (Input.Id.HasValue && Input.Id.Value != Guid.Empty)
         {
-            var existing = await _statusService.GetByIdAsync(Input.Id.Value, cancellationToken);
+            var existing = await statusService.GetByIdAsync(Input.Id.Value, cancellationToken);
             if (existing == null)
             {
                 TempData["ErrorMessage"] = "Statut introuvable.";
@@ -108,7 +104,7 @@ public class StatusesModel(
             existing.IconName = Input.IconName.Trim();
             existing.IsDefault = Input.IsDefault;
 
-            await _statusService.UpdateAsync(existing, cancellationToken);
+            await statusService.UpdateAsync(existing, cancellationToken);
             targetId = existing.Id;
             TempData["SuccessMessage"] = $"Le statut '{Input.Name.Trim()}' a été mis à jour avec succès.";
         }
@@ -125,13 +121,13 @@ public class StatusesModel(
                 IsSystem = false
             };
 
-            await _statusService.CreateAsync(newStatus, cancellationToken);
+            await statusService.CreateAsync(newStatus, cancellationToken);
             targetId = newStatus.Id;
             TempData["SuccessMessage"] = $"Le statut '{newStatus.Name}' a été créé avec succès.";
         }
 
         // Sauvegarder la traduction pour la langue active
-        await _localizedEntityService.SetTranslationAsync(
+        await localizedEntityService.SetTranslationAsync(
             "TransactionCustomStatus",
             targetId,
             "Name",
@@ -144,7 +140,7 @@ public class StatusesModel(
 
     public async Task<IActionResult> OnPostSetDefaultAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var status = await _statusService.GetByIdAsync(id, cancellationToken);
+        var status = await statusService.GetByIdAsync(id, cancellationToken);
         if (status == null)
         {
             TempData["ErrorMessage"] = "Statut introuvable.";
@@ -152,14 +148,14 @@ public class StatusesModel(
         }
 
         status.IsDefault = true;
-        await _statusService.UpdateAsync(status, cancellationToken);
+        await statusService.UpdateAsync(status, cancellationToken);
         TempData["SuccessMessage"] = $"Le statut '{status.Name}' est désormais le statut par défaut.";
         return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostDeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var (success, errorMessage) = await _statusService.DeleteAsync(id, cancellationToken);
+        var (success, errorMessage) = await statusService.DeleteAsync(id, cancellationToken);
         if (!success)
         {
             TempData["ErrorMessage"] = errorMessage ?? "Impossible de supprimer ce statut.";

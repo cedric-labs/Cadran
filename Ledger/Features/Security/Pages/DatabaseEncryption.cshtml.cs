@@ -13,8 +13,6 @@ namespace Ledger.Features.Security.Pages;
 [Authorize]
 public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionService) : PageModel
 {
-    private readonly IDatabaseEncryptionService _encryptionService = encryptionService;
-
     public bool IsEncrypted { get; private set; }
     public bool IsRememberOnDevice { get; private set; }
 
@@ -35,8 +33,8 @@ public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionServic
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken = default)
     {
-        IsEncrypted = _encryptionService.IsDatabaseEncrypted();
-        IsRememberOnDevice = await _encryptionService.IsRememberOnDeviceEnabledAsync();
+        IsEncrypted = encryptionService.IsDatabaseEncrypted();
+        IsRememberOnDevice = await encryptionService.IsRememberOnDeviceEnabledAsync();
         return Page();
     }
 
@@ -54,7 +52,7 @@ public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionServic
             return RedirectToPage();
         }
 
-        var (success, error) = await _encryptionService.EncryptDatabaseAsync(EncryptInput.NewPassphrase, EncryptInput.RememberOnDevice);
+        var (success, error) = await encryptionService.EncryptDatabaseAsync(EncryptInput.NewPassphrase, EncryptInput.RememberOnDevice);
         if (success)
         {
             StatusMessage = "Le chiffrement global de la base de données (SQLCipher AES-256) a été activé avec succès !";
@@ -87,7 +85,7 @@ public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionServic
             return RedirectToPage();
         }
 
-        var (success, error) = await _encryptionService.ChangePassphraseAsync(
+        var (success, error) = await encryptionService.ChangePassphraseAsync(
             ChangePassphraseInput.CurrentPassphrase,
             ChangePassphraseInput.NewPassphrase,
             ChangePassphraseInput.RememberOnDevice);
@@ -106,7 +104,7 @@ public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionServic
 
     public async Task<IActionResult> OnPostToggleRememberAsync(bool remember, CancellationToken cancellationToken = default)
     {
-        await _encryptionService.SetRememberOnDeviceAsync(remember);
+        await encryptionService.SetRememberOnDeviceAsync(remember);
         StatusMessage = remember
             ? "La mémorisation automatique de la clé sur cet appareil est désormais activée."
             : "La mémorisation sur cet appareil a été révoquée. La phrase de passe sera demandée au prochain lancement.";
@@ -122,7 +120,7 @@ public class DatabaseEncryptionModel(IDatabaseEncryptionService encryptionServic
             return RedirectToPage();
         }
 
-        var (success, error) = await _encryptionService.DecryptDatabaseToPlainAsync(DecryptInput.CurrentPassphrase);
+        var (success, error) = await encryptionService.DecryptDatabaseToPlainAsync(DecryptInput.CurrentPassphrase);
         if (success)
         {
             StatusMessage = "Le chiffrement de la base a été retiré. Le fichier SQLite est désormais en texte brut non chiffré.";

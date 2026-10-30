@@ -10,8 +10,6 @@ namespace Ledger.Features.Settings.Pages;
 [Authorize]
 public class AppearanceModel(IUiSettingsService uiSettingsService) : PageModel
 {
-    private readonly IUiSettingsService _uiSettingsService = uiSettingsService;
-
     public List<UiFont> Fonts { get; set; } = new();
     public UiFont ActiveFont { get; set; } = new() { Name = string.Empty, FontFamilyCss = string.Empty };
     public string ActiveFontSize { get; set; } = "14px";
@@ -47,15 +45,15 @@ public class AppearanceModel(IUiSettingsService uiSettingsService) : PageModel
 
     private async Task LoadDataAsync(CancellationToken cancellationToken = default)
     {
-        Fonts = await _uiSettingsService.GetAllFontsAsync(cancellationToken);
-        ActiveFont = await _uiSettingsService.GetActiveFontAsync(cancellationToken);
-        ActiveFontSize = await _uiSettingsService.GetFontSizeAsync(cancellationToken);
-        DefaultDisplayMode = await _uiSettingsService.GetDefaultDisplayModeAsync(cancellationToken);
-        DefaultPeriod = await _uiSettingsService.GetDefaultPeriodAsync(cancellationToken);
-        TransactionsPageSize = await _uiSettingsService.GetTransactionsPageSizeAsync(cancellationToken);
-        ShowKpiCents = await _uiSettingsService.GetShowKpiCentsAsync(cancellationToken);
-        DuplicateToleranceDays = await _uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken);
-        SalaryMonthStartDay = await _uiSettingsService.GetSalaryMonthStartDayAsync(cancellationToken);
+        Fonts = await uiSettingsService.GetAllFontsAsync(cancellationToken);
+        ActiveFont = await uiSettingsService.GetActiveFontAsync(cancellationToken);
+        ActiveFontSize = await uiSettingsService.GetFontSizeAsync(cancellationToken);
+        DefaultDisplayMode = await uiSettingsService.GetDefaultDisplayModeAsync(cancellationToken);
+        DefaultPeriod = await uiSettingsService.GetDefaultPeriodAsync(cancellationToken);
+        TransactionsPageSize = await uiSettingsService.GetTransactionsPageSizeAsync(cancellationToken);
+        ShowKpiCents = await uiSettingsService.GetShowKpiCentsAsync(cancellationToken);
+        DuplicateToleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken);
+        SalaryMonthStartDay = await uiSettingsService.GetSalaryMonthStartDayAsync(cancellationToken);
     }
 
     public async Task<IActionResult> OnPostSavePreferencesAsync(Guid fontId,
@@ -67,14 +65,14 @@ public class AppearanceModel(IUiSettingsService uiSettingsService) : PageModel
         int duplicateToleranceDays,
         int salaryMonthStartDay = 1, CancellationToken cancellationToken = default)
     {
-        await _uiSettingsService.SetActiveFontAsync(fontId, cancellationToken);
-        await _uiSettingsService.SetFontSizeAsync(fontSize, cancellationToken);
-        await _uiSettingsService.SetDefaultDisplayModeAsync(displayMode, cancellationToken);
-        await _uiSettingsService.SetDefaultPeriodAsync(defaultPeriod, cancellationToken);
-        await _uiSettingsService.SetTransactionsPageSizeAsync(transactionsPageSize, cancellationToken);
-        await _uiSettingsService.SetShowKpiCentsAsync(showKpiCents, cancellationToken);
-        await _uiSettingsService.SetDuplicateToleranceDaysAsync(duplicateToleranceDays, cancellationToken);
-        await _uiSettingsService.SetSalaryMonthStartDayAsync(salaryMonthStartDay, cancellationToken);
+        await uiSettingsService.SetActiveFontAsync(fontId, cancellationToken);
+        await uiSettingsService.SetFontSizeAsync(fontSize, cancellationToken);
+        await uiSettingsService.SetDefaultDisplayModeAsync(displayMode, cancellationToken);
+        await uiSettingsService.SetDefaultPeriodAsync(defaultPeriod, cancellationToken);
+        await uiSettingsService.SetTransactionsPageSizeAsync(transactionsPageSize, cancellationToken);
+        await uiSettingsService.SetShowKpiCentsAsync(showKpiCents, cancellationToken);
+        await uiSettingsService.SetDuplicateToleranceDaysAsync(duplicateToleranceDays, cancellationToken);
+        await uiSettingsService.SetSalaryMonthStartDayAsync(salaryMonthStartDay, cancellationToken);
 
         TempData["SuccessMessage"] = "Les paramètres d'affichage, de comportement et de tolérance d'import ont été enregistrés avec succès.";
         return RedirectToPage();
@@ -89,7 +87,7 @@ public class AppearanceModel(IUiSettingsService uiSettingsService) : PageModel
             return Page();
         }
 
-        await _uiSettingsService.AddCustomFontAsync(
+        await uiSettingsService.AddCustomFontAsync(
             CustomFontInput.Name,
             CustomFontInput.FontFamilyCss,
             CustomFontInput.GoogleFontUrl,
@@ -101,7 +99,7 @@ public class AppearanceModel(IUiSettingsService uiSettingsService) : PageModel
 
     public async Task<IActionResult> OnPostDeleteFontAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var (success, errorMessage) = await _uiSettingsService.DeleteFontAsync(id, cancellationToken);
+        var (success, errorMessage) = await uiSettingsService.DeleteFontAsync(id, cancellationToken);
         if (!success)
         {
             TempData["ErrorMessage"] = errorMessage ?? "Impossible de supprimer cette police.";

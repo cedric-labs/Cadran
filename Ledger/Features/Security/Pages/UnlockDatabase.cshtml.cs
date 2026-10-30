@@ -12,8 +12,6 @@ namespace Ledger.Features.Security.Pages;
 [AllowAnonymous]
 public class UnlockDatabaseModel(IDatabaseEncryptionService encryptionService) : PageModel
 {
-    private readonly IDatabaseEncryptionService _encryptionService = encryptionService;
-
     [BindProperty]
     [Required(ErrorMessage = "Veuillez saisir la phrase de passe de déchiffrement.")]
     [DataType(DataType.Password)]
@@ -29,7 +27,7 @@ public class UnlockDatabaseModel(IDatabaseEncryptionService encryptionService) :
 
     public IActionResult OnGet()
     {
-        if (!_encryptionService.IsDatabaseLocked())
+        if (!encryptionService.IsDatabaseLocked())
         {
             return LocalRedirect("~/Accounts");
         }
@@ -45,7 +43,7 @@ public class UnlockDatabaseModel(IDatabaseEncryptionService encryptionService) :
             return Page();
         }
 
-        var success = await _encryptionService.UnlockDatabaseAsync(Passphrase, RememberOnDevice);
+        var success = await encryptionService.UnlockDatabaseAsync(Passphrase, RememberOnDevice);
         if (!success)
         {
             ErrorMessage = "Phrase de passe incorrecte. Impossible de déchiffrer la base de données.";

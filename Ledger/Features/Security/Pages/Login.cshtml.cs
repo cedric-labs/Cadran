@@ -9,8 +9,6 @@ namespace Ledger.Features.Security.Pages;
 [AllowAnonymous]
 public class LoginModel(IAuthService authService) : PageModel
 {
-    private readonly IAuthService _authService = authService;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -54,7 +52,7 @@ public class LoginModel(IAuthService authService) : PageModel
             return Page();
         }
 
-        var result = await _authService.LoginUserAsync(Input.Email, Input.Password, Input.RememberMe, cancellationToken);
+        var result = await authService.LoginUserAsync(Input.Email, Input.Password, Input.RememberMe, cancellationToken);
 
         if (result.Succeeded)
         {

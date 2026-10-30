@@ -24,12 +24,6 @@ public class IndexModel(
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService,
     ILogger<IndexModel>? logger = null) : PageModel
 {
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly ITransactionImportService _importService = importService;
-    private readonly IAccountTypeService _accountTypeService = accountTypeService;
-    private readonly Ledger.Features.Settings.Services.IUiSettingsService _uiSettingsService = uiSettingsService;
-    private readonly IStringLocalizer _localizer = localizer;
-    private readonly Ledger.Infrastructure.Configuration.ILocalizedEntityService _localizedEntityService = localizedEntityService;
     private readonly ILogger<IndexModel> _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<IndexModel>.Instance;
 
     [BindProperty]
@@ -85,7 +79,7 @@ public class IndexModel(
     {
         if (Input.File == null || Input.File.Length == 0)
         {
-            ModelState.AddModelError("Input.File", _localizer["Imports.PleaseSelectValidFile"]);
+            ModelState.AddModelError("Input.File", localizer["Imports.PleaseSelectValidFile"]);
             await LoadDataAsync();
             return Page();
         }
@@ -96,13 +90,13 @@ public class IndexModel(
         // Si ce n'est pas un OFX, le compte bancaire est obligatoire
         if (!isOfx && (!Input.BankAccountId.HasValue || Input.BankAccountId.Value == Guid.Empty))
         {
-            ModelState.AddModelError("Input.BankAccountId", _localizer["Imports.TargetAccountRequiredForCsv"]);
+            ModelState.AddModelError("Input.BankAccountId", localizer["Imports.TargetAccountRequiredForCsv"]);
             await LoadDataAsync();
             return Page();
         }
 
         using var stream = Input.File.OpenReadStream();
-        LastResult = await _importService.ImportStatementAsync(
+        LastResult = await importService.ImportStatementAsync(
             Input.BankAccountId,
             Input.File.FileName,
             stream,
@@ -146,14 +140,14 @@ public class IndexModel(
     {
         if (string.IsNullOrEmpty(tempFilePath) || !System.IO.File.Exists(tempFilePath))
         {
-            StatusNotification = _localizer["Imports.TempFileExpired"];
+            StatusNotification = localizer["Imports.TempFileExpired"];
             await LoadDataAsync();
             return RedirectToPage();
         }
 
         if (chosenAccountId == Guid.Empty)
         {
-            StatusNotification = _localizer["Imports.PleaseChooseAccount"];
+            StatusNotification = localizer["Imports.PleaseChooseAccount"];
             await LoadDataAsync();
             return RedirectToPage();
         }
@@ -161,17 +155,17 @@ public class IndexModel(
         // Si l'utilisateur demande d'associer l'<ACCTID> à ce compte pour les prochains imports
         if (associateOfxIdToAccount && !string.IsNullOrEmpty(detectedOfxAcctId))
         {
-            var acc = await _dbContext.BankAccounts.FirstOrDefaultAsync(a => a.Id == chosenAccountId);
+            var acc = await dbContext.BankAccounts.FirstOrDefaultAsync(a => a.Id == chosenAccountId);
             if (acc != null && string.IsNullOrEmpty(acc.OfxAccountId))
             {
                 acc.OfxAccountId = detectedOfxAcctId.Trim();
-                await _dbContext.SaveChangesAsync();
+                await dbContext.SaveChangesAsync();
             }
         }
 
         using (var stream = System.IO.File.OpenRead(tempFilePath))
         {
-            LastResult = await _importService.ImportStatementAsync(
+            LastResult = await importService.ImportStatementAsync(
                 chosenAccountId,
                 originalFileName,
                 stream);
@@ -208,14 +202,14 @@ public class IndexModel(
     {
         if (string.IsNullOrEmpty(tempFilePath) || !System.IO.File.Exists(tempFilePath))
         {
-            StatusNotification = _localizer["Imports.TempFileExpired"];
+            StatusNotification = localizer["Imports.TempFileExpired"];
             await LoadDataAsync();
             return RedirectToPage();
         }
 
         if (string.IsNullOrWhiteSpace(accountName))
         {
-            StatusNotification = _localizer["Imports.PleaseEnterAccountName"];
+            StatusNotification = localizer["Imports.PleaseEnterAccountName"];
             await LoadDataAsync();
             return RedirectToPage();
         }
@@ -232,13 +226,13 @@ public class IndexModel(
                 UserId = string.Empty, // Injecté par SaveChangesAsync
                 Name = newBankName.Trim()
             };
-            _dbContext.Banks.Add(newBank);
-            await _dbContext.SaveChangesAsync();
+            dbContext.Banks.Add(newBank);
+            await dbContext.SaveChangesAsync();
             targetBankId = newBank.Id;
         }
         else
         {
-            StatusNotification = _localizer["Imports.PleaseChooseOrEnterBank"];
+            StatusNotification = localizer["Imports.PleaseChooseOrEnterBank"];
             await LoadDataAsync();
             return RedirectToPage();
         }
@@ -246,7 +240,7 @@ public class IndexModel(
         var legacyType = AccountType.Checking;
         if (customAccountTypeId.HasValue)
         {
-            var chosenType = await _accountTypeService.GetByIdAsync(customAccountTypeId.Value);
+            var chosenType = await accountTypeService.GetByIdAsync(customAccountTypeId.Value);
             if (chosenType != null && !string.IsNullOrEmpty(chosenType.Code) && Enum.TryParse<AccountType>(chosenType.Code, out var parsedType))
             {
                 legacyType = parsedType;
@@ -265,12 +259,12 @@ public class IndexModel(
             Currency = "EUR"
         };
 
-        _dbContext.BankAccounts.Add(newAccount);
-        await _dbContext.SaveChangesAsync();
+        dbContext.BankAccounts.Add(newAccount);
+        await dbContext.SaveChangesAsync();
 
         using (var stream = System.IO.File.OpenRead(tempFilePath))
         {
-            LastResult = await _importService.ImportStatementAsync(
+            LastResult = await importService.ImportStatementAsync(
                 newAccount.Id,
                 originalFileName,
                 stream);
@@ -302,7 +296,7 @@ public class IndexModel(
     {
         if (string.IsNullOrWhiteSpace(serializedDuplicates) || selectedIndices == null || selectedIndices.Count == 0)
         {
-            StatusNotification = _localizer["Imports.NoSuspectsSelected"];
+            StatusNotification = localizer["Imports.NoSuspectsSelected"];
             await LoadDataAsync();
             return Page();
         }
@@ -313,19 +307,19 @@ public class IndexModel(
             if (allSuspected != null)
             {
                 var toImport = allSuspected.Where(d => selectedIndices.Contains(d.Index)).ToList();
-                int imported = await _importService.ConfirmDuplicatesAsync(batchId, bankAccountId, toImport);
-                StatusNotification = string.Format(_localizer["Imports.ConfirmedDuplicatesSuccess"], imported);
+                int imported = await importService.ConfirmDuplicatesAsync(batchId, bankAccountId, toImport);
+                StatusNotification = string.Format(localizer["Imports.ConfirmedDuplicatesSuccess"], imported);
             }
         }
         catch (JsonException ex)
         {
             _logger.LogWarning(ex, "Erreur de désérialisation JSON lors de la confirmation des doublons suspects.");
-            StatusNotification = string.Format(_localizer["Imports.ConfirmDuplicatesError"], ex.Message);
+            StatusNotification = string.Format(localizer["Imports.ConfirmDuplicatesError"], ex.Message);
         }
         catch (InvalidOperationException ex)
         {
             _logger.LogError(ex, "Erreur d'opération lors de la confirmation des doublons suspects.");
-            StatusNotification = string.Format(_localizer["Imports.ConfirmDuplicatesError"], ex.Message);
+            StatusNotification = string.Format(localizer["Imports.ConfirmDuplicatesError"], ex.Message);
         }
 
         await LoadDataAsync();
@@ -340,17 +334,17 @@ public class IndexModel(
     {
         if (deduplicateAccountId == Guid.Empty)
         {
-            StatusNotification = _localizer["Imports.PleaseSelectAccountToAnalyze"];
+            StatusNotification = localizer["Imports.PleaseSelectAccountToAnalyze"];
             await LoadDataAsync();
             return Page();
         }
 
         SelectedDeduplicateAccountId = deduplicateAccountId;
-        ExistingDuplicates = await _importService.FindExistingDuplicatesAsync(deduplicateAccountId);
+        ExistingDuplicates = await importService.FindExistingDuplicatesAsync(deduplicateAccountId);
 
         if (ExistingDuplicates.Count == 0)
         {
-            StatusNotification = _localizer["Imports.NoDuplicatesDetectedOnAccount"];
+            StatusNotification = localizer["Imports.NoDuplicatesDetectedOnAccount"];
         }
 
         await LoadDataAsync();
@@ -361,17 +355,17 @@ public class IndexModel(
     {
         if (deduplicateAccountId == Guid.Empty || transactionIdsToDelete == null || transactionIdsToDelete.Count == 0)
         {
-            StatusNotification = _localizer["Imports.NoTransactionsSelectedForDeletion"];
+            StatusNotification = localizer["Imports.NoTransactionsSelectedForDeletion"];
             await LoadDataAsync();
             return Page();
         }
 
-        int deletedCount = await _importService.DeleteExistingDuplicatesAsync(deduplicateAccountId, transactionIdsToDelete);
-        StatusNotification = string.Format(_localizer["Imports.DeletedDuplicatesSuccess"], deletedCount);
+        int deletedCount = await importService.DeleteExistingDuplicatesAsync(deduplicateAccountId, transactionIdsToDelete);
+        StatusNotification = string.Format(localizer["Imports.DeletedDuplicatesSuccess"], deletedCount);
 
         // Réactualiser la liste des doublons restants
         SelectedDeduplicateAccountId = deduplicateAccountId;
-        ExistingDuplicates = await _importService.FindExistingDuplicatesAsync(deduplicateAccountId);
+        ExistingDuplicates = await importService.FindExistingDuplicatesAsync(deduplicateAccountId);
 
         await LoadDataAsync();
         return Page();
@@ -379,14 +373,14 @@ public class IndexModel(
 
     public async Task<IActionResult> OnPostDeleteBatchAsync(Guid batchId)
     {
-        var deleted = await _importService.DeleteBatchAsync(batchId);
+        var deleted = await importService.DeleteBatchAsync(batchId);
         if (deleted)
         {
-            StatusNotification = _localizer["Imports.DeletedBatchSuccess"];
+            StatusNotification = localizer["Imports.DeletedBatchSuccess"];
         }
         else
         {
-            StatusNotification = _localizer["Imports.BatchNotFound"];
+            StatusNotification = localizer["Imports.BatchNotFound"];
         }
 
         await LoadDataAsync();
@@ -395,28 +389,28 @@ public class IndexModel(
 
     private async Task LoadDataAsync()
     {
-        AvailableAccounts = await _dbContext.BankAccounts
+        AvailableAccounts = await dbContext.BankAccounts
             .Include(a => a.Bank)
             .OrderBy(a => a.Name)
             .ToListAsync();
 
-        AvailableBanks = await _dbContext.Banks
+        AvailableBanks = await dbContext.Banks
             .OrderBy(b => b.Name)
             .ToListAsync();
 
-        AvailableAccountTypes = await _accountTypeService.GetAllAccountTypesAsync();
+        AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync();
 
-        AvailableProfiles = await _dbContext.CsvMappingProfiles
+        AvailableProfiles = await dbContext.CsvMappingProfiles
             .OrderBy(p => p.Name)
             .ToListAsync();
 
-        RecentBatches = await _dbContext.ImportBatches
+        RecentBatches = await dbContext.ImportBatches
             .Include(b => b.BankAccount)
             .OrderByDescending(b => b.CreatedAtUtc)
             .Take(10)
             .ToListAsync();
 
-        ConfiguredToleranceDays = await _uiSettingsService.GetDuplicateToleranceDaysAsync();
+        ConfiguredToleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync();
 
         if (ExistingDuplicates != null && ExistingDuplicates.Count > 0)
         {
@@ -430,7 +424,7 @@ public class IndexModel(
 
             if (catIds.Count > 0)
             {
-                CategoryTranslations = await _localizedEntityService.GetTranslationsAsync("Category", catIds, "Name");
+                CategoryTranslations = await localizedEntityService.GetTranslationsAsync("Category", catIds, "Name");
             }
         }
     }

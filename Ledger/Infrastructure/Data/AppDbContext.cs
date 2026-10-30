@@ -24,8 +24,6 @@ public class AppDbContext(
     DbContextOptions<AppDbContext> options,
     ICurrentUserService currentUserService) : IdentityDbContext<ApplicationUser>(options)
 {
-    private readonly ICurrentUserService _currentUserService = currentUserService;
-
     // Entités Métier
     public DbSet<Bank> Banks => Set<Bank>();
     public DbSet<BankAccount> BankAccounts => Set<BankAccount>();
@@ -301,7 +299,7 @@ public class AppDbContext(
     public void ConfigureUserGlobalFilter<TEntity>(ModelBuilder modelBuilder) where TEntity : class, IUserOwnedEntity
     {
         modelBuilder.Entity<TEntity>().HasQueryFilter(e =>
-            _currentUserService.UserId != null && e.UserId == _currentUserService.UserId);
+            currentUserService.UserId != null && e.UserId == currentUserService.UserId);
     }
 
     /// <summary>
@@ -310,7 +308,7 @@ public class AppDbContext(
     /// </summary>
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var currentUserId = _currentUserService.UserId;
+        var currentUserId = currentUserService.UserId;
         var now = DateTime.UtcNow;
 
         foreach (var entry in ChangeTracker.Entries())

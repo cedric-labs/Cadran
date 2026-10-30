@@ -20,9 +20,6 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
     private static readonly Lock CatalogLock = new();
     private static readonly JsonSerializerOptions DefaultJsonOptions = new() { PropertyNameCaseInsensitive = true };
 
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly ILogger<CategorySeedService> _logger = logger;
-
     /// <summary>
     /// Récupère l'ensemble des modèles de catégories par défaut depuis le fichier de ressources JSON multilingue.
     /// Les modèles sont mis en cache statique après le premier chargement.
@@ -79,7 +76,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
             return;
         }
 
-        var existingCategories = await _dbContext.Categories
+        var existingCategories = await dbContext.Categories
             .IgnoreQueryFilters()
             .Where(c => c.UserId == userId)
             .ToListAsync(cancellationToken);
@@ -104,17 +101,17 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         var templates = GetDefaultCategoryTemplates();
         if (templates.Count == 0)
         {
-            _logger.LogWarning("Aucun gabarit de catégorie par défaut trouvé dans les ressources.");
+            logger.LogWarning("Aucun gabarit de catégorie par défaut trouvé dans les ressources.");
             return 0;
         }
 
-        var existingCategories = await _dbContext.Categories
+        var existingCategories = await dbContext.Categories
             .IgnoreQueryFilters()
             .Where(c => c.UserId == userId)
             .ToListAsync(cancellationToken);
 
         var existingCatIds = existingCategories.Select(c => c.Id).ToHashSet();
-        var allCategoryTranslations = await _dbContext.EntityTranslations
+        var allCategoryTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "Category")
             .ToListAsync(cancellationToken);
         var existingTranslations = allCategoryTranslations
@@ -273,20 +270,20 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
 
         if (categoriesToAdd.Count > 0)
         {
-            _dbContext.Categories.AddRange(categoriesToAdd);
+            dbContext.Categories.AddRange(categoriesToAdd);
         }
 
         if (translationsToAdd.Count > 0)
         {
-            _dbContext.EntityTranslations.AddRange(translationsToAdd);
+            dbContext.EntityTranslations.AddRange(translationsToAdd);
         }
 
         if (categoriesToAdd.Count > 0 || translationsToAdd.Count > 0)
         {
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
         }
 
-        _logger.LogInformation(
+        logger.LogInformation(
             "Restauration des catégories terminée pour {UserId} : {RestoredCount} catégories ajoutées, {TransCount} traductions.",
             userId,
             restoredCount,
@@ -298,7 +295,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
     private async Task EnsureMissingTranslationsAsync(List<Category> categories, CancellationToken cancellationToken)
     {
         var categoryIds = categories.Select(c => c.Id).ToHashSet();
-        var allCategoryTranslations = await _dbContext.EntityTranslations
+        var allCategoryTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "Category")
             .ToListAsync(cancellationToken);
         var existingTranslations = allCategoryTranslations
@@ -380,9 +377,9 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
 
         if (translationsToAdd.Count > 0)
         {
-            _dbContext.EntityTranslations.AddRange(translationsToAdd);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("{Count} traductions de catégories manquantes ont été ajoutées.", translationsToAdd.Count);
+            dbContext.EntityTranslations.AddRange(translationsToAdd);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            logger.LogInformation("{Count} traductions de catégories manquantes ont été ajoutées.", translationsToAdd.Count);
         }
     }
 

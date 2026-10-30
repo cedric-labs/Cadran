@@ -29,8 +29,6 @@ public class DetailsModel(
         recurringExpenseService,
         localizedEntityService)
 {
-    private readonly IAccountBalanceService _balanceService = balanceService;
-
     public override string DefaultTableKey => "AccountDetails";
 
     protected override string GetDefaultRedirectUrl(Transaction? transaction = null)
@@ -92,7 +90,7 @@ public class DetailsModel(
                 cancellationToken: cancellationToken);
         }
 
-        BalanceSummary = await _balanceService.GetAccountBalanceAsync(id, cancellationToken);
+        BalanceSummary = await balanceService.GetAccountBalanceAsync(id, cancellationToken);
 
         await LoadReferenceSelectorsAsync(DefaultTableKey, id, cancellationToken);
 

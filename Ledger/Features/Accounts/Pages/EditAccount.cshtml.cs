@@ -17,11 +17,6 @@ public class EditAccountModel(
     ICurrencyService currencyService,
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService) : PageModel
 {
-    private readonly AppDbContext _dbContext = dbContext;
-    private readonly IAccountTypeService _accountTypeService = accountTypeService;
-    private readonly ICurrencyService _currencyService = currencyService;
-    private readonly Ledger.Infrastructure.Configuration.ILocalizedEntityService _localizedEntityService = localizedEntityService;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -87,7 +82,7 @@ public class EditAccountModel(
             }
         }
 
-        var account = await _dbContext.BankAccounts
+        var account = await dbContext.BankAccounts
             .Include(a => a.Bank)
             .Include(a => a.CustomAccountType)
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
@@ -97,11 +92,11 @@ public class EditAccountModel(
             return NotFound();
         }
 
-        AvailableBanks = await _dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
-        AvailableAccountTypes = await _accountTypeService.GetAllAccountTypesAsync(cancellationToken);
-        AvailableCurrencies = _currencyService.GetSupportedCurrencies();
+        AvailableBanks = await dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
+        AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync(cancellationToken);
+        AvailableCurrencies = currencyService.GetSupportedCurrencies();
 
-        LocalizedTypeNames = await _localizedEntityService.GetTranslationsAsync(
+        LocalizedTypeNames = await localizedEntityService.GetTranslationsAsync(
             "CustomAccountType",
             AvailableAccountTypes.Select(t => t.Id),
             "Name",
@@ -137,7 +132,7 @@ public class EditAccountModel(
     {
         AccountId = id;
 
-        var account = await _dbContext.BankAccounts
+        var account = await dbContext.BankAccounts
             .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
         if (account == null)
@@ -147,10 +142,10 @@ public class EditAccountModel(
 
         if (!ModelState.IsValid)
         {
-            AvailableBanks = await _dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
-            AvailableAccountTypes = await _accountTypeService.GetAllAccountTypesAsync(cancellationToken);
-            AvailableCurrencies = _currencyService.GetSupportedCurrencies();
-            LocalizedTypeNames = await _localizedEntityService.GetTranslationsAsync(
+            AvailableBanks = await dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
+            AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync(cancellationToken);
+            AvailableCurrencies = currencyService.GetSupportedCurrencies();
+            LocalizedTypeNames = await localizedEntityService.GetTranslationsAsync(
                 "CustomAccountType",
                 AvailableAccountTypes.Select(t => t.Id),
                 "Name",
@@ -167,8 +162,8 @@ public class EditAccountModel(
                 UserId = string.Empty,
                 Name = Input.NewBankName.Trim()
             };
-            _dbContext.Banks.Add(newBank);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            dbContext.Banks.Add(newBank);
+            await dbContext.SaveChangesAsync(cancellationToken);
             bankId = newBank.Id;
         }
         else if (Input.ExistingBankId.HasValue && Input.ExistingBankId != Guid.Empty)
@@ -184,7 +179,7 @@ public class EditAccountModel(
         var legacyType = Input.Type;
         if (Input.CustomAccountTypeId.HasValue)
         {
-            var chosenType = await _accountTypeService.GetByIdAsync(Input.CustomAccountTypeId.Value, cancellationToken);
+            var chosenType = await accountTypeService.GetByIdAsync(Input.CustomAccountTypeId.Value, cancellationToken);
             if (chosenType != null && !string.IsNullOrEmpty(chosenType.Code) && Enum.TryParse<AccountType>(chosenType.Code, out var parsedType))
             {
                 legacyType = parsedType;
@@ -201,7 +196,7 @@ public class EditAccountModel(
         account.Currency = string.IsNullOrWhiteSpace(Input.Currency) ? "EUR" : Input.Currency.ToUpperInvariant();
         account.IsArchived = Input.IsArchived;
 
-        await _dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(ReturnUrl) && Url.IsLocalUrl(ReturnUrl))
         {

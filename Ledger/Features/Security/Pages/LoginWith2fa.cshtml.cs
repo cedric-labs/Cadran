@@ -13,9 +13,6 @@ public class LoginWith2faModel(
     SignInManager<ApplicationUser> signInManager,
     IAuthService authService) : PageModel
 {
-    private readonly SignInManager<ApplicationUser> _signInManager = signInManager;
-    private readonly IAuthService _authService = authService;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -37,7 +34,7 @@ public class LoginWith2faModel(
     public async Task<IActionResult> OnGetAsync(bool rememberMe, string? returnUrl = null, CancellationToken cancellationToken = default)
     {
         // Vérifie qu'une tentative de connexion 2FA est bien en cours
-        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
         if (user == null)
         {
             return Redirect("/Security/Login");
@@ -58,13 +55,13 @@ public class LoginWith2faModel(
 
         returnUrl ??= Url.Content("~/Accounts");
 
-        var user = await _signInManager.GetTwoFactorAuthenticationUserAsync();
+        var user = await signInManager.GetTwoFactorAuthenticationUserAsync();
         if (user == null)
         {
             return Redirect("/Security/Login");
         }
 
-        var result = await _authService.TwoFactorAuthenticatorSignInAsync(
+        var result = await authService.TwoFactorAuthenticatorSignInAsync(
             Input.TwoFactorCode,
             rememberMe,
             Input.RememberMachine,

@@ -9,8 +9,6 @@ namespace Ledger.Features.Security.Pages;
 [AllowAnonymous]
 public class RegisterModel(IAuthService authService) : PageModel
 {
-    private readonly IAuthService _authService = authService;
-
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -53,11 +51,11 @@ public class RegisterModel(IAuthService authService) : PageModel
             return Page();
         }
 
-        var result = await _authService.RegisterUserAsync(Input.Email, Input.Password, Input.FullName, cancellationToken);
+        var result = await authService.RegisterUserAsync(Input.Email, Input.Password, Input.FullName, cancellationToken);
         if (result.Succeeded)
         {
             // Auto login after registration
-            await _authService.LoginUserAsync(Input.Email, Input.Password, rememberMe: false, cancellationToken);
+            await authService.LoginUserAsync(Input.Email, Input.Password, rememberMe: false, cancellationToken);
             return LocalRedirect(returnUrl);
         }
 
