@@ -1,0 +1,54 @@
+MainLauncherForm|None|{X=0,Y=0}|derived|
+ TabControl|Fill|{X=0,Y=76}|derived|
+  TabPage|None|{X=0,Y=0}|derived|
+   Panel|Fill|{X=0,Y=0}|derived|
+    Panel|None|{X=24,Y=20}|{Width=800, Height=155}|
+     Label|None|{X=20,Y=18}|derived|
+     Label|None|{X=22,Y=56}|derived|
+     Button|None|{X=20,Y=92}|{Width=340, Height=44}|
+    GroupBox|None|{X=24,Y=195}|{Width=800, Height=110}|
+     Button|None|{X=24,Y=38}|{Width=220, Height=44}|
+     Button|None|{X=260,Y=38}|{Width=220, Height=44}|
+     Button|None|{X=496,Y=38}|{Width=180, Height=44}|
+    GroupBox|None|{X=24,Y=325}|{Width=800, Height=130}|
+     Label|None|{X=24,Y=34}|derived|
+     Button|None|{X=24,Y=68}|{Width=340, Height=38}|
+  TabPage|None|{X=0,Y=0}|derived|
+   ListView|Fill|{X=0,Y=52}|derived|columnWidths=180,300,110,160
+   Panel|Top|{X=0,Y=0}|derived|
+    Button|None|{X=8,Y=8}|{Width=190, Height=34}|
+    Button|None|{X=208,Y=8}|{Width=200, Height=34}|
+    Button|None|{X=418,Y=8}|{Width=210, Height=34}|
+  TabPage|None|{X=0,Y=0}|derived|
+   RichTextBox|Fill|{X=0,Y=0}|derived|
+   Panel|Bottom|{X=0,Y=56}|derived|
+    Label|None|{X=8,Y=12}|derived|
+    TextBox|None|{X=68,Y=8}|derived|
+    CheckBox|None|{X=300,Y=10}|derived|checked=True
+    Button|None|{X=440,Y=7}|{Width=90, Height=28}|
+    Button|None|{X=540,Y=7}|{Width=110, Height=28}|
+  TabPage|None|{X=0,Y=0}|derived|
+   Panel|Fill|{X=0,Y=0}|derived|
+    Label|None|{X=20,Y=24}|derived|
+    NumericUpDown|None|{X=240,Y=22}|{Width=110, Height=24}|value=5123;min=1024;max=65535
+    CheckBox|None|{X=20,Y=60}|derived|checked=False
+    CheckBox|None|{X=20,Y=92}|derived|checked=True
+    CheckBox|None|{X=20,Y=124}|derived|checked=False
+    CheckBox|None|{X=20,Y=156}|derived|checked=True
+    Label|None|{X=20,Y=192}|derived|
+    ComboBox|None|{X=240,Y=188}|{Width=180, Height=23}|index=0;itemCount=4
+    GroupBox|None|{X=20,Y=234}|{Width=640, Height=150}|
+     Label|None|{X=16,Y=32}|derived|
+     ComboBox|None|{X=220,Y=28}|{Width=280, Height=23}|index=2;itemCount=3
+     Label|None|{X=16,Y=68}|derived|
+     NumericUpDown|None|{X=220,Y=66}|{Width=90, Height=24}|value=7;min=1;max=200
+     Label|None|{X=16,Y=104}|derived|
+     NumericUpDown|None|{X=220,Y=102}|{Width=90, Height=24}|value=21;min=1;max=365
+    Button|None|{X=20,Y=404}|{Width=240, Height=42}|
+ Panel|Top|{X=0,Y=0}|derived|
+  Label|None|{X=18,Y=20}|{Width=16, Height=16}|
+  Label|None|{X=42,Y=16}|derived|
+  LinkLabel|None|{X=44,Y=42}|derived|
+  Panel|Right|{X=708,Y=10}|derived|
+   Label|None|{X=12,Y=26}|{Width=24, Height=24}|
+   ComboBox|None|{X=38,Y=23}|{Width=110, Height=23}|index=0;itemCount=4

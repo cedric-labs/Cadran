@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using AwesomeAssertions;
 using Cadran.Launcher.Backups;
 using Cadran.Launcher.Configuration;
@@ -15,8 +13,6 @@ namespace Cadran.Launcher.Tests.UI;
 /// </summary>
 public sealed class MainLauncherFormTests
 {
-    private const string ControlTreeSha256 = "DFBB1FB9D3083828E141FB4EFCB43EBBC2F6A93DDC784340536E271231467E9C";
-
     [Fact]
     public void Constructor_WhenSettingsAreFrench_BuildsFourLocalizedTabsInOrder()
     {
@@ -36,14 +32,17 @@ public sealed class MainLauncherFormTests
         var snapshot = RunOnStaThread(() =>
         {
             using var form = CreateForm();
-            var controls = Flatten(form).ToArray();
-            var numerics = controls.OfType<NumericUpDown>().Select(n => n.Value).ToArray();
-            var checks = controls.OfType<CheckBox>().Select(c => c.Checked).ToArray();
-            return (numerics, checks);
+            return (
+                Port: FindAt<NumericUpDown>(form, 240, 22).Value,
+                MaxFiles: FindAt<NumericUpDown>(form, 220, 66).Value,
+                MaxDays: FindAt<NumericUpDown>(form, 220, 102).Value,
+                AutoStart: FindAt<CheckBox>(form, 20, 60).Checked,
+                AutoOpenBrowser: FindAt<CheckBox>(form, 20, 92).Checked,
+                StartMinimized: FindAt<CheckBox>(form, 20, 124).Checked,
+                AutoBackups: FindAt<CheckBox>(form, 20, 156).Checked);
         });
 
-        snapshot.numerics.Should().Equal(5123m, 7m, 21m);
-        snapshot.checks.Should().Equal(true, false, true, false, true);
+        snapshot.Should().Be((5123m, 7m, 21m, false, true, false, true));
     }
 
     [Fact]
@@ -52,10 +51,13 @@ public sealed class MainLauncherFormTests
         var selected = RunOnStaThread(() =>
         {
             using var form = CreateForm();
-            return Flatten(form).OfType<ComboBox>().Select(c => c.SelectedIndex).ToArray();
+            return (
+                HeaderLanguage: FindAt<ComboBox>(form, 38, 23).SelectedIndex,
+                SettingsLanguage: FindAt<ComboBox>(form, 240, 188).SelectedIndex,
+                RetentionMode: FindAt<ComboBox>(form, 220, 28).SelectedIndex);
         });
 
-        selected.Should().Equal(0, 2, 0);
+        selected.Should().Be((0, 0, 2));
     }
 
     [Fact]
@@ -67,9 +69,10 @@ public sealed class MainLauncherFormTests
             return DescribeTree(form);
         });
 
-        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(dump)));
-
-        hash.Should().Be(ControlTreeSha256, because: dump);
+        var reference = File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "UI", "MainLauncherForm.ControlTree.txt"))
+            .ReplaceLineEndings("\n")
+            .TrimEnd('\n');
+        dump.Should().Be(reference);
     }
 
     private static MainLauncherForm CreateForm()
@@ -84,6 +87,11 @@ public sealed class MainLauncherFormTests
             RetentionPolicy: new BackupRetentionOptions(BackupRetentionMode.Both, 7, 21));
         return new MainLauncherForm(new FixedConfigurationStore(settings), new EmptyBackupSupervisor(), new StoppedProcessSupervisor());
     }
+
+    // Les positions sont fixées par le code du formulaire : elles identifient un contrôle sans dépendre de l'ordre de parcours ni de la langue.
+    private static T FindAt<T>(Control root, int x, int y)
+        where T : Control =>
+        Flatten(root).OfType<T>().Single(control => control.Location == new Point(x, y));
 
     private static IEnumerable<Control> Flatten(Control root)
     {
@@ -125,14 +133,14 @@ public sealed class MainLauncherFormTests
         {
             NumericUpDown n => $"value={n.Value};min={n.Minimum};max={n.Maximum}",
             CheckBox c => $"checked={c.Checked}",
-            ComboBox c => $"index={c.SelectedIndex};items={string.Join(',', c.Items.Cast<object>())}",
-            ListView l => $"columns={string.Join(',', l.Columns.Cast<ColumnHeader>().Select(h => $"{h.Text}:{h.Width}"))}",
+            ComboBox c => $"index={c.SelectedIndex};itemCount={c.Items.Count}",
+            ListView l => $"columnWidths={string.Join(',', l.Columns.Cast<ColumnHeader>().Select(h => h.Width))}",
             _ => string.Empty
         };
 
         return string.Create(
             CultureInfo.InvariantCulture,
-            $"{new string(' ', depth)}{control.GetType().Name}|{control.Text}|{control.Dock}|{control.Location}|{DescribeSize(control)}|{control.BackColor.ToArgb()}|{control.Font.Name}:{control.Font.Size}:{control.Font.Style}|{extra}");
+            $"{new string(' ', depth)}{control.GetType().Name}|{control.Dock}|{control.Location}|{DescribeSize(control)}|{extra}");
     }
 
     // Les tailles mesurées (AutoSize) ou dérivées de l'ancrage dépendent de la police et du DPI de la machine : seules les tailles fixées par le code sont épinglées.

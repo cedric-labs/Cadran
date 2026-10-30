@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="UI\MainLauncherForm.ControlTree.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\Cadran.Launcher\Cadran.Launcher.csproj" />
   </ItemGroup>
 
