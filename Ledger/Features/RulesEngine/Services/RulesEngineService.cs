@@ -33,19 +33,7 @@ public sealed class RulesEngineService(
 
         foreach (var rule in rules)
         {
-            // Vérification du filtre de compte bancaire
-            if (rule.TargetBankAccountId.HasValue && rule.TargetBankAccountId.Value != transaction.BankAccountId)
-            {
-                continue;
-            }
-
-            // Vérification des filtres de montants optionnels
-            if (rule.MinAmount.HasValue && transaction.Amount < rule.MinAmount.Value)
-            {
-                continue;
-            }
-
-            if (rule.MaxAmount.HasValue && transaction.Amount > rule.MaxAmount.Value)
+            if (!CategorizationRuleScope.Admits(rule, transaction))
             {
                 continue;
             }
@@ -103,20 +91,7 @@ public sealed class RulesEngineService(
         var regexTimeout = TimeSpan.FromMilliseconds(timeoutMs);
 
         // Pré-compilation / préparation des Regex pour éviter de re-parser par transaction
-        var compiledRules = new List<(CategorizationRule Rule, Regex? CompiledRegex)>();
-        foreach (var rule in rules)
-        {
-            Regex? reg = null;
-            try
-            {
-                reg = new Regex(rule.Pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, regexTimeout);
-            }
-            catch (ArgumentException ex)
-            {
-                logger.LogWarning(ex, "Regex invalide pour la règle {RuleName} ({Pattern})", rule.Name, rule.Pattern);
-            }
-            compiledRules.Add((rule, reg));
-        }
+        var compiledRules = RuleRegexCompiler.Compile(rules, regexTimeout, logger);
 
         foreach (var tx in txList)
         {
@@ -125,16 +100,7 @@ public sealed class RulesEngineService(
 
             foreach (var (rule, reg) in compiledRules)
             {
-                if (reg == null) continue;
-
-                if (rule.TargetBankAccountId.HasValue && rule.TargetBankAccountId.Value != tx.BankAccountId)
-                    continue;
-
-                if (rule.MinAmount.HasValue && tx.Amount < rule.MinAmount.Value)
-                    continue;
-
-                if (rule.MaxAmount.HasValue && tx.Amount > rule.MaxAmount.Value)
-                    continue;
+                if (reg == null || !CategorizationRuleScope.Admits(rule, tx)) continue;
 
                 try
                 {
@@ -149,16 +115,7 @@ public sealed class RulesEngineService(
                 }
             }
 
-            var firstRule = matchingRules.FirstOrDefault();
-            result[tx.Id] = new DetailedRuleMatch(
-                TransactionId: tx.Id,
-                MatchCount: matchingRules.Count,
-                FirstRuleName: firstRule?.Name,
-                FirstTargetCategoryId: firstRule?.TargetCategoryId,
-                FirstCategoryName: firstRule?.TargetCategory?.Name,
-                MatchingRuleNames: matchingRules.Select(r => r.Name).ToList(),
-                FirstTargetMerchantId: firstRule?.TargetMerchantId,
-                FirstMerchantName: firstRule?.TargetMerchant?.Name);
+            result[tx.Id] = DetailedRuleMatchFactory.Create(tx.Id, matchingRules);
         }
 
         return result;
@@ -209,42 +166,14 @@ public sealed class RulesEngineService(
 
             foreach (var rule in rules)
             {
-                if (rule.TargetBankAccountId.HasValue && rule.TargetBankAccountId.Value != tx.BankAccountId)
-                    continue;
-
-                if (rule.MinAmount.HasValue && tx.Amount < rule.MinAmount.Value)
-                    continue;
-
-                if (rule.MaxAmount.HasValue && tx.Amount > rule.MaxAmount.Value)
+                if (!CategorizationRuleScope.Admits(rule, tx))
                     continue;
 
                 try
                 {
                     if (Regex.IsMatch(textToTest, rule.Pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, regexTimeout))
                     {
-                        bool changed = false;
-                        if (tx.CategoryId != rule.TargetCategoryId)
-                        {
-                            tx.CategoryId = rule.TargetCategoryId;
-                            changed = true;
-                        }
-
-                        if (rule.TargetMerchantId.HasValue && (overwriteExisting || !tx.MerchantId.HasValue) && tx.MerchantId != rule.TargetMerchantId.Value)
-                        {
-                            tx.MerchantId = rule.TargetMerchantId.Value;
-                            changed = true;
-                        }
-
-                        if (rule.ShiftToNextMonth)
-                        {
-                            var targetBudgetDate = new DateTime(tx.Date.Year, tx.Date.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(1);
-                            if (tx.BudgetDate != targetBudgetDate)
-                            {
-                                tx.BudgetDate = targetBudgetDate;
-                                changed = true;
-                            }
-                        }
-
+                        bool changed = RuleEffectApplier.Apply(tx, rule, overwriteExisting);
                         if (changed)
                         {
                             matchedCount++;
