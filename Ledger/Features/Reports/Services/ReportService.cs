@@ -172,23 +172,7 @@ public sealed class ReportService(
             DisplayOrder = widget.DisplayOrder
         };
 
-        // Requête de base pour les transactions dans l'intervalle (prise en compte de la date budgétaire décalée)
-        var query = dbContext.Transactions
-            .Include(t => t.Category)
-            .Include(t => t.BankAccount)
-            .Where(t => (t.BudgetDate ?? t.Date) >= startDate && (t.BudgetDate ?? t.Date) <= endDate);
-
-        if (config.AccountIds != null && config.AccountIds.Count > 0)
-        {
-            query = query.Where(t => config.AccountIds.Contains(t.BankAccountId));
-        }
-
-        if (config.CategoryIds != null && config.CategoryIds.Count > 0)
-        {
-            query = query.Where(t => t.CategoryId != null && config.CategoryIds.Contains(t.CategoryId.Value));
-        }
-
-        var transactions = await query.ToListAsync(cancellationToken).ConfigureAwait(false);
+        var transactions = await LoadWidgetTransactionsAsync(config, startDate, endDate, cancellationToken).ConfigureAwait(false);
 
         // Récupérer les traductions des catégories concernées
         var catIds = transactions.Select(t => t.Category).OfType<Ledger.Features.Categories.Entities.Category>().Select(c => c.Id).Distinct().ToList();
@@ -238,6 +222,27 @@ public sealed class ReportService(
         }
 
         return result;
+    }
+
+    private Task<List<Transaction>> LoadWidgetTransactionsAsync(WidgetConfigDto config, DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    {
+        // Requête de base pour les transactions dans l'intervalle (prise en compte de la date budgétaire décalée)
+        var query = dbContext.Transactions
+            .Include(t => t.Category)
+            .Include(t => t.BankAccount)
+            .Where(t => (t.BudgetDate ?? t.Date) >= startDate && (t.BudgetDate ?? t.Date) <= endDate);
+
+        if (config.AccountIds != null && config.AccountIds.Count > 0)
+        {
+            query = query.Where(t => config.AccountIds.Contains(t.BankAccountId));
+        }
+
+        if (config.CategoryIds != null && config.CategoryIds.Count > 0)
+        {
+            query = query.Where(t => t.CategoryId != null && config.CategoryIds.Contains(t.CategoryId.Value));
+        }
+
+        return query.ToListAsync(cancellationToken);
     }
 
     private async Task FillRemainingToLiveAsync(WidgetDataDto result, CancellationToken cancellationToken)
