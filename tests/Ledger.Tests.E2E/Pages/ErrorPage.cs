@@ -3,7 +3,7 @@ using Microsoft.Playwright;
 namespace Ledger.Tests.E2E.Pages;
 
 /// <summary>
-/// Page Object de la page /Pages/Error.
+/// Page Object de la page /Error.
 /// </summary>
 public sealed class ErrorPage(IPage page) : BasePage(page)
 {
@@ -18,6 +18,6 @@ public sealed class ErrorPage(IPage page) : BasePage(page)
     public Task<IResponse?> NavigateAsync(string baseUrl)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseUrl);
-        return Page.GotoAsync(new Uri(new Uri(baseUrl), "/Pages/Error").ToString());
+        return Page.GotoAsync(new Uri(new Uri(baseUrl), "/Error").ToString());
     }
 }
