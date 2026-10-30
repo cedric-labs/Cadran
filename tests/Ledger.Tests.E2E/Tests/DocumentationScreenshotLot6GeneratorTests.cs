@@ -24,12 +24,9 @@ public sealed class DocumentationScreenshotLot6GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
-
     [Fact]
     public async Task GenerateLot6Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
     {
-        Directory.CreateDirectory(ProjectDocsDir);
         Directory.CreateDirectory(ArtifactsDirectory);
 
         var keyHolder = WebFixture.KestrelServices.GetRequiredService<IDatabaseKeyHolder>();
@@ -130,11 +127,10 @@ public sealed class DocumentationScreenshotLot6GeneratorTests(AppWebTestFixture 
         var navPills = Page.Locator("ul.nav-pills");
         (await navPills.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "22-financial-reports-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "22-financial-reports-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "22-financial-reports-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "22-financial-reports-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "22-financial-reports-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -196,7 +192,6 @@ public sealed class DocumentationScreenshotLot6GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "22-financial-reports-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureAppearanceSettingsScreenAsync()
@@ -207,11 +202,10 @@ public sealed class DocumentationScreenshotLot6GeneratorTests(AppWebTestFixture 
         var fontCard = Page.Locator("#fontOptionsContainer .font-card").First;
         (await fontCard.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "23-appearance-settings-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "23-appearance-settings-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "23-appearance-settings-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "23-appearance-settings-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "23-appearance-settings-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -273,6 +267,5 @@ public sealed class DocumentationScreenshotLot6GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "23-appearance-settings-screen-annotated.png"), overwrite: true);
     }
 }

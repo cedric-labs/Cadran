@@ -16,12 +16,9 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
-
     [Fact]
     public async Task GenerateLot1Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
     {
-        Directory.CreateDirectory(ProjectDocsDir);
         Directory.CreateDirectory(ArtifactsDirectory);
 
         // 1. Écran 01 - Welcome Landing Page (1er Lancement)
@@ -48,11 +45,10 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
         var getStartedBtn = Page.Locator("a.btn-lg[href='/Security/Register']");
         (await getStartedBtn.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "01-welcome-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "01-welcome-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "01-welcome-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "01-welcome-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "01-welcome-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -112,7 +108,6 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "01-welcome-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureRegisterScreenAsync()
@@ -122,11 +117,10 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
         var submitBtn = Page.Locator("button[type='submit']");
         (await submitBtn.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "02-register-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "02-register-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "02-register-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "02-register-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "02-register-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -190,18 +184,16 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "02-register-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureLoginScreenAsync()
     {
         await Page.GotoAsync($"{BaseUrl}/SetLanguage?culture=en&returnUrl=%2FSecurity%2FLogin", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "03-login-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "03-login-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "03-login-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "03-login-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "03-login-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -264,7 +256,6 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "03-login-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureDatabaseEncryptionScreenAsync()
@@ -290,11 +281,10 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
         // 2. Navigation vers la page de chiffrement en anglais
         await Page.GotoAsync($"{BaseUrl}/SetLanguage?culture=en&returnUrl=%2FSecurity%2FDatabaseEncryption", new PageGotoOptions { WaitUntil = WaitUntilState.NetworkIdle });
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "04-database-encryption-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "04-database-encryption-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "04-database-encryption-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "04-database-encryption-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "04-database-encryption-screen.png"), overwrite: true);
 
         // Annoter UNIQUEMENT les 4 champs/boutons interactifs
         await Page.EvaluateAsync(@"() => {
@@ -356,7 +346,6 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "04-database-encryption-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureUnlockDatabaseScreenAsync()
@@ -372,11 +361,10 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
             var unlockInput = Page.Locator("#dbPassphraseInput");
             (await unlockInput.IsVisibleAsync()).Should().BeTrue();
 
-            var cleanPath = Path.Combine(ProjectDocsDir, "05-database-unlock-screen.png");
-            var annotatedPath = Path.Combine(ProjectDocsDir, "05-database-unlock-screen-annotated.png");
+            var cleanPath = Path.Combine(ArtifactsDirectory, "05-database-unlock-screen.png");
+            var annotatedPath = Path.Combine(ArtifactsDirectory, "05-database-unlock-screen-annotated.png");
 
             await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-            File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "05-database-unlock-screen.png"), overwrite: true);
 
             // Annoter UNIQUEMENT les 4 éléments interactifs (suppression du bouclier passif)
             await Page.EvaluateAsync(@"() => {
@@ -439,7 +427,6 @@ public sealed class DocumentationScreenshotGeneratorTests(AppWebTestFixture webF
             }");
 
             await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-            File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "05-database-unlock-screen-annotated.png"), overwrite: true);
         }
         finally
         {

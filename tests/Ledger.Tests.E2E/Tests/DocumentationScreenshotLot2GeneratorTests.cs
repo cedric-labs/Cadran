@@ -24,12 +24,9 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
-
     [Fact]
     public async Task GenerateLot2Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
     {
-        Directory.CreateDirectory(ProjectDocsDir);
         Directory.CreateDirectory(ArtifactsDirectory);
 
         var keyHolder = WebFixture.KestrelServices.GetRequiredService<IDatabaseKeyHolder>();
@@ -305,11 +302,10 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         var newAccountBtn = Page.Locator("a[href='/Accounts/CreateAccount'].btn-primary");
         (await newAccountBtn.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "06-dashboard-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "06-dashboard-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "06-dashboard-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "06-dashboard-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "06-dashboard-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -371,7 +367,6 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "06-dashboard-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureCreateAccountScreenAsync()
@@ -382,11 +377,10 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         var accountNameInput = Page.Locator("input[name='Input.AccountName']");
         (await accountNameInput.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "07-create-account-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "07-create-account-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "07-create-account-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "07-create-account-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "07-create-account-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -448,7 +442,6 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "07-create-account-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureEditAccountScreenAsync(Guid checkingAccountId)
@@ -459,11 +452,10 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         var accountNameInput = Page.Locator("input[name='Input.AccountName']");
         (await accountNameInput.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "08-edit-account-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "08-edit-account-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "08-edit-account-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "08-edit-account-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "08-edit-account-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -525,7 +517,6 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "08-edit-account-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureAccountDetailsScreenAsync(Guid checkingAccountId)
@@ -536,11 +527,10 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         var searchInput = Page.Locator("#searchTermInput");
         (await searchInput.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "09-account-details-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "09-account-details-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "09-account-details-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "09-account-details-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "09-account-details-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -602,7 +592,6 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "09-account-details-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureAccountTypesScreenAsync()
@@ -613,11 +602,10 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         var newTypeBtn = Page.Locator("button[onclick='openTypeModal()']");
         (await newTypeBtn.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "10-account-types-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "10-account-types-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "10-account-types-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "10-account-types-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "10-account-types-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -678,7 +666,6 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "10-account-types-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureTransactionStatusesScreenAsync()
@@ -689,11 +676,10 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         var newStatusBtn = Page.Locator("button[onclick='openStatusModal()']");
         (await newStatusBtn.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "11-account-statuses-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "11-account-statuses-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "11-account-statuses-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "11-account-statuses-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "11-account-statuses-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -754,6 +740,5 @@ public sealed class DocumentationScreenshotLot2GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "11-account-statuses-screen-annotated.png"), overwrite: true);
     }
 }

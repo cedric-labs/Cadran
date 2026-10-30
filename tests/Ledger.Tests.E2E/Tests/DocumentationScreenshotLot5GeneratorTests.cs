@@ -24,12 +24,9 @@ public sealed class DocumentationScreenshotLot5GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
-
     [Fact]
     public async Task GenerateLot5Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
     {
-        Directory.CreateDirectory(ProjectDocsDir);
         Directory.CreateDirectory(ArtifactsDirectory);
 
         var keyHolder = WebFixture.KestrelServices.GetRequiredService<IDatabaseKeyHolder>();
@@ -164,11 +161,10 @@ public sealed class DocumentationScreenshotLot5GeneratorTests(AppWebTestFixture 
         var header = Page.Locator("a.btn[href='/Imports/CsvProfiles']");
         (await header.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "20-statement-imports-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "20-statement-imports-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "20-statement-imports-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "20-statement-imports-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "20-statement-imports-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -231,7 +227,6 @@ public sealed class DocumentationScreenshotLot5GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "20-statement-imports-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureCsvProfilesScreenAsync()
@@ -245,11 +240,10 @@ public sealed class DocumentationScreenshotLot5GeneratorTests(AppWebTestFixture 
         await Page.WaitForSelectorAsync("#newProfileCollapse.show");
         await Page.WaitForTimeoutAsync(400);
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "21-import-mapping-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "21-import-mapping-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "21-import-mapping-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "21-import-mapping-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "21-import-mapping-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -313,6 +307,5 @@ public sealed class DocumentationScreenshotLot5GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "21-import-mapping-screen-annotated.png"), overwrite: true);
     }
 }

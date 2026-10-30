@@ -25,12 +25,9 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
 {
     private static readonly string ArtifactsDirectory = Path.Combine(Path.GetTempPath(), "cadran-doc-screenshots");
 
-    private static string ProjectDocsDir => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../docs/images/screens"));
-
     [Fact]
     public async Task GenerateLot3Screenshots_WhenExecuted_CapturesAllScreensInEnglish()
     {
-        Directory.CreateDirectory(ProjectDocsDir);
         Directory.CreateDirectory(ArtifactsDirectory);
 
         var keyHolder = WebFixture.KestrelServices.GetRequiredService<IDatabaseKeyHolder>();
@@ -309,11 +306,10 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         var table = Page.Locator("#transactionsTable");
         (await table.IsVisibleAsync()).Should().BeTrue();
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "12-transactions-ledger-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "12-transactions-ledger-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "12-transactions-ledger-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "12-transactions-ledger-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "12-transactions-ledger-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -376,7 +372,6 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "12-transactions-ledger-screen-annotated.png"), overwrite: true);
     }
 
     private async Task CaptureEditTransactionModalAsync(Guid regularTxId)
@@ -395,11 +390,10 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         await modal.WaitForAsync(new LocatorWaitForOptions { State = WaitForSelectorState.Visible });
         await Page.WaitForTimeoutAsync(500);
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "13-edit-transaction-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "13-edit-transaction-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "13-edit-transaction-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "13-edit-transaction-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "13-edit-transaction-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -466,7 +460,6 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "13-edit-transaction-screen-annotated.png"), overwrite: true);
 
         // Fermer le modal
         await Page.ClickAsync("#categoryModal button.btn-close");
@@ -492,11 +485,10 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         await Page.WaitForSelectorAsync("#splitLinesContainer tr td input.split-amount-input, #splitLinesContainer tr input");
         await Page.WaitForTimeoutAsync(400);
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "14-split-transaction-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "14-split-transaction-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "14-split-transaction-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "14-split-transaction-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "14-split-transaction-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -559,7 +551,6 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "14-split-transaction-screen-annotated.png"), overwrite: true);
 
         // Fermer le modal
         await Page.ClickAsync("#splitTransactionModal button.btn-close");
@@ -593,11 +584,10 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         await Page.WaitForSelectorAsync("#bulkActionsBar:not(.d-none)");
         await Page.WaitForTimeoutAsync(300);
 
-        var cleanPath = Path.Combine(ProjectDocsDir, "15-batch-actions-screen.png");
-        var annotatedPath = Path.Combine(ProjectDocsDir, "15-batch-actions-screen-annotated.png");
+        var cleanPath = Path.Combine(ArtifactsDirectory, "15-batch-actions-screen.png");
+        var annotatedPath = Path.Combine(ArtifactsDirectory, "15-batch-actions-screen-annotated.png");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = cleanPath, FullPage = false });
-        File.Copy(cleanPath, Path.Combine(ArtifactsDirectory, "15-batch-actions-screen.png"), overwrite: true);
 
         await Page.EvaluateAsync(@"() => {
             const items = [
@@ -659,6 +649,5 @@ public sealed class DocumentationScreenshotLot3GeneratorTests(AppWebTestFixture 
         }");
 
         await Page.ScreenshotAsync(new PageScreenshotOptions { Path = annotatedPath, FullPage = false });
-        File.Copy(annotatedPath, Path.Combine(ArtifactsDirectory, "15-batch-actions-screen-annotated.png"), overwrite: true);
     }
 }
