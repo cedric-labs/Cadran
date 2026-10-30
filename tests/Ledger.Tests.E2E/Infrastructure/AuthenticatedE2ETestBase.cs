@@ -9,15 +9,16 @@ public abstract class AuthenticatedE2ETestBase(AppWebTestFixture webFixture, Pla
     : E2ETestBase(webFixture, playwrightFixture)
 {
     /// <summary>
-    /// Crée un utilisateur unique par l'IHM d'inscription et attend l'arrivée sur la liste des comptes.
+    /// Crée un utilisateur unique par l'IHM d'inscription, attend l'arrivée sur la liste des comptes et renvoie son adresse email.
     /// </summary>
-    protected async Task RegisterAndSignInAsync()
+    protected async Task<string> RegisterAndSignInAsync()
     {
         var registerPage = new RegisterPage(Page);
         await registerPage.NavigateAsync(BaseUrl);
         var uniqueEmail = $"e2e_{Guid.NewGuid():N}@Ledger.local";
         await registerPage.RegisterAsync("Utilisateur E2E", uniqueEmail, "Password123", "Password123");
         await Page.WaitForURLAsync("**/Accounts*");
+        return uniqueEmail;
     }
 
     /// <summary>

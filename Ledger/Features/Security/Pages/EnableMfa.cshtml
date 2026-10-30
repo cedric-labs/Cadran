@@ -58,7 +58,7 @@
                                 <img src="@Model.QrCodeBase64" alt="QR Code TOTP" class="img-fluid rounded border p-2 mb-3 bg-white" style="max-width: 220px;" />
                             }
                             <div class="text-muted small">@Localizer["Auth.ManualKey"]</div>
-                            <div class="user-select-all font-monospace fw-semibold bg-light p-2 rounded small mt-1">@Model.SharedKey</div>
+                            <div class="user-select-all font-monospace fw-semibold bg-light p-2 rounded small mt-1" data-testid="mfa-shared-key">@Model.SharedKey</div>
                         </div>
 
                         <div class="col-md-7">
