@@ -17,6 +17,8 @@ public class EditAccountModel(
     ICurrencyService currencyService,
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService) : PageModel
 {
+    private readonly AccountFormOptionsLoader _formOptions = new(dbContext, accountTypeService, currencyService, localizedEntityService);
+
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -69,18 +71,7 @@ public class EditAccountModel(
         AccountId = id;
         ReturnUrl = returnUrl;
 
-        if (string.IsNullOrWhiteSpace(ReturnUrl))
-        {
-            var referer = Request.Headers.Referer.ToString();
-            if (!string.IsNullOrEmpty(referer) && Uri.TryCreate(referer, UriKind.Absolute, out var uri))
-            {
-                var path = uri.PathAndQuery;
-                if (Url.IsLocalUrl(path))
-                {
-                    ReturnUrl = path;
-                }
-            }
-        }
+        ReturnUrl = string.IsNullOrWhiteSpace(ReturnUrl) ? ResolveLocalReturnUrlFromReferer() : ReturnUrl;
 
         var account = await dbContext.BankAccounts
             .Include(a => a.Bank)
@@ -92,16 +83,7 @@ public class EditAccountModel(
             return NotFound();
         }
 
-        AvailableBanks = await dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
-        AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync(cancellationToken);
-        AvailableCurrencies = currencyService.GetSupportedCurrencies();
-
-        LocalizedTypeNames = await localizedEntityService.GetTranslationsAsync(
-            "CustomAccountType",
-            AvailableAccountTypes.Select(t => t.Id),
-            "Name",
-            System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
-            cancellationToken);
+        await LoadFormOptionsAsync(cancellationToken);
 
         // Si le compte n'a pas encore de CustomAccountTypeId, le relier au type par défaut correspondant
         var customTypeId = account.CustomAccountTypeId;
@@ -142,49 +124,14 @@ public class EditAccountModel(
 
         if (!ModelState.IsValid)
         {
-            AvailableBanks = await dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
-            AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync(cancellationToken);
-            AvailableCurrencies = currencyService.GetSupportedCurrencies();
-            LocalizedTypeNames = await localizedEntityService.GetTranslationsAsync(
-                "CustomAccountType",
-                AvailableAccountTypes.Select(t => t.Id),
-                "Name",
-                System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
-                cancellationToken);
+            await LoadFormOptionsAsync(cancellationToken);
             return Page();
         }
 
-        Guid bankId;
-        if (!string.IsNullOrWhiteSpace(Input.NewBankName))
-        {
-            var newBank = new Bank
-            {
-                UserId = string.Empty,
-                Name = Input.NewBankName.Trim()
-            };
-            dbContext.Banks.Add(newBank);
-            await dbContext.SaveChangesAsync(cancellationToken);
-            bankId = newBank.Id;
-        }
-        else if (Input.ExistingBankId.HasValue && Input.ExistingBankId != Guid.Empty)
-        {
-            bankId = Input.ExistingBankId.Value;
-        }
-        else
-        {
-            bankId = account.BankId;
-        }
+        var bankId = await ResolveBankIdAsync(account, cancellationToken);
 
         // Mettre à jour l'enum fallback
-        var legacyType = Input.Type;
-        if (Input.CustomAccountTypeId.HasValue)
-        {
-            var chosenType = await accountTypeService.GetByIdAsync(Input.CustomAccountTypeId.Value, cancellationToken);
-            if (chosenType != null && !string.IsNullOrEmpty(chosenType.Code) && Enum.TryParse<AccountType>(chosenType.Code, out var parsedType))
-            {
-                legacyType = parsedType;
-            }
-        }
+        var legacyType = await LegacyAccountTypeResolver.ResolveAsync(accountTypeService, Input.CustomAccountTypeId, Input.Type, cancellationToken);
 
         account.BankId = bankId;
         account.Name = Input.AccountName.Trim();
@@ -204,5 +151,46 @@ public class EditAccountModel(
         }
 
         return Redirect($"/Accounts/Details/{id}");
+    }
+
+    private async Task LoadFormOptionsAsync(CancellationToken cancellationToken, bool includeTypeNames = true)
+    {
+        var options = await _formOptions.LoadAsync(cancellationToken);
+        AvailableBanks = options.Banks;
+        AvailableAccountTypes = options.AccountTypes;
+        AvailableCurrencies = options.Currencies;
+        if (includeTypeNames)
+        {
+            LocalizedTypeNames = await _formOptions.LoadTypeNamesAsync(options.AccountTypes, cancellationToken);
+        }
+    }
+
+    // Le référent n'est repris que s'il désigne une adresse locale, pour écarter toute redirection ouverte.
+    private string? ResolveLocalReturnUrlFromReferer()
+    {
+        var referer = Request.Headers.Referer.ToString();
+        if (string.IsNullOrEmpty(referer) || !Uri.TryCreate(referer, UriKind.Absolute, out var uri))
+        {
+            return null;
+        }
+
+        return Url.IsLocalUrl(uri.PathAndQuery) ? uri.PathAndQuery : null;
+    }
+
+    private async Task<Guid> ResolveBankIdAsync(BankAccount account, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(Input.NewBankName))
+        {
+            var newBank = new Bank
+            {
+                UserId = string.Empty,
+                Name = Input.NewBankName.Trim()
+            };
+            dbContext.Banks.Add(newBank);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return newBank.Id;
+        }
+
+        return Input.ExistingBankId.HasValue && Input.ExistingBankId != Guid.Empty ? Input.ExistingBankId.Value : account.BankId;
     }
 }

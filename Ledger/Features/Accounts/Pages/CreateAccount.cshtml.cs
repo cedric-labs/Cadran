@@ -17,6 +17,8 @@ public class CreateAccountModel(
     ICurrencyService currencyService,
     ILocalizedEntityService localizedEntityService) : PageModel
 {
+    private readonly AccountFormOptionsLoader _formOptions = new(dbContext, accountTypeService, currencyService, localizedEntityService);
+
     [BindProperty]
     public InputModel Input { get; set; } = new();
 
@@ -58,16 +60,7 @@ public class CreateAccountModel(
 
     public async Task<IActionResult> OnGetAsync(CancellationToken cancellationToken = default)
     {
-        AvailableBanks = await dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
-        AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync(cancellationToken);
-        AvailableCurrencies = currencyService.GetSupportedCurrencies();
-
-        LocalizedTypeNames = await localizedEntityService.GetTranslationsAsync(
-            "CustomAccountType",
-            AvailableAccountTypes.Select(t => t.Id),
-            "Name",
-            System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
-            cancellationToken);
+        await LoadFormOptionsAsync(cancellationToken);
 
         // Sélectionner par défaut le type Compte de Dépôt s'il existe
         var defaultType = AvailableAccountTypes.FirstOrDefault(t => string.Equals(t.Code, "Checking", StringComparison.Ordinal)) ?? AvailableAccountTypes.FirstOrDefault();
@@ -83,15 +76,7 @@ public class CreateAccountModel(
     {
         if (!ModelState.IsValid)
         {
-            AvailableBanks = await dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
-            AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync(cancellationToken);
-            AvailableCurrencies = currencyService.GetSupportedCurrencies();
-            LocalizedTypeNames = await localizedEntityService.GetTranslationsAsync(
-                "CustomAccountType",
-                AvailableAccountTypes.Select(t => t.Id),
-                "Name",
-                System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
-                cancellationToken);
+            await LoadFormOptionsAsync(cancellationToken);
             return Page();
         }
 
@@ -114,22 +99,12 @@ public class CreateAccountModel(
         else
         {
             ModelState.AddModelError("Input.ExistingBankId", "Veuillez sélectionner une banque existante ou saisir le nom d'une nouvelle.");
-            AvailableBanks = await dbContext.Banks.OrderBy(b => b.Name).ToListAsync(cancellationToken);
-            AvailableAccountTypes = await accountTypeService.GetAllAccountTypesAsync(cancellationToken);
-            AvailableCurrencies = currencyService.GetSupportedCurrencies();
+            await LoadFormOptionsAsync(cancellationToken, includeTypeNames: false);
             return Page();
         }
 
         // Résoudre le fallback AccountType enum à partir du type personnalisé choisi
-        var legacyType = Input.Type;
-        if (Input.CustomAccountTypeId.HasValue)
-        {
-            var chosenType = await accountTypeService.GetByIdAsync(Input.CustomAccountTypeId.Value, cancellationToken);
-            if (chosenType != null && !string.IsNullOrEmpty(chosenType.Code) && Enum.TryParse<AccountType>(chosenType.Code, out var parsedType))
-            {
-                legacyType = parsedType;
-            }
-        }
+        var legacyType = await LegacyAccountTypeResolver.ResolveAsync(accountTypeService, Input.CustomAccountTypeId, Input.Type, cancellationToken);
 
         var account = new BankAccount
         {
@@ -148,5 +123,17 @@ public class CreateAccountModel(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return Redirect("/Accounts");
+    }
+
+    private async Task LoadFormOptionsAsync(CancellationToken cancellationToken, bool includeTypeNames = true)
+    {
+        var options = await _formOptions.LoadAsync(cancellationToken);
+        AvailableBanks = options.Banks;
+        AvailableAccountTypes = options.AccountTypes;
+        AvailableCurrencies = options.Currencies;
+        if (includeTypeNames)
+        {
+            LocalizedTypeNames = await _formOptions.LoadTypeNamesAsync(options.AccountTypes, cancellationToken);
+        }
     }
 }
