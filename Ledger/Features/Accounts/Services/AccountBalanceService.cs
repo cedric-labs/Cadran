@@ -59,6 +59,9 @@ public sealed class AccountBalanceService(
             .Where(a => !a.IsArchived)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
+        // Tri en mémoire : SQLite ne sait pas ordonner sans tenir compte de la casse selon la culture, et sans tri explicite l'ordre dépend des identifiants Guid aléatoires.
+        accounts.Sort((left, right) => string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase));
+
         var summaries = new List<AccountBalanceSummaryDto>();
 
         var totals = new NetWorthTotals();

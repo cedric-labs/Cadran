@@ -122,6 +122,22 @@ public sealed class AccountBalanceDashboardTests : IDisposable
         dashboard.Accounts.Single(a => string.Equals(a.AccountName, "A", StringComparison.Ordinal)).CustomAccountTypeColor.Should().Be("#112233");
     }
 
+    [Fact]
+    public async Task GetDashboardSummaryAsync_WhenAccountsAreCreatedOutOfOrder_ListsThemByName()
+    {
+        _context.BankAccounts.AddRange(
+            NewAccount("livret A", AccountType.Savings, 1m),
+            NewAccount("Courant", AccountType.Checking, 1m),
+            NewAccount("Assurance vie", AccountType.Savings, 1m),
+            NewAccount("PEA", AccountType.Checking, 1m));
+        await _context.SaveChangesAsync();
+
+        var dashboard = await _service.GetDashboardSummaryAsync();
+
+        dashboard.Accounts.Select(a => a.AccountName)
+            .Should().Equal("Assurance vie", "Courant", "livret A", "PEA");
+    }
+
     public void Dispose()
     {
         _context.Dispose();
