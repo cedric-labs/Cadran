@@ -116,4 +116,12 @@ public sealed class EntityTranslationSeederTests : IDisposable
 
         count.Should().Be(1);
     }
+
+    [Fact]
+    public Task SeedDefaultTranslationsAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var act = async () => await _seeder.SeedDefaultTranslationsAsync(_context, new CancellationToken(canceled: true));
+
+        return act.Should().ThrowAsync<OperationCanceledException>();
+    }
 }

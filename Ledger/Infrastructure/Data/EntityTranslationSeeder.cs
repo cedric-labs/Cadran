@@ -178,7 +178,7 @@ public sealed class EntityTranslationSeeder(ILogger<EntityTranslationSeeder> log
 
             await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Avertissement lors de l'initialisation des traductions par défaut.");
         }

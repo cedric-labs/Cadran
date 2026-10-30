@@ -55,9 +55,9 @@ public sealed class DatabaseEncryptionServiceTests : IDisposable
             if (File.Exists(_testDbPath)) File.Delete(_testDbPath);
             if (File.Exists(_testKeyPath)) File.Delete(_testKeyPath);
         }
-        catch
+        catch (IOException)
         {
-            // Ignore
+            // Windows garde le fichier SQLite ou le fichier de clé verrouillé quelques ms après la fermeture du pool ; les fichiers restent dans %TEMP% et seront purgés par l'OS.
         }
         GC.SuppressFinalize(this);
     }

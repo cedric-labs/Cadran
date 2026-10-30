@@ -22,9 +22,9 @@ public sealed class LocalProtectedFileKeyStoreTests : IDisposable
                 File.Delete(_testKeyPath);
             }
         }
-        catch
+        catch (IOException)
         {
-            // Ignore
+            // Un descripteur sur le fichier de clé temporaire peut rester brièvement ouvert ; le fichier reste dans %TEMP% et sera purgé par l'OS.
         }
         GC.SuppressFinalize(this);
     }

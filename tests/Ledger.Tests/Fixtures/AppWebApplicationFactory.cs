@@ -46,9 +46,9 @@ public class AppWebApplicationFactory : WebApplicationFactory<Program>
                 File.Delete(_dbPath);
             }
         }
-        catch
+        catch (IOException)
         {
-            // Fichier temporaire libéré par le système d'exploitation
+            // Windows garde le fichier SQLite verrouillé quelques ms après la fermeture du pool ; le fichier reste dans %TEMP% et sera purgé par l'OS.
         }
     }
 }

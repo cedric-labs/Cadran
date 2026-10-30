@@ -46,9 +46,9 @@ public sealed class JsonStringLocalizerTests : IDisposable
             {
                 Directory.Delete(_tempDir, true);
             }
-            catch
+            catch (IOException)
             {
-                // Ignore cleanup errors
+                // Un descripteur de fichier temporaire peut rester brièvement ouvert sous Windows ; le répertoire reste dans %TEMP% et sera purgé par l'OS.
             }
         }
     }

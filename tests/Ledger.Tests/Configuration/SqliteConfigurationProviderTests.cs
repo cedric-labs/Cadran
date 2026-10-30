@@ -28,9 +28,9 @@ public sealed class SqliteConfigurationProviderTests : IDisposable
             {
                 File.Delete(_dbFilePath);
             }
-            catch
+            catch (IOException)
             {
-                // Ignore cleanup lock
+                // Windows garde le fichier SQLite verrouillé quelques ms après la fermeture du pool ; le fichier reste dans %TEMP% et sera purgé par l'OS.
             }
         }
     }

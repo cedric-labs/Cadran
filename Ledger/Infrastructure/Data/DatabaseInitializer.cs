@@ -47,7 +47,7 @@ public static class DatabaseInitializer
 
             logger.LogInformation("Base SQLite initialisée avec succès en mode WAL, polices, traductions et GUIDs normalisés.");
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new InvalidOperationException("Erreur lors de l'initialisation de la base SQLite.", ex);
         }

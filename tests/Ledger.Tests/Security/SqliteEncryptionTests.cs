@@ -24,9 +24,9 @@ public sealed class SqliteEncryptionTests : IDisposable
                 File.Delete(_testDbPath);
             }
         }
-        catch
+        catch (IOException)
         {
-            // Ignore cleanup errors
+            // Windows garde le fichier SQLite verrouillé quelques ms après la fermeture du pool ; le fichier reste dans %TEMP% et sera purgé par l'OS.
         }
         GC.SuppressFinalize(this);
     }

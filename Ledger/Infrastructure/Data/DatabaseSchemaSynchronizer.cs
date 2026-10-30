@@ -390,7 +390,7 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
                     cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (Exception rex)
+        catch (Exception rex) when (rex is not OperationCanceledException)
         {
             logger.LogError(rex, "Erreur lors de la réconciliation manuelle des migrations.");
         }

@@ -111,7 +111,7 @@ public sealed class RulesEngineService(
             {
                 reg = new Regex(rule.Pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, regexTimeout);
             }
-            catch (Exception ex)
+            catch (ArgumentException ex)
             {
                 logger.LogWarning(ex, "Regex invalide pour la règle {RuleName} ({Pattern})", rule.Name, rule.Pattern);
             }
@@ -198,6 +198,8 @@ public sealed class RulesEngineService(
 
         foreach (var tx in transactions)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             if (!overwriteExisting && tx.CategoryId.HasValue)
             {
                 continue; // Déjà catégorisé et forçage désactivé
@@ -250,7 +252,7 @@ public sealed class RulesEngineService(
                         break;
                     }
                 }
-                catch (Exception ex)
+                catch (Exception ex) when (ex is ArgumentException or RegexMatchTimeoutException)
                 {
                     logger.LogWarning(ex, "Erreur d'évaluation pour la règle {RuleId}", rule.Id);
                 }

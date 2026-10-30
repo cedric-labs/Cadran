@@ -5,7 +5,9 @@ using Ledger.Features.RulesEngine.Entities;
 using Ledger.Features.RulesEngine.Services;
 using Ledger.Tests.Fixtures;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Moq;
 using Xunit;
 
 namespace Ledger.Tests.RulesEngine;
@@ -288,6 +290,87 @@ public sealed class RulesEngineServiceTests : IDisposable
         // txNoMatch has 0 matches
         matches[txNoMatch.Id].MatchCount.Should().Be(0);
         matches[txNoMatch.Id].FirstRuleName.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ApplyRulesToTransactionsAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        using var cts = new CancellationTokenSource();
+        var act = async () => await _rulesService.ApplyRulesToTransactionsAsync(EnumerateAndCancel(cts, _bankAccountId), cts.Token);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    private static IEnumerable<Transaction> EnumerateAndCancel(CancellationTokenSource cts, Guid bankAccountId)
+    {
+        yield return new Transaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            BankAccountId = bankAccountId,
+            Date = DateTime.UtcNow,
+            Label = "VIREMENT SALAIRE",
+            Amount = 2000m,
+            Type = TransactionType.Credit
+        };
+        cts.Cancel();
+        yield return new Transaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            BankAccountId = bankAccountId,
+            Date = DateTime.UtcNow,
+            Label = "PAIEMENT CARREFOUR",
+            Amount = 50m,
+            Type = TransactionType.Debit
+        };
+    }
+
+    [Fact]
+    public async Task GetMatchesForTransactionsAsync_WhenRulePatternIsInvalid_SkipsRuleAndLogsWarning()
+    {
+        var invalidRule = new CategorizationRule
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            Name = "Règle Invalide",
+            Pattern = "[invalid(",
+            TargetCategoryId = _catGroceriesId,
+            Priority = 0,
+            IsActive = true
+        };
+        _context.CategorizationRules.Add(invalidRule);
+        await _context.SaveChangesAsync();
+
+        var loggerMock = new Mock<ILogger<RulesEngineService>>();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase) { ["Rules:MaxExecutionTimeMs"] = "500" })
+            .Build();
+        var service = new RulesEngineService(_context, configuration, loggerMock.Object);
+
+        var transaction = new Transaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            BankAccountId = _bankAccountId,
+            Date = DateTime.UtcNow,
+            Label = "PAIEMENT CARREFOUR",
+            Amount = 42m,
+            Type = TransactionType.Debit
+        };
+
+        var matches = await service.GetMatchesForTransactionsAsync(new[] { transaction });
+
+        matches[transaction.Id].MatchCount.Should().Be(1);
+        matches[transaction.Id].FirstRuleName.Should().Be("Règle Supermarchés");
+        loggerMock.Verify(
+            x => x.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.Is<It.IsAnyType>((v, _) => true),
+                It.IsAny<ArgumentException>(),
+                It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+            Times.Once);
     }
 
     public void Dispose()

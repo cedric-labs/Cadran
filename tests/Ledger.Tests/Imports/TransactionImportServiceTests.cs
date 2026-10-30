@@ -418,4 +418,39 @@ OFXHEADER:100
         (await _dbContext.ImportBatches.FindAsync(batch.Id)).Should().BeNull();
         (await _dbContext.Transactions.FindAsync(tx.Id)).Should().BeNull();
     }
+
+    [Fact]
+    public async Task ImportStatementAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var bank = new Bank { UserId = "test-user-id", Name = "LCL" };
+        _dbContext.Banks.Add(bank);
+        var account = new BankAccount
+        {
+            UserId = "test-user-id",
+            BankId = bank.Id,
+            Name = "Compte Courant"
+        };
+        _dbContext.BankAccounts.Add(account);
+        await _dbContext.SaveChangesAsync();
+
+        var parserMock = new Mock<IBankStatementParser>();
+        parserMock.SetupGet(p => p.SupportedFormat).Returns("CSV");
+        parserMock.Setup(p => p.CanHandle(It.IsAny<string>(), It.IsAny<Stream>())).Returns(true);
+        parserMock
+            .Setup(p => p.ParseAsync(It.IsAny<Stream>(), It.IsAny<CsvMappingProfile?>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new OperationCanceledException());
+
+        var service = new TransactionImportService(
+            new[] { parserMock.Object },
+            _dbContext,
+            _mockRulesEngine.Object,
+            _mockUiSettings.Object,
+            NullLogger<TransactionImportService>.Instance,
+            _mockLocalizer.Object);
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Date;Libelle;Montant"));
+        var act = async () => await service.ImportStatementAsync(account.Id, "releve.csv", stream);
+
+        await act.Should().ThrowAsync<OperationCanceledException>();
+    }
 }

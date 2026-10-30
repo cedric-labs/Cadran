@@ -136,7 +136,7 @@ public sealed class TransactionImportService(
             memoryStream.Position = 0;
             parsedDtos = await parser.ParseAsync(memoryStream, mappingProfile, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Erreur lors du parsing du relevé bancaire {FileName}", fileName);
             return new ImportResultDto(false, string.Format(CultureInfo.CurrentCulture, localizer["Imports.FileReadError"], ex.Message), 0, 0, 0, 0, null);

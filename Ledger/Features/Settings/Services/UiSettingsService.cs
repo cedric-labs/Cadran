@@ -56,7 +56,7 @@ public sealed class UiSettingsService(
                 return font;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Impossible de charger la police active depuis la base de données. Utilisation de la police par défaut.");
         }
@@ -175,7 +175,7 @@ public sealed class UiSettingsService(
                 return showCents;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Impossible de charger l'affichage des centimes depuis la base.");
         }
@@ -252,7 +252,7 @@ public sealed class UiSettingsService(
             var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == settingKey, cancellationToken).ConfigureAwait(false);
             return setting?.Value;
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "Impossible de charger la configuration des colonnes pour {TableKey}", tableKey);
             return null;
@@ -267,7 +267,7 @@ public sealed class UiSettingsService(
             await UpsertSettingAsync(settingKey, configJson, $"Configuration des colonnes du tableau {tableKey}", cancellationToken).ConfigureAwait(false);
             logger.LogInformation("Configuration des colonnes mise à jour pour {TableKey}", tableKey);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Erreur lors de l'enregistrement de la configuration des colonnes pour {TableKey}", tableKey);
             throw new InvalidOperationException($"Erreur lors de l'enregistrement de la configuration des colonnes pour {tableKey}", ex);
@@ -421,7 +421,7 @@ public sealed class UiSettingsService(
                 return setting.Value;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "{WarningMessage}", warningMessage);
         }
@@ -439,7 +439,7 @@ public sealed class UiSettingsService(
                 return value;
             }
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogWarning(ex, "{WarningMessage}", warningMessage);
         }

@@ -195,6 +195,34 @@ public sealed class UiSettingsServiceTests : IDisposable
         return act.Should().ThrowAsync<InvalidOperationException>();
     }
 
+    [Fact]
+    public Task GetActiveFontAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var act = async () => await _service.GetActiveFontAsync(new CancellationToken(canceled: true));
+        return act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public Task GetShowKpiCentsAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var act = async () => await _service.GetShowKpiCentsAsync(new CancellationToken(canceled: true));
+        return act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public Task GetTableColumnsConfigAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var act = async () => await _service.GetTableColumnsConfigAsync("tx", new CancellationToken(canceled: true));
+        return act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
+    [Fact]
+    public Task SetTableColumnsConfigAsync_WhenCancelled_ThrowsOperationCanceledException()
+    {
+        var act = async () => await _service.SetTableColumnsConfigAsync("tx", "{}", new CancellationToken(canceled: true));
+        return act.Should().ThrowAsync<OperationCanceledException>();
+    }
+
     public void Dispose()
     {
         _context.Dispose();
