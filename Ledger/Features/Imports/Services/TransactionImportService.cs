@@ -36,7 +36,7 @@ public sealed class TransactionImportService(
         // Copier dans un MemoryStream pour garantir la possibilité de relecture (rewind / seek)
         // et éviter l'épuisement de flux non-seekable issus de requêtes HTTP
         using var memoryStream = new MemoryStream();
-        await fileStream.CopyToAsync(memoryStream, cancellationToken);
+        await fileStream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
 
         // 1. Sélection de la stratégie de parsing (Pattern Strategy)
@@ -53,7 +53,7 @@ public sealed class TransactionImportService(
         bool autoMatchedByOfx = false;
         if (string.Equals(parser.SupportedFormat, "OFX", StringComparison.Ordinal))
         {
-            detectedOfxAcctId = await OfxStatementParser.ExtractOfxAccountIdAsync(memoryStream, cancellationToken);
+            detectedOfxAcctId = await OfxStatementParser.ExtractOfxAccountIdAsync(memoryStream, cancellationToken).ConfigureAwait(false);
             memoryStream.Position = 0;
         }
 
@@ -67,7 +67,7 @@ public sealed class TransactionImportService(
             var allAccounts = await dbContext.BankAccounts
                 .Include(a => a.Bank)
                 .Where(a => !a.IsArchived)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             var matchedAccount = allAccounts.FirstOrDefault(a =>
                 !string.IsNullOrEmpty(a.OfxAccountId) &&
@@ -87,7 +87,7 @@ public sealed class TransactionImportService(
         {
             account = await dbContext.BankAccounts
                 .Include(a => a.Bank)
-                .FirstOrDefaultAsync(a => a.Id == bankAccountId.Value, cancellationToken);
+                .FirstOrDefaultAsync(a => a.Id == bankAccountId.Value, cancellationToken).ConfigureAwait(false);
         }
 
         // Si aucun compte n'est trouvé ou sélectionné
@@ -126,7 +126,7 @@ public sealed class TransactionImportService(
         var targetProfileId = csvProfileIdOverride ?? account.CsvMappingProfileId;
         if (targetProfileId.HasValue)
         {
-            mappingProfile = await dbContext.CsvMappingProfiles.FindAsync([targetProfileId.Value], cancellationToken);
+            mappingProfile = await dbContext.CsvMappingProfiles.FindAsync([targetProfileId.Value], cancellationToken).ConfigureAwait(false);
         }
 
         // 4. Exécution du parsing
@@ -134,7 +134,7 @@ public sealed class TransactionImportService(
         try
         {
             memoryStream.Position = 0;
-            parsedDtos = await parser.ParseAsync(memoryStream, mappingProfile, cancellationToken);
+            parsedDtos = await parser.ParseAsync(memoryStream, mappingProfile, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -153,7 +153,7 @@ public sealed class TransactionImportService(
 
         var existingTransactions = await dbContext.Transactions
             .Where(t => t.BankAccountId == effectiveBankAccountId && t.Date >= minDate && t.Date <= maxDate)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var newTransactions = new List<Transaction>();
         var suspectedDuplicates = new List<SuspectedDuplicateDto>();
@@ -163,12 +163,12 @@ public sealed class TransactionImportService(
         var batchAcceptedRows = new List<(DateTime Date, decimal Amount, TransactionType Type, string Label, HashSet<string> Tokens)>();
 
         var existingCategories = await dbContext.Categories
-            .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase, cancellationToken);
+            .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase, cancellationToken).ConfigureAwait(false);
 
         var defaultStatus = await dbContext.TransactionStatuses
-            .FirstOrDefaultAsync(s => s.IsDefault, cancellationToken);
+            .FirstOrDefaultAsync(s => s.IsDefault, cancellationToken).ConfigureAwait(false);
 
-        var toleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken);
+        var toleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken).ConfigureAwait(false);
 
         int indexCounter = 0;
         foreach (var dto in parsedDtos)
@@ -269,7 +269,7 @@ public sealed class TransactionImportService(
 
         // 6. Application du Moteur de Règles de catégorisation automatique pour les transactions non encore catégorisées
         var uncategorized = newTransactions.Where(t => t.CategoryId == null).ToList();
-        await rulesEngineService.ApplyRulesToTransactionsAsync(uncategorized, cancellationToken);
+        await rulesEngineService.ApplyRulesToTransactionsAsync(uncategorized, cancellationToken).ConfigureAwait(false);
         int totalCategorized = newTransactions.Count(t => t.CategoryId != null);
 
         // 7. Enregistrement en base de données et traçabilité
@@ -286,7 +286,7 @@ public sealed class TransactionImportService(
         };
 
         dbContext.ImportBatches.Add(batch);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var tx in newTransactions)
         {
@@ -296,7 +296,7 @@ public sealed class TransactionImportService(
         if (newTransactions.Count > 0)
         {
             dbContext.Transactions.AddRange(newTransactions);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         string accountName = $"{account.Bank?.Name} - {account.Name}";
@@ -346,13 +346,13 @@ public sealed class TransactionImportService(
         }
 
         var batch = await dbContext.ImportBatches
-            .FirstOrDefaultAsync(b => b.Id == batchId, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == batchId, cancellationToken).ConfigureAwait(false);
 
         var existingCategories = await dbContext.Categories
-            .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase, cancellationToken);
+            .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase, cancellationToken).ConfigureAwait(false);
 
         var defaultStatus = await dbContext.TransactionStatuses
-            .FirstOrDefaultAsync(s => s.IsDefault, cancellationToken);
+            .FirstOrDefaultAsync(s => s.IsDefault, cancellationToken).ConfigureAwait(false);
 
         var newTransactions = new List<Transaction>();
         foreach (var dto in confirmedDuplicates)
@@ -387,7 +387,7 @@ public sealed class TransactionImportService(
             newTransactions.Add(tx);
         }
 
-        int categorizedCount = await rulesEngineService.ApplyRulesToTransactionsAsync(newTransactions, cancellationToken);
+        int categorizedCount = await rulesEngineService.ApplyRulesToTransactionsAsync(newTransactions, cancellationToken).ConfigureAwait(false);
 
         dbContext.Transactions.AddRange(newTransactions);
 
@@ -398,7 +398,7 @@ public sealed class TransactionImportService(
             batch.TotalAutoCategorized += categorizedCount;
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return newTransactions.Count;
     }
 
@@ -407,7 +407,7 @@ public sealed class TransactionImportService(
         CancellationToken cancellationToken = default)
     {
         var batch = await dbContext.ImportBatches
-            .FirstOrDefaultAsync(b => b.Id == batchId, cancellationToken);
+            .FirstOrDefaultAsync(b => b.Id == batchId, cancellationToken).ConfigureAwait(false);
 
         if (batch == null)
         {
@@ -416,11 +416,11 @@ public sealed class TransactionImportService(
 
         var transactions = await dbContext.Transactions
             .Where(t => t.ImportBatchId == batchId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         dbContext.Transactions.RemoveRange(transactions);
         dbContext.ImportBatches.Remove(batch);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -434,7 +434,7 @@ public sealed class TransactionImportService(
             .Include(t => t.CustomStatus)
             .Where(t => t.BankAccountId == bankAccountId)
             .OrderBy(t => t.Date)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var groups = new List<ExistingDuplicateGroupDto>();
         var processed = new HashSet<Guid>();
@@ -477,7 +477,7 @@ public sealed class TransactionImportService(
         }
 
         // 2. Passe 2 : Détection des doublons potentiels à dates proches selon la tolérance configurée en base (ou minimum 5 jours)
-        var toleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken);
+        var toleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken).ConfigureAwait(false);
         var clusterTolerance = Math.Max(toleranceDays, 5);
 
         var byAmountAndType = transactions
@@ -536,12 +536,12 @@ public sealed class TransactionImportService(
 
         var toDelete = await dbContext.Transactions
             .Where(t => t.BankAccountId == bankAccountId && transactionIdsToDelete.Contains(t.Id))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (toDelete.Count > 0)
         {
             dbContext.Transactions.RemoveRange(toDelete);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return toDelete.Count;

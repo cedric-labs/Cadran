@@ -79,15 +79,15 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         var existingCategories = await dbContext.Categories
             .IgnoreQueryFilters()
             .Where(c => c.UserId == userId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (existingCategories.Count == 0)
         {
-            await RestoreDefaultCategoriesAsync(userId, cancellationToken);
+            await RestoreDefaultCategoriesAsync(userId, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            await EnsureMissingTranslationsAsync(existingCategories, cancellationToken);
+            await EnsureMissingTranslationsAsync(existingCategories, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -108,12 +108,12 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         var existingCategories = await dbContext.Categories
             .IgnoreQueryFilters()
             .Where(c => c.UserId == userId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var existingCatIds = existingCategories.Select(c => c.Id).ToHashSet();
         var allCategoryTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "Category")
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
         var existingTranslations = allCategoryTranslations
             .Where(t => existingCatIds.Contains(t.EntityId))
             .ToList();
@@ -280,7 +280,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
 
         if (categoriesToAdd.Count > 0 || translationsToAdd.Count > 0)
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         logger.LogInformation(
@@ -297,7 +297,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         var categoryIds = categories.Select(c => c.Id).ToHashSet();
         var allCategoryTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "Category")
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
         var existingTranslations = allCategoryTranslations
             .Where(t => categoryIds.Contains(t.EntityId))
             .ToList();
@@ -378,7 +378,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         if (translationsToAdd.Count > 0)
         {
             dbContext.EntityTranslations.AddRange(translationsToAdd);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             logger.LogInformation("{Count} traductions de catégories manquantes ont été ajoutées.", translationsToAdd.Count);
         }
     }

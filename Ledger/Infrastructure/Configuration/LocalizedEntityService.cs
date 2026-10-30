@@ -65,7 +65,7 @@ public sealed class LocalizedEntityService(AppDbContext dbContext) : ILocalizedE
         var lang = NormalizeLanguageCode(languageCode);
         var translations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == entityType && t.Field == field && t.LanguageCode == lang)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var match = translations.FirstOrDefault(t => t.EntityId == entityId);
         return match != null && !string.IsNullOrWhiteSpace(match.Translation) ? match.Translation : fallbackValue;
@@ -78,7 +78,7 @@ public sealed class LocalizedEntityService(AppDbContext dbContext) : ILocalizedE
 
         var translations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == entityType && t.Field == field && t.LanguageCode == lang)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         return translations
             .Where(t => idSet.Contains(t.EntityId))
@@ -90,7 +90,7 @@ public sealed class LocalizedEntityService(AppDbContext dbContext) : ILocalizedE
         var lang = NormalizeLanguageCode(languageCode);
         var existingList = await dbContext.EntityTranslations
             .Where(t => t.EntityType == entityType && t.Field == field && t.LanguageCode == lang)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
         var existing = existingList.FirstOrDefault(t => t.EntityId == entityId);
 
         if (string.IsNullOrWhiteSpace(translation))
@@ -98,7 +98,7 @@ public sealed class LocalizedEntityService(AppDbContext dbContext) : ILocalizedE
             if (existing != null)
             {
                 dbContext.EntityTranslations.Remove(existing);
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             return;
         }
@@ -119,14 +119,14 @@ public sealed class LocalizedEntityService(AppDbContext dbContext) : ILocalizedE
             existing.Translation = translation.Trim();
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Dictionary<string, string>> GetAllTranslationsForEntityAsync(string entityType, Guid entityId, string field, CancellationToken cancellationToken = default)
     {
         var translations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == entityType && t.Field == field)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         return translations
             .Where(t => t.EntityId == entityId)

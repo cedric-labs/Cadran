@@ -28,12 +28,12 @@ public sealed class AuthService(
             CreatedAtUtc = DateTime.UtcNow
         };
 
-        var result = await userManager.CreateAsync(user, password);
+        var result = await userManager.CreateAsync(user, password).ConfigureAwait(false);
         if (result.Succeeded)
         {
-            await categorySeedService.EnsureDefaultCategoriesForUserAsync(user.Id, cancellationToken);
-            await accountTypeService.EnsureDefaultAccountTypesForUserAsync(user.Id, cancellationToken);
-            await transactionStatusService.EnsureDefaultStatusesForUserAsync(user.Id, cancellationToken);
+            await categorySeedService.EnsureDefaultCategoriesForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
+            await accountTypeService.EnsureDefaultAccountTypesForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
+            await transactionStatusService.EnsureDefaultStatusesForUserAsync(user.Id, cancellationToken).ConfigureAwait(false);
         }
 
         return result;
@@ -41,7 +41,7 @@ public sealed class AuthService(
 
     public async Task<SignInResult> LoginUserAsync(string email, string password, bool rememberMe, CancellationToken cancellationToken = default)
     {
-        var user = await userManager.FindByEmailAsync(email);
+        var user = await userManager.FindByEmailAsync(email).ConfigureAwait(false);
         if (user?.UserName is not { } userName)
         {
             return SignInResult.Failed;
@@ -51,12 +51,12 @@ public sealed class AuthService(
             userName,
             password,
             rememberMe,
-            lockoutOnFailure: true);
+            lockoutOnFailure: true).ConfigureAwait(false);
 
         if (result.Succeeded)
         {
             user.LastLoginAtUtc = DateTime.UtcNow;
-            await userManager.UpdateAsync(user);
+            await userManager.UpdateAsync(user).ConfigureAwait(false);
         }
 
         return result;
@@ -71,11 +71,11 @@ public sealed class AuthService(
     public async Task<MfaSetupDto> GenerateMfaSetupAsync(ApplicationUser user, CancellationToken cancellationToken = default)
     {
         // 1. Récupération ou génération de la clé secrète TOTP
-        var unformattedKey = await userManager.GetAuthenticatorKeyAsync(user);
+        var unformattedKey = await userManager.GetAuthenticatorKeyAsync(user).ConfigureAwait(false);
         if (string.IsNullOrEmpty(unformattedKey))
         {
-            await userManager.ResetAuthenticatorKeyAsync(user);
-            unformattedKey = await userManager.GetAuthenticatorKeyAsync(user);
+            await userManager.ResetAuthenticatorKeyAsync(user).ConfigureAwait(false);
+            unformattedKey = await userManager.GetAuthenticatorKeyAsync(user).ConfigureAwait(false);
         }
 
         var safeKey = unformattedKey ?? string.Empty;
@@ -102,14 +102,14 @@ public sealed class AuthService(
         var is2faTokenValid = await userManager.VerifyTwoFactorTokenAsync(
             user,
             userManager.Options.Tokens.AuthenticatorTokenProvider,
-            cleanCode);
+            cleanCode).ConfigureAwait(false);
 
         if (!is2faTokenValid)
         {
             return false;
         }
 
-        var result = await userManager.SetTwoFactorEnabledAsync(user, true);
+        var result = await userManager.SetTwoFactorEnabledAsync(user, true).ConfigureAwait(false);
         return result.Succeeded;
     }
 

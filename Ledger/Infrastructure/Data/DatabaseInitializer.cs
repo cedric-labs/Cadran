@@ -21,7 +21,7 @@ public static class DatabaseInitializer
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
 
-        await InitializationLock.WaitAsync(cancellationToken);
+        await InitializationLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             using var scope = serviceProvider.CreateScope();
@@ -34,16 +34,16 @@ public static class DatabaseInitializer
             var translationSeeder = new EntityTranslationSeeder(loggerFactory.CreateLogger<EntityTranslationSeeder>());
 
             // 1. Synchronisation du schéma SQLite et tables/colonnes complémentaires
-            await schemaSynchronizer.SynchronizeSchemaAsync(context, cancellationToken);
+            await schemaSynchronizer.SynchronizeSchemaAsync(context, cancellationToken).ConfigureAwait(false);
 
             // 2. Initialisation des données de référence globales et par utilisateur
-            await referenceDataSeeder.SeedReferenceDataAsync(context, scope.ServiceProvider, cancellationToken);
+            await referenceDataSeeder.SeedReferenceDataAsync(context, scope.ServiceProvider, cancellationToken).ConfigureAwait(false);
 
             // 3. Initialisation des traductions par défaut
-            await translationSeeder.SeedDefaultTranslationsAsync(context, cancellationToken);
+            await translationSeeder.SeedDefaultTranslationsAsync(context, cancellationToken).ConfigureAwait(false);
 
             // 4. Normalisation de la casse des identifiants GUID dans SQLite
-            await DatabaseSchemaSynchronizer.NormalizeGuidCasingAsync(context, cancellationToken);
+            await DatabaseSchemaSynchronizer.NormalizeGuidCasingAsync(context, cancellationToken).ConfigureAwait(false);
 
             logger.LogInformation("Base SQLite initialisée avec succès en mode WAL, polices, traductions et GUIDs normalisés.");
         }

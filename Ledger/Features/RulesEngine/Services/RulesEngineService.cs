@@ -24,7 +24,7 @@ public sealed class RulesEngineService(
         var rules = await dbContext.CategorizationRules
             .Where(r => r.IsActive)
             .OrderBy(r => r.Priority)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var timeoutMs = configuration.GetValue("Rules:MaxExecutionTimeMs", 500);
         var regexTimeout = TimeSpan.FromMilliseconds(timeoutMs);
@@ -90,7 +90,7 @@ public sealed class RulesEngineService(
             .Include(r => r.TargetMerchant)
             .Where(r => r.IsActive)
             .OrderBy(r => r.Priority)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (rules.Count == 0)
         {
@@ -186,7 +186,7 @@ public sealed class RulesEngineService(
 
         var rules = await rulesQuery
             .OrderBy(r => r.Priority)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (rules.Count == 0)
         {
@@ -278,17 +278,17 @@ public sealed class RulesEngineService(
             txQuery = txQuery.Where(t => t.CategoryId == null);
         }
 
-        var transactions = await txQuery.ToListAsync(cancellationToken);
+        var transactions = await txQuery.ToListAsync(cancellationToken).ConfigureAwait(false);
         if (transactions.Count == 0)
         {
             return 0;
         }
 
-        var matchedCount = await ApplyRulesToTransactionsAsync(transactions, overwriteExisting, singleRuleId, cancellationToken);
+        var matchedCount = await ApplyRulesToTransactionsAsync(transactions, overwriteExisting, singleRuleId, cancellationToken).ConfigureAwait(false);
 
         if (matchedCount > 0)
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return matchedCount;

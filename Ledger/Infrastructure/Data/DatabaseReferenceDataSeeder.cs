@@ -27,17 +27,17 @@ public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSee
         // 1. Marquer automatiquement la catégorie existante de salaire/revenus d'activité si elle n'est pas encore flaggée
         await context.Database.ExecuteSqlRawAsync(
             "UPDATE Categories SET IsSalary = 1 WHERE (Name LIKE '%Salaire%' OR Name LIKE '%Revenus d''activit%') AND IsSalary = 0;",
-            cancellationToken);
+            cancellationToken).ConfigureAwait(false);
 
         // 2. Initialisation des polices et des paramètres d'apparence
         var uiSettingsService = serviceProvider.GetService<IUiSettingsService>();
         if (uiSettingsService != null)
         {
-            await uiSettingsService.EnsureDefaultFontsAndSettingsAsync(cancellationToken);
+            await uiSettingsService.EnsureDefaultFontsAndSettingsAsync(cancellationToken).ConfigureAwait(false);
         }
 
         // 3. Initialisation des devises configurables dans AppSettings si absent
-        var currenciesSetting = await context.AppSettings.FirstOrDefaultAsync(s => s.Key == "Currencies:Supported", cancellationToken);
+        var currenciesSetting = await context.AppSettings.FirstOrDefaultAsync(s => s.Key == "Currencies:Supported", cancellationToken).ConfigureAwait(false);
         if (currenciesSetting == null)
         {
             context.AppSettings.Add(new AppSettingEntity
@@ -47,7 +47,7 @@ public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSee
                 Description = "Liste des devises monétaires configurables du système",
                 UpdatedAtUtc = DateTime.UtcNow
             });
-            await context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         // 4. Initialisation des catégories et données de référence par défaut pour les utilisateurs existants
@@ -59,32 +59,32 @@ public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSee
         // Nettoyage au démarrage des doublons non utilisés
         if (accountTypeService != null)
         {
-            await accountTypeService.DeduplicateAccountTypesAsync(cancellationToken);
+            await accountTypeService.DeduplicateAccountTypesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         if (transactionStatusService != null)
         {
-            await transactionStatusService.DeduplicateStatusesAsync(cancellationToken);
+            await transactionStatusService.DeduplicateStatusesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         if (userManager != null)
         {
-            var existingUserIds = await userManager.Users.Select(u => u.Id).ToListAsync(cancellationToken);
+            var existingUserIds = await userManager.Users.Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
             foreach (var userId in existingUserIds)
             {
                 if (categorySeedService != null)
                 {
-                    await categorySeedService.EnsureDefaultCategoriesForUserAsync(userId, cancellationToken);
+                    await categorySeedService.EnsureDefaultCategoriesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (accountTypeService != null)
                 {
-                    await accountTypeService.EnsureDefaultAccountTypesForUserAsync(userId, cancellationToken);
+                    await accountTypeService.EnsureDefaultAccountTypesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (transactionStatusService != null)
                 {
-                    await transactionStatusService.EnsureDefaultStatusesForUserAsync(userId, cancellationToken);
+                    await transactionStatusService.EnsureDefaultStatusesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

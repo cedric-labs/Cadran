@@ -79,7 +79,7 @@ string? activeKey = null;
 
 if (isEncrypted)
 {
-    var savedKey = await keyStore.GetSavedKeyAsync();
+    var savedKey = await keyStore.GetSavedKeyAsync().ConfigureAwait(false);
     if (!string.IsNullOrEmpty(savedKey) && DatabaseEncryptionService.VerifyPassphrase(baseConnectionString, savedKey))
     {
         activeKey = savedKey;
@@ -250,7 +250,7 @@ var app = builder.Build();
 // ==============================================================================
 if (keyHolder.IsUnlocked)
 {
-    await DatabaseInitializer.InitializeDatabaseAsync(app.Services);
+    await DatabaseInitializer.InitializeDatabaseAsync(app.Services).ConfigureAwait(false);
     CurrencyExtensions.Configure(app.Services.GetRequiredService<ICurrencyService>());
 }
 
@@ -329,7 +329,7 @@ app.MapPost("/api/system/shutdown", (IHostApplicationLifetime lifetime, HttpCont
 
     _ = Task.Run(async () =>
     {
-        await Task.Delay(200);
+        await Task.Delay(200).ConfigureAwait(false);
         lifetime.StopApplication();
     });
 
@@ -358,7 +358,7 @@ if (autoLaunchBrowser)
     });
 }
 
-await app.RunAsync();
+await app.RunAsync().ConfigureAwait(false);
 
 public partial class Program
 {

@@ -38,7 +38,7 @@ public sealed class MerchantService(
 
         return await dbContext.Merchants
             .Include(m => m.DefaultCategory)
-            .FirstOrDefaultAsync(m => m.NormalizedName == normalized, cancellationToken);
+            .FirstOrDefaultAsync(m => m.NormalizedName == normalized, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Merchant> GetOrCreateByNameAsync(string name, Guid? defaultCategoryId = null, CancellationToken cancellationToken = default)
@@ -52,7 +52,7 @@ public sealed class MerchantService(
         var normalized = NormalizeMerchantName(trimmed);
         var existing = await dbContext.Merchants
             .Include(m => m.DefaultCategory)
-            .FirstOrDefaultAsync(m => m.NormalizedName == normalized, cancellationToken);
+            .FirstOrDefaultAsync(m => m.NormalizedName == normalized, cancellationToken).ConfigureAwait(false);
 
         if (existing != null)
         {
@@ -60,12 +60,12 @@ public sealed class MerchantService(
             {
                 existing.DefaultCategoryId = defaultCategoryId.Value;
                 existing.UpdatedAtUtc = DateTime.UtcNow;
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             return existing;
         }
 
-        return await CreateAsync(trimmed, defaultCategoryId, null, null, cancellationToken);
+        return await CreateAsync(trimmed, defaultCategoryId, null, null, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Merchant> CreateAsync(
@@ -83,7 +83,7 @@ public sealed class MerchantService(
 
         var normalized = NormalizeMerchantName(trimmed);
         var existing = await dbContext.Merchants
-            .FirstOrDefaultAsync(m => m.NormalizedName == normalized, cancellationToken);
+            .FirstOrDefaultAsync(m => m.NormalizedName == normalized, cancellationToken).ConfigureAwait(false);
         if (existing != null)
         {
             throw new InvalidOperationException($"Un tiers ou marchand avec le nom '{trimmed}' existe déjà.");
@@ -102,7 +102,7 @@ public sealed class MerchantService(
         };
 
         dbContext.Merchants.Add(merchant);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Marchand '{Name}' créé avec succès pour l'utilisateur {UserId}.", trimmed, userId);
         return merchant;
@@ -116,7 +116,7 @@ public sealed class MerchantService(
         string? colorHex = null,
         CancellationToken cancellationToken = default)
     {
-        var merchant = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+        var merchant = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == id, cancellationToken).ConfigureAwait(false);
         if (merchant == null) return null;
 
         var trimmed = name?.Trim() ?? string.Empty;
@@ -127,7 +127,7 @@ public sealed class MerchantService(
 
         var normalized = NormalizeMerchantName(trimmed);
         var duplicate = await dbContext.Merchants
-            .FirstOrDefaultAsync(m => m.NormalizedName == normalized && m.Id != id, cancellationToken);
+            .FirstOrDefaultAsync(m => m.NormalizedName == normalized && m.Id != id, cancellationToken).ConfigureAwait(false);
         if (duplicate != null)
         {
             throw new InvalidOperationException($"Un tiers ou marchand avec le nom '{trimmed}' existe déjà.");
@@ -145,20 +145,20 @@ public sealed class MerchantService(
 
         merchant.UpdatedAtUtc = DateTime.UtcNow;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Marchand ID {Id} mis à jour avec le nom '{Name}'.", id, trimmed);
         return merchant;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var merchant = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
+        var merchant = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == id, cancellationToken).ConfigureAwait(false);
         if (merchant == null) return false;
 
         // Détacher les opérations liées
         var linkedTx = await dbContext.Transactions
             .Where(t => t.MerchantId == id)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var t in linkedTx)
         {
@@ -168,7 +168,7 @@ public sealed class MerchantService(
         // Détacher les règles liées
         var linkedRules = await dbContext.CategorizationRules
             .Where(r => r.TargetMerchantId == id)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var r in linkedRules)
         {
@@ -176,7 +176,7 @@ public sealed class MerchantService(
         }
 
         dbContext.Merchants.Remove(merchant);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Marchand ID {Id} supprimé ({TxCount} opérations et {RulesCount} règles détachées).",
             id, linkedTx.Count, linkedRules.Count);
@@ -187,15 +187,15 @@ public sealed class MerchantService(
     {
         if (sourceMerchantId == targetMerchantId) return 0;
 
-        var source = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == sourceMerchantId, cancellationToken);
-        var target = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == targetMerchantId, cancellationToken);
+        var source = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == sourceMerchantId, cancellationToken).ConfigureAwait(false);
+        var target = await dbContext.Merchants.FirstOrDefaultAsync(m => m.Id == targetMerchantId, cancellationToken).ConfigureAwait(false);
 
         if (source == null || target == null) return 0;
 
         // Réassigner les opérations
         var linkedTx = await dbContext.Transactions
             .Where(t => t.MerchantId == sourceMerchantId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var t in linkedTx)
         {
@@ -205,7 +205,7 @@ public sealed class MerchantService(
         // Réassigner les règles
         var linkedRules = await dbContext.CategorizationRules
             .Where(r => r.TargetMerchantId == sourceMerchantId)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         foreach (var r in linkedRules)
         {
@@ -213,7 +213,7 @@ public sealed class MerchantService(
         }
 
         dbContext.Merchants.Remove(source);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Marchand '{Source}' fusionné vers '{Target}' ({Count} opérations migrées).",
             source.Name, target.Name, linkedTx.Count);

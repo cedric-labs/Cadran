@@ -35,7 +35,7 @@ public sealed class PivotReportService(
         var result = new PivotResultDto { Query = query };
 
         // 1. Calculer la plage de dates effective
-        var (start, end) = await ResolvePeriodDatesAsync(query.PeriodPreset, query.StartDate, query.EndDate);
+        var (start, end) = await ResolvePeriodDatesAsync(query.PeriodPreset, query.StartDate, query.EndDate).ConfigureAwait(false);
         result.EffectiveStartDate = start;
         result.EffectiveEndDate = end;
 
@@ -43,15 +43,15 @@ public sealed class PivotReportService(
         result.Columns = _aggregationCalculator.BuildColumnHeaders(start, end, query.ColumnDimension);
 
         // 3. Charger les charges récurrentes si besoin pour le filtrage ou détection
-        var recurringRules = await LoadRecurringRulesAsync(query.FlowFilter, cancellationToken);
+        var recurringRules = await LoadRecurringRulesAsync(query.FlowFilter, cancellationToken).ConfigureAwait(false);
 
         // 4. Charger les catégories et comptes pour les libellés/hiérarchies
-        var categories = await dbContext.Categories.AsNoTracking().ToListAsync(cancellationToken);
-        var accounts = await dbContext.BankAccounts.AsNoTracking().ToListAsync(cancellationToken);
-        var categoryNameOverrides = await LoadCategoryTranslationsAsync(categories, cancellationToken);
+        var categories = await dbContext.Categories.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false);
+        var accounts = await dbContext.BankAccounts.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false);
+        var categoryNameOverrides = await LoadCategoryTranslationsAsync(categories, cancellationToken).ConfigureAwait(false);
 
         // 5. Requête sur les transactions
-        var flatItems = await LoadFlatTransactionsAsync(query, start, end, categories, recurringRules, cancellationToken);
+        var flatItems = await LoadFlatTransactionsAsync(query, start, end, categories, recurringRules, cancellationToken).ConfigureAwait(false);
         result.TotalTransactionsCount = flatItems.Count;
 
         // 6. Agréger les données par ligne et colonne
@@ -88,7 +88,7 @@ public sealed class PivotReportService(
 
         if (isDefault)
         {
-            var existingDefaults = await dbContext.SavedPivotReports.Where(r => r.IsDefault).ToListAsync(cancellationToken);
+            var existingDefaults = await dbContext.SavedPivotReports.Where(r => r.IsDefault).ToListAsync(cancellationToken).ConfigureAwait(false);
             foreach (var d in existingDefaults)
             {
                 d.IsDefault = false;
@@ -98,14 +98,14 @@ public sealed class PivotReportService(
         SavedPivotReport report;
         if (existingId.HasValue)
         {
-            var existing = await dbContext.SavedPivotReports.FirstOrDefaultAsync(r => r.Id == existingId.Value, cancellationToken);
+            var existing = await dbContext.SavedPivotReports.FirstOrDefaultAsync(r => r.Id == existingId.Value, cancellationToken).ConfigureAwait(false);
             if (existing != null)
             {
                 existing.Name = name.Trim();
                 existing.Description = description?.Trim();
                 existing.ConfigJson = configJson;
                 existing.IsDefault = isDefault;
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 return existing;
             }
         }
@@ -120,20 +120,20 @@ public sealed class PivotReportService(
         };
 
         dbContext.SavedPivotReports.Add(report);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return report;
     }
 
     public async Task<bool> DeleteSavedPivotReportAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var item = await dbContext.SavedPivotReports.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        var item = await dbContext.SavedPivotReports.FirstOrDefaultAsync(r => r.Id == id, cancellationToken).ConfigureAwait(false);
         if (item == null)
         {
             return false;
         }
 
         dbContext.SavedPivotReports.Remove(item);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -146,20 +146,20 @@ public sealed class PivotReportService(
         var detail = new PivotCellDetailDto();
 
         // 1. Calculer la plage de dates globale de la requête
-        var (queryStart, queryEnd) = await ResolvePeriodDatesAsync(query.PeriodPreset, query.StartDate, query.EndDate);
+        var (queryStart, queryEnd) = await ResolvePeriodDatesAsync(query.PeriodPreset, query.StartDate, query.EndDate).ConfigureAwait(false);
 
         // 2. Déterminer la plage de dates de la colonne cliquée
         var (colStart, colEnd, colDisplayLabel) = ResolveColumnDateRange(query, colKey, queryStart, queryEnd);
         detail.ColumnLabel = colDisplayLabel;
 
         // 3. Charger les catégories, comptes et charges récurrentes
-        var categories = await dbContext.Categories.AsNoTracking().ToListAsync(cancellationToken);
+        var categories = await dbContext.Categories.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false);
         var categoryMap = categories.ToDictionary(c => c.Id);
-        var categoryTranslations = await LoadCategoryTranslationsAsync(categories, cancellationToken);
-        var recurringRules = await LoadRecurringRulesAsync(query.FlowFilter, cancellationToken);
+        var categoryTranslations = await LoadCategoryTranslationsAsync(categories, cancellationToken).ConfigureAwait(false);
+        var recurringRules = await LoadRecurringRulesAsync(query.FlowFilter, cancellationToken).ConfigureAwait(false);
 
         // 4. Charger et aplatir les transactions
-        var flatItems = await LoadFlatTransactionsAsync(query, colStart, colEnd, categories, recurringRules, cancellationToken);
+        var flatItems = await LoadFlatTransactionsAsync(query, colStart, colEnd, categories, recurringRules, cancellationToken).ConfigureAwait(false);
 
         // 5. Filtrer par rowKey
         var (filteredItems, rowDisplayLabel) = FilterTransactionsByRowKey(flatItems, rowKey, query.RowDimension, categoryMap, categoryTranslations);
@@ -225,7 +225,7 @@ public sealed class PivotReportService(
         {
             return await dbContext.RecurringExpenses
                 .Where(r => r.IsActive)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return null;
@@ -235,7 +235,7 @@ public sealed class PivotReportService(
     {
         var catIds = categories.Select(c => c.Id).ToList();
         var categoryTranslations = await localizedEntityService.GetTranslationsAsync(
-            nameof(Category), catIds, nameof(Category.Name), cancellationToken: cancellationToken);
+            nameof(Category), catIds, nameof(Category.Name), cancellationToken: cancellationToken).ConfigureAwait(false);
 
         var categoryNameOverrides = new Dictionary<Guid, string>();
         foreach (var c in categories)
@@ -295,7 +295,7 @@ public sealed class PivotReportService(
             txQuery = txQuery.Where(t => t.Type == TransactionType.Credit);
         }
 
-        var transactions = await txQuery.ToListAsync(cancellationToken);
+        var transactions = await txQuery.ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (recurringRules != null && recurringRules.Count > 0)
         {
@@ -571,7 +571,7 @@ public sealed class PivotReportService(
         switch (preset)
         {
             case PivotPeriodPreset.CurrentMonth:
-                var startDay = await uiSettingsService.GetSalaryMonthStartDayAsync();
+                var startDay = await uiSettingsService.GetSalaryMonthStartDayAsync().ConfigureAwait(false);
                 var (mStart, mEnd, _) = BudgetPeriodCalculator.GetCurrentMonthRange(now, startDay);
                 start = mStart ?? new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
                 end = mEnd ?? start.AddMonths(1).AddDays(-1);

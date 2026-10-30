@@ -19,7 +19,7 @@ public sealed class AccountBalanceService(
             .Include(a => a.CustomAccountType)
             .Include(a => a.Transactions)
             .FirstOrDefaultAsync(a => a.Id == accountId, cancellationToken)
-            ?? throw new KeyNotFoundException($"Compte bancaire {accountId} non trouvé.");
+.ConfigureAwait(false) ?? throw new KeyNotFoundException($"Compte bancaire {accountId} non trouvé.");
 
         decimal initial = account.InitialBalance;
         decimal currentCredit = account.Transactions.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
@@ -44,7 +44,7 @@ public sealed class AccountBalanceService(
                 account.CustomAccountType.Id,
                 "Name",
                 account.CustomAccountType.Name,
-                cancellationToken: cancellationToken);
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         return new AccountBalanceSummaryDto(
@@ -70,7 +70,7 @@ public sealed class AccountBalanceService(
             .Include(a => a.CustomAccountType)
             .Include(a => a.Transactions)
             .Where(a => !a.IsArchived)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var summaries = new List<AccountBalanceSummaryDto>();
 
@@ -87,7 +87,7 @@ public sealed class AccountBalanceService(
             "CustomAccountType",
             typeIds,
             "Name",
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken).ConfigureAwait(false);
 
         foreach (var account in accounts)
         {
@@ -178,7 +178,7 @@ public sealed class AccountBalanceService(
         var account = await dbContext.BankAccounts
             .Include(a => a.Transactions)
             .FirstOrDefaultAsync(a => a.Id == accountId, cancellationToken)
-            ?? throw new KeyNotFoundException($"Compte bancaire {accountId} non trouvé.");
+.ConfigureAwait(false) ?? throw new KeyNotFoundException($"Compte bancaire {accountId} non trouvé.");
 
         var txsUntilDate = account.Transactions.Where(t => t.Date.Date <= targetDate.Date).ToList();
         decimal credits = txsUntilDate.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);

@@ -30,16 +30,16 @@ public sealed class ReportService(
             .Include(d => d.Widgets.OrderBy(w => w.DisplayOrder))
             .OrderBy(d => d.DisplayOrder)
             .ThenBy(d => d.Name)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (dashboards.Count == 0)
         {
-            await SeedDefaultDashboardAsync(cancellationToken);
+            await SeedDefaultDashboardAsync(cancellationToken).ConfigureAwait(false);
             dashboards = await dbContext.ReportDashboards
                 .Include(d => d.Widgets.OrderBy(w => w.DisplayOrder))
                 .OrderBy(d => d.DisplayOrder)
                 .ThenBy(d => d.Name)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return dashboards;
@@ -64,7 +64,7 @@ public sealed class ReportService(
         };
 
         dbContext.ReportDashboards.Add(dashboard);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return dashboard;
     }
 
@@ -72,19 +72,19 @@ public sealed class ReportService(
     {
         var dashboard = await dbContext.ReportDashboards
             .Include(d => d.Widgets)
-            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(d => d.Id == id, cancellationToken).ConfigureAwait(false);
 
         if (dashboard == null) return false;
 
         dbContext.ReportWidgets.RemoveRange(dashboard.Widgets);
         dbContext.ReportDashboards.Remove(dashboard);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
     public async Task<ReportWidget> AddWidgetAsync(Guid dashboardId, string title, string widgetType, int widthCols, string? configJson = null, CancellationToken cancellationToken = default)
     {
-        var count = await dbContext.ReportWidgets.CountAsync(w => w.DashboardId == dashboardId, cancellationToken);
+        var count = await dbContext.ReportWidgets.CountAsync(w => w.DashboardId == dashboardId, cancellationToken).ConfigureAwait(false);
 
         var widget = new ReportWidget
         {
@@ -97,30 +97,30 @@ public sealed class ReportService(
         };
 
         dbContext.ReportWidgets.Add(widget);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return widget;
     }
 
     public async Task<ReportWidget?> UpdateWidgetAsync(Guid widgetId, string title, int widthCols, string? configJson = null, CancellationToken cancellationToken = default)
     {
-        var widget = await dbContext.ReportWidgets.FirstOrDefaultAsync(w => w.Id == widgetId, cancellationToken);
+        var widget = await dbContext.ReportWidgets.FirstOrDefaultAsync(w => w.Id == widgetId, cancellationToken).ConfigureAwait(false);
         if (widget == null) return null;
 
         widget.Title = title.Trim();
         widget.WidthCols = widthCols;
         if (configJson != null) widget.ConfigJson = configJson;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return widget;
     }
 
     public async Task<bool> DeleteWidgetAsync(Guid widgetId, CancellationToken cancellationToken = default)
     {
-        var widget = await dbContext.ReportWidgets.FirstOrDefaultAsync(w => w.Id == widgetId, cancellationToken);
+        var widget = await dbContext.ReportWidgets.FirstOrDefaultAsync(w => w.Id == widgetId, cancellationToken).ConfigureAwait(false);
         if (widget == null) return false;
 
         dbContext.ReportWidgets.Remove(widget);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -128,7 +128,7 @@ public sealed class ReportService(
     {
         var existing = await dbContext.ReportDashboards
             .Include(d => d.Widgets)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (existing.Count > 0)
         {
@@ -137,21 +137,21 @@ public sealed class ReportService(
                 dbContext.ReportWidgets.RemoveRange(d.Widgets);
             }
             dbContext.ReportDashboards.RemoveRange(existing);
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        await SeedDefaultDashboardAsync(cancellationToken);
+        await SeedDefaultDashboardAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<List<WidgetDataDto>> ComputeDashboardDataAsync(Guid dashboardId, CancellationToken cancellationToken = default)
     {
-        var dashboard = await GetDashboardByIdAsync(dashboardId, cancellationToken);
+        var dashboard = await GetDashboardByIdAsync(dashboardId, cancellationToken).ConfigureAwait(false);
         if (dashboard == null) return new List<WidgetDataDto>();
 
         var list = new List<WidgetDataDto>();
         foreach (var widget in dashboard.Widgets.OrderBy(w => w.DisplayOrder))
         {
-            var data = await ComputeWidgetDataAsync(widget, cancellationToken);
+            var data = await ComputeWidgetDataAsync(widget, cancellationToken).ConfigureAwait(false);
             list.Add(data);
         }
         return list;
@@ -187,11 +187,11 @@ public sealed class ReportService(
             query = query.Where(t => t.CategoryId != null && config.CategoryIds.Contains(t.CategoryId.Value));
         }
 
-        var transactions = await query.ToListAsync(cancellationToken);
+        var transactions = await query.ToListAsync(cancellationToken).ConfigureAwait(false);
 
         // Récupérer les traductions des catégories concernées
         var catIds = transactions.Select(t => t.Category).OfType<Ledger.Features.Categories.Entities.Category>().Select(c => c.Id).Distinct().ToList();
-        var catTranslations = await localizedEntityService.GetTranslationsAsync("Category", catIds, "Name", cancellationToken: cancellationToken);
+        var catTranslations = await localizedEntityService.GetTranslationsAsync("Category", catIds, "Name", cancellationToken: cancellationToken).ConfigureAwait(false);
 
         switch (widget.WidgetType)
         {
@@ -226,7 +226,7 @@ public sealed class ReportService(
 
             case "KpiRemainingToLive":
                 var now = DateTime.Today;
-                var summaryR = await recurringService.GetMonthlySummaryAsync(now.Year, now.Month, cancellationToken);
+                var summaryR = await recurringService.GetMonthlySummaryAsync(now.Year, now.Month, cancellationToken).ConfigureAwait(false);
                 result.KpiValue = summaryR.EstimatedRemainingToLive;
                 result.KpiFormattedValue = summaryR.EstimatedRemainingToLive.ToString("C2", CultureInfo.CurrentCulture);
                 result.KpiSubtext = string.Format(CultureInfo.CurrentCulture, localizer["Reports.IncomeMinusFixedExpenses"], summaryR.TotalIncome.ToString("C0", CultureInfo.CurrentCulture), summaryR.TotalExpected.ToString("C0", CultureInfo.CurrentCulture));
@@ -243,11 +243,11 @@ public sealed class ReportService(
                 break;
 
             case "ChartBarMonthly":
-                await ComputeMonthlyComparisonBarAsync(result);
+                await ComputeMonthlyComparisonBarAsync(result).ConfigureAwait(false);
                 break;
 
             case "ChartLineSavings":
-                await ComputeCumulativeSavingsLineAsync(result);
+                await ComputeCumulativeSavingsLineAsync(result).ConfigureAwait(false);
                 break;
 
             case "TopExpensesList":
@@ -256,7 +256,7 @@ public sealed class ReportService(
 
             case "RecurringGauges":
                 var today = DateTime.Today;
-                var monthlyRec = await recurringService.GetMonthlySummaryAsync(today.Year, today.Month, cancellationToken);
+                var monthlyRec = await recurringService.GetMonthlySummaryAsync(today.Year, today.Month, cancellationToken).ConfigureAwait(false);
                 result.RecurringExpected = monthlyRec.TotalExpected;
                 result.RecurringDebited = monthlyRec.TotalDebited;
                 result.RecurringPending = monthlyRec.TotalPending;
@@ -328,7 +328,7 @@ public sealed class ReportService(
 
         var transactions = await dbContext.Transactions
             .Where(t => (t.BudgetDate ?? t.Date) >= startMonth && (t.BudgetDate ?? t.Date) <= endOfPeriod)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
 
         var expenseDataset = new ChartDatasetDto
         {
@@ -374,7 +374,7 @@ public sealed class ReportService(
 
         var transactions = await dbContext.Transactions
             .Where(t => (t.BudgetDate ?? t.Date) >= startMonth && (t.BudgetDate ?? t.Date) <= endOfPeriod)
-            .ToListAsync();
+            .ToListAsync().ConfigureAwait(false);
 
         var savingsDataset = new ChartDatasetDto
         {
@@ -516,7 +516,7 @@ public sealed class ReportService(
         };
 
         dbContext.ReportDashboards.Add(dashboard);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         var widgets = new List<ReportWidget>
         {
@@ -531,6 +531,6 @@ public sealed class ReportService(
         };
 
         dbContext.ReportWidgets.AddRange(widgets);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 }

@@ -41,7 +41,7 @@ public class CsvStatementParser : IBankStatementParser
             }
             : new CsvStatementOptions();
 
-        var statementTransactions = await _underlyingParser.ParseAsync(stream, options, cancellationToken);
+        var statementTransactions = await _underlyingParser.ParseAsync(stream, options, cancellationToken).ConfigureAwait(false);
 
         return statementTransactions.Select(st => new ImportedTransactionDto
         {

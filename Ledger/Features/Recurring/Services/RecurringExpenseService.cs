@@ -31,13 +31,13 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
     {
         expense.UserId = string.Empty; // Injecté automatiquement par SaveChangesAsync
         dbContext.RecurringExpenses.Add(expense);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return expense;
     }
 
     public async Task<RecurringExpense?> UpdateAsync(RecurringExpense expense, CancellationToken cancellationToken = default)
     {
-        var existing = await dbContext.RecurringExpenses.FirstOrDefaultAsync(r => r.Id == expense.Id, cancellationToken);
+        var existing = await dbContext.RecurringExpenses.FirstOrDefaultAsync(r => r.Id == expense.Id, cancellationToken).ConfigureAwait(false);
         if (existing == null) return null;
 
         existing.Name = expense.Name.Trim();
@@ -51,17 +51,17 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         existing.IsActive = expense.IsActive;
         existing.Notes = expense.Notes;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return existing;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var existing = await dbContext.RecurringExpenses.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+        var existing = await dbContext.RecurringExpenses.FirstOrDefaultAsync(r => r.Id == id, cancellationToken).ConfigureAwait(false);
         if (existing == null) return false;
 
         dbContext.RecurringExpenses.Remove(existing);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return true;
     }
 
@@ -73,13 +73,13 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         // Vérifier si une charge avec le même motif ou le même nom existe déjà pour éviter tout doublon
         var existing = await dbContext.RecurringExpenses
             .FirstOrDefaultAsync(r => EF.Functions.Like(r.Pattern, cleanPattern) ||
-                                      EF.Functions.Like(r.Name, cleanName), cancellationToken);
+                                      EF.Functions.Like(r.Name, cleanName), cancellationToken).ConfigureAwait(false);
         if (existing != null)
         {
             // Déjà existant : mettre à jour les métadonnées de détection sans recréer de doublon
             existing.LastDetectedDate = candidate.LastDate;
             existing.LastDetectedAmount = candidate.LastAmount;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return existing;
         }
 
@@ -101,7 +101,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         };
 
         dbContext.RecurringExpenses.Add(expense);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return expense;
     }
 
@@ -109,7 +109,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
 
     public async Task<List<string>> GetIgnoredPatternsAsync(CancellationToken cancellationToken = default)
     {
-        var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == IgnoredPatternsSettingKey, cancellationToken);
+        var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == IgnoredPatternsSettingKey, cancellationToken).ConfigureAwait(false);
         if (setting == null || string.IsNullOrWhiteSpace(setting.Value))
         {
             return new List<string>();
@@ -132,13 +132,13 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         if (string.IsNullOrWhiteSpace(pattern)) return;
 
         var cleanPattern = pattern.Trim();
-        var currentList = await GetIgnoredPatternsAsync(cancellationToken);
+        var currentList = await GetIgnoredPatternsAsync(cancellationToken).ConfigureAwait(false);
 
         if (!currentList.Any(p => string.Equals(p, cleanPattern, StringComparison.OrdinalIgnoreCase)))
         {
             currentList.Add(cleanPattern);
 
-            var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == IgnoredPatternsSettingKey, cancellationToken);
+            var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == IgnoredPatternsSettingKey, cancellationToken).ConfigureAwait(false);
             var jsonValue = System.Text.Json.JsonSerializer.Serialize(currentList);
 
             if (setting == null)
@@ -157,7 +157,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
                 setting.UpdatedAtUtc = DateTime.UtcNow;
             }
 
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -166,16 +166,16 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         if (string.IsNullOrWhiteSpace(pattern)) return;
 
         var cleanPattern = pattern.Trim();
-        var currentList = await GetIgnoredPatternsAsync(cancellationToken);
+        var currentList = await GetIgnoredPatternsAsync(cancellationToken).ConfigureAwait(false);
 
         if (currentList.RemoveAll(p => string.Equals(p, cleanPattern, StringComparison.OrdinalIgnoreCase)) > 0)
         {
-            var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == IgnoredPatternsSettingKey, cancellationToken);
+            var setting = await dbContext.AppSettings.FirstOrDefaultAsync(s => s.Key == IgnoredPatternsSettingKey, cancellationToken).ConfigureAwait(false);
             if (setting != null)
             {
                 setting.Value = System.Text.Json.JsonSerializer.Serialize(currentList);
                 setting.UpdatedAtUtc = DateTime.UtcNow;
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -188,7 +188,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
             .Where(r => r.IsActive)
             .OrderBy(r => r.ExpectedDayOfMonth ?? 99)
             .ThenBy(r => r.Name)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var startOfMonth = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var endOfMonth = startOfMonth.AddMonths(1).AddTicks(-1);
@@ -197,7 +197,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         var monthTransactions = await dbContext.Transactions
             .Include(t => t.Category)
             .Where(t => (t.BudgetDate ?? t.Date) >= startOfMonth && (t.BudgetDate ?? t.Date) <= endOfMonth)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var today = DateTime.Today;
         var summary = new MonthlyRecurringSummaryDto
@@ -284,11 +284,11 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         // 1. Charger les règles récurrentes déjà existantes et les motifs ignorés
         var existingExpenses = (await dbContext.RecurringExpenses
             .Select(r => new { r.Id, r.Name, r.Pattern })
-            .ToListAsync(cancellationToken))
+            .ToListAsync(cancellationToken).ConfigureAwait(false))
             .Select(r => new { r.Id, Name = r.Name.ToLowerInvariant(), Pattern = r.Pattern.ToLowerInvariant() })
             .ToList();
 
-        var ignoredPatterns = await GetIgnoredPatternsAsync(cancellationToken);
+        var ignoredPatterns = await GetIgnoredPatternsAsync(cancellationToken).ConfigureAwait(false);
 
         // 2. Analyser les transactions de dépenses sur les 12 derniers mois
         var cutoffDate = DateTime.Today.AddMonths(-12);
@@ -297,7 +297,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
             .Include(t => t.BankAccount)
             .Where(t => t.Type == TransactionType.Debit && t.Date >= cutoffDate)
             .OrderBy(t => t.Date)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (transactions.Count < 3) return new List<RecurringCandidateDto>();
 
@@ -541,7 +541,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext) : IRecurring
         var activeExpenses = await dbContext.RecurringExpenses
             .Where(r => r.IsActive)
             .OrderBy(r => r.Name)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (activeExpenses.Count == 0)
         {

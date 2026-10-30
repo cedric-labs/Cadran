@@ -141,7 +141,7 @@ public sealed class CadranProcessSupervisor(
             process.BeginErrorReadLine();
 
             // Attente active non bloquante de la disponibilité du serveur Kestrel
-            var ready = await WaitForServerReadyAsync(cancellationToken);
+            var ready = await WaitForServerReadyAsync(cancellationToken).ConfigureAwait(false);
             if (ready)
             {
                 State = ProcessState.Running;
@@ -177,7 +177,7 @@ public sealed class CadranProcessSupervisor(
             // Tentative d'arrêt propre via l'endpoint dédié
             try
             {
-                var response = await _client.PostAsync($"{ServerUrl}/api/system/shutdown", null, cancellationToken);
+                var response = await _client.PostAsync($"{ServerUrl}/api/system/shutdown", null, cancellationToken).ConfigureAwait(false);
                 if (response.IsSuccessStatusCode)
                 {
                     EmitLog(LogLevel.Information, "Signal d'arrêt accepté par Kestrel.");
@@ -193,7 +193,7 @@ public sealed class CadranProcessSupervisor(
 
             try
             {
-                await _process.WaitForExitAsync(delayCts.Token);
+                await _process.WaitForExitAsync(delayCts.Token).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -222,7 +222,7 @@ public sealed class CadranProcessSupervisor(
         {
             if (!_process.HasExited)
             {
-                await StopAsync();
+                await StopAsync().ConfigureAwait(false);
             }
             _process.Dispose();
             _process = null;
@@ -248,14 +248,14 @@ public sealed class CadranProcessSupervisor(
             }
 
             // 2. Détection par sonde TCP locale non bloquante
-            if (await CheckTcpPortOpenAsync(port, cancellationToken))
+            if (await CheckTcpPortOpenAsync(port, cancellationToken).ConfigureAwait(false))
             {
                 return true;
             }
 
             try
             {
-                await Task.Delay(300, cancellationToken);
+                await Task.Delay(300, cancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
@@ -274,7 +274,7 @@ public sealed class CadranProcessSupervisor(
             using var tcpClient = new System.Net.Sockets.TcpClient();
             using var connectCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             connectCts.CancelAfter(250);
-            await tcpClient.ConnectAsync("127.0.0.1", targetPort, connectCts.Token);
+            await tcpClient.ConnectAsync("127.0.0.1", targetPort, connectCts.Token).ConfigureAwait(false);
             return tcpClient.Connected;
         }
         catch (System.Net.Sockets.SocketException)

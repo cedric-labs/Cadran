@@ -90,7 +90,7 @@ public sealed class DatabaseEncryptionService(
         var dbContext = scope.ServiceProvider.GetService<AppDbContext>();
         if (dbContext is not null)
         {
-            await DatabaseInitializer.InitializeDatabaseAsync(scope.ServiceProvider, cancellationToken);
+            await DatabaseInitializer.InitializeDatabaseAsync(scope.ServiceProvider, cancellationToken).ConfigureAwait(false);
         }
 
         var currencyService = scope.ServiceProvider.GetService<ICurrencyService>();

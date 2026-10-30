@@ -38,7 +38,7 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
             var targetFilePath = Path.Combine(backupDirectoryPath, targetFileName);
 
             // Copie non-bloquante autorisant la lecture partagée en cas de mode WAL
-            await CopyDatabaseFileAsync(databaseFilePath, targetFilePath, cancellationToken);
+            await CopyDatabaseFileAsync(databaseFilePath, targetFilePath, cancellationToken).ConfigureAwait(false);
 
             if (retentionOptions is not null)
             {
@@ -112,7 +112,7 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
 
                 var timestamp = DateTimeOffset.UtcNow.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
                 var safetyPath = Path.Combine(backupDirectoryPath, $"{SafetyBackupFilePrefix}{timestamp}_before_restore{BackupExtension}");
-                await CopyDatabaseFileAsync(databaseFilePath, safetyPath, cancellationToken);
+                await CopyDatabaseFileAsync(databaseFilePath, safetyPath, cancellationToken).ConfigureAwait(false);
             }
 
             var targetDirectory = Path.GetDirectoryName(databaseFilePath);
@@ -122,7 +122,7 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
             }
 
             // Écrasement par le fichier de restauration
-            await CopyDatabaseFileAsync(backupFilePath, databaseFilePath, cancellationToken);
+            await CopyDatabaseFileAsync(backupFilePath, databaseFilePath, cancellationToken).ConfigureAwait(false);
 
             // Nettoyage impératif des journaux temporaires SQLite afin de prévenir toute divergence transactionnelle
             PurgeTemporaryWalFiles(databaseFilePath);
@@ -209,9 +209,15 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
     private static async Task CopyDatabaseFileAsync(string source, string destination, CancellationToken cancellationToken)
     {
         const int bufferSize = 65536;
-        await using var sourceStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize, useAsync: true);
-        await using var destinationStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
-        await sourceStream.CopyToAsync(destinationStream, cancellationToken);
+        var sourceStream = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.ReadWrite, bufferSize, useAsync: true);
+        await using (sourceStream.ConfigureAwait(false))
+        {
+            var destinationStream = new FileStream(destination, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize, useAsync: true);
+            await using (destinationStream.ConfigureAwait(false))
+            {
+                await sourceStream.CopyToAsync(destinationStream, cancellationToken).ConfigureAwait(false);
+            }
+        }
     }
 
     private static void PurgeTemporaryWalFiles(string baseDbPath)

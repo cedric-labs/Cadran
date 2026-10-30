@@ -167,16 +167,16 @@ public sealed class EntityTranslationSeeder(ILogger<EntityTranslationSeeder> log
 
         try
         {
-            var existingTranslations = await context.EntityTranslations.ToListAsync(cancellationToken);
+            var existingTranslations = await context.EntityTranslations.ToListAsync(cancellationToken).ConfigureAwait(false);
             var existingKeys = existingTranslations
                 .Select(t => $"{t.EntityType.ToLowerInvariant()}:{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}:{t.Field.ToLowerInvariant()}")
                 .ToHashSet(StringComparer.Ordinal);
 
-            await SeedAccountTypeTranslationsAsync(context, existingKeys, cancellationToken);
-            await SeedStatusTranslationsAsync(context, existingKeys, cancellationToken);
-            await SeedCategoryTranslationsAsync(context, existingKeys, cancellationToken);
+            await SeedAccountTypeTranslationsAsync(context, existingKeys, cancellationToken).ConfigureAwait(false);
+            await SeedStatusTranslationsAsync(context, existingKeys, cancellationToken).ConfigureAwait(false);
+            await SeedCategoryTranslationsAsync(context, existingKeys, cancellationToken).ConfigureAwait(false);
 
-            await context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -186,7 +186,7 @@ public sealed class EntityTranslationSeeder(ILogger<EntityTranslationSeeder> log
 
     private static async Task SeedAccountTypeTranslationsAsync(AppDbContext context, HashSet<string> existingKeys, CancellationToken cancellationToken)
     {
-        var accountTypes = await context.CustomAccountTypes.IgnoreQueryFilters().ToListAsync(cancellationToken);
+        var accountTypes = await context.CustomAccountTypes.IgnoreQueryFilters().ToListAsync(cancellationToken).ConfigureAwait(false);
         foreach (var type in accountTypes)
         {
             if (!string.IsNullOrEmpty(type.Code) && AccountTypeTranslations.TryGetValue(type.Code, out var enName))
@@ -210,7 +210,7 @@ public sealed class EntityTranslationSeeder(ILogger<EntityTranslationSeeder> log
 
     private static async Task SeedStatusTranslationsAsync(AppDbContext context, HashSet<string> existingKeys, CancellationToken cancellationToken)
     {
-        var statuses = await context.TransactionStatuses.IgnoreQueryFilters().ToListAsync(cancellationToken);
+        var statuses = await context.TransactionStatuses.IgnoreQueryFilters().ToListAsync(cancellationToken).ConfigureAwait(false);
         foreach (var status in statuses)
         {
             if (!string.IsNullOrEmpty(status.Code) && StatusTranslations.TryGetValue(status.Code, out var enName))
@@ -234,7 +234,7 @@ public sealed class EntityTranslationSeeder(ILogger<EntityTranslationSeeder> log
 
     private static async Task SeedCategoryTranslationsAsync(AppDbContext context, HashSet<string> existingKeys, CancellationToken cancellationToken)
     {
-        var categories = await context.Categories.IgnoreQueryFilters().ToListAsync(cancellationToken);
+        var categories = await context.Categories.IgnoreQueryFilters().ToListAsync(cancellationToken).ConfigureAwait(false);
         foreach (var category in categories)
         {
             if (string.IsNullOrWhiteSpace(category.Name))

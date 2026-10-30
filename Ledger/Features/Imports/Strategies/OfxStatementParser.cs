@@ -32,7 +32,7 @@ public class OfxStatementParser : IBankStatementParser
         CsvMappingProfile? mappingProfile,
         CancellationToken cancellationToken = default)
     {
-        var statementTransactions = await _underlyingParser.ParseAsync(stream, null, cancellationToken);
+        var statementTransactions = await _underlyingParser.ParseAsync(stream, null, cancellationToken).ConfigureAwait(false);
 
         return statementTransactions.Select(st => new ImportedTransactionDto
         {

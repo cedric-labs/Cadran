@@ -28,20 +28,20 @@ public sealed class TransactionStatusService(
         var userId = currentUserService.UserId;
         if (!string.IsNullOrEmpty(userId))
         {
-            await EnsureDefaultStatusesForUserAsync(userId, cancellationToken);
+            await EnsureDefaultStatusesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
         }
 
-        await EnsureDefaultTranslationsAsync(cancellationToken);
+        await EnsureDefaultTranslationsAsync(cancellationToken).ConfigureAwait(false);
 
         return await dbContext.TransactionStatuses
             .OrderBy(s => s.DisplayOrder)
             .ThenBy(s => s.Name)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<TransactionCustomStatus?> GetDefaultStatusAsync(CancellationToken cancellationToken = default)
     {
-        var statuses = await GetAllStatusesAsync(cancellationToken);
+        var statuses = await GetAllStatusesAsync(cancellationToken).ConfigureAwait(false);
         return statuses.FirstOrDefault(s => s.IsDefault)
             ?? statuses.FirstOrDefault(s => string.Equals(s.Code, "Cleared", StringComparison.Ordinal))
             ?? statuses.FirstOrDefault();
@@ -61,7 +61,7 @@ public sealed class TransactionStatusService(
         {
             var otherDefaults = await dbContext.TransactionStatuses
                 .Where(s => s.IsDefault)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             foreach (var s in otherDefaults)
             {
@@ -70,11 +70,11 @@ public sealed class TransactionStatusService(
         }
 
         var maxOrder = await dbContext.TransactionStatuses
-            .MaxAsync(s => (int?)s.DisplayOrder, cancellationToken) ?? 0;
+            .MaxAsync(s => (int?)s.DisplayOrder, cancellationToken).ConfigureAwait(false) ?? 0;
         status.DisplayOrder = maxOrder + 1;
 
         dbContext.TransactionStatuses.Add(status);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Nouveau statut '{StatusName}' créé pour l'utilisateur {UserId}.", status.Name, userId);
         return status;
@@ -82,7 +82,7 @@ public sealed class TransactionStatusService(
 
     public async Task<TransactionCustomStatus> UpdateAsync(TransactionCustomStatus status, CancellationToken cancellationToken = default)
     {
-        var existing = await dbContext.TransactionStatuses.FirstOrDefaultAsync(s => s.Id == status.Id, cancellationToken);
+        var existing = await dbContext.TransactionStatuses.FirstOrDefaultAsync(s => s.Id == status.Id, cancellationToken).ConfigureAwait(false);
         if (existing == null)
         {
             throw new KeyNotFoundException("Statut introuvable.");
@@ -97,7 +97,7 @@ public sealed class TransactionStatusService(
         {
             var otherDefaults = await dbContext.TransactionStatuses
                 .Where(s => s.Id != existing.Id && s.IsDefault)
-                .ToListAsync(cancellationToken);
+                .ToListAsync(cancellationToken).ConfigureAwait(false);
 
             foreach (var s in otherDefaults)
             {
@@ -111,14 +111,14 @@ public sealed class TransactionStatusService(
             existing.IsDefault = false;
         }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         logger.LogInformation("Statut '{StatusName}' ({StatusId}) mis à jour.", existing.Name, existing.Id);
         return existing;
     }
 
     public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var status = await dbContext.TransactionStatuses.FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+        var status = await dbContext.TransactionStatuses.FirstOrDefaultAsync(s => s.Id == id, cancellationToken).ConfigureAwait(false);
         if (status == null)
         {
             return (false, "Statut introuvable.");
@@ -129,14 +129,14 @@ public sealed class TransactionStatusService(
             return (false, "Les statuts de base (Pointée, Comptabilisée, En attente) ne peuvent pas être supprimés.");
         }
 
-        var usedCount = await dbContext.Transactions.CountAsync(t => t.CustomStatusId == id, cancellationToken);
+        var usedCount = await dbContext.Transactions.CountAsync(t => t.CustomStatusId == id, cancellationToken).ConfigureAwait(false);
         if (usedCount > 0)
         {
             return (false, $"Impossible de supprimer ce statut car il est actuellement utilisé par {usedCount} opération(s). Veuillez réassigner ces opérations à un autre statut au préalable.");
         }
 
         dbContext.TransactionStatuses.Remove(status);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Statut '{StatusName}' ({StatusId}) supprimé.", status.Name, id);
         return (true, null);
@@ -153,7 +153,7 @@ public sealed class TransactionStatusService(
 
         var hasExisting = await dbContext.TransactionStatuses
             .IgnoreQueryFilters()
-            .AnyAsync(s => s.UserId == userId, cancellationToken);
+            .AnyAsync(s => s.UserId == userId, cancellationToken).ConfigureAwait(false);
         if (hasExisting) return;
 
         var reconciled = new TransactionCustomStatus
@@ -196,12 +196,12 @@ public sealed class TransactionStatusService(
         };
 
         dbContext.TransactionStatuses.AddRange(reconciled, cleared, pending);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Mettre à jour les transactions existantes qui n'ont pas encore de CustomStatusId
         var txWithoutStatus = await dbContext.Transactions
             .Where(t => t.CustomStatusId == null)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (txWithoutStatus.Count > 0)
         {
@@ -214,25 +214,25 @@ public sealed class TransactionStatusService(
                     _ => cleared.Id
                 };
             }
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         logger.LogInformation("Statuts par défaut créés et associés pour l'utilisateur {UserId}.", userId);
-        await EnsureDefaultTranslationsAsync(cancellationToken);
+        await EnsureDefaultTranslationsAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task EnsureDefaultTranslationsAsync(CancellationToken cancellationToken)
     {
         var statuses = await dbContext.TransactionStatuses
             .Where(s => s.Code != null && s.Code != "")
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (statuses.Count == 0) return;
 
         var statusIds = statuses.Select(s => s.Id).ToHashSet();
         var existingTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "TransactionCustomStatus" && statusIds.Contains(t.EntityId) && t.Field == "Name")
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var existingKeySet = existingTranslations
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
@@ -288,7 +288,7 @@ public sealed class TransactionStatusService(
             dbContext.EntityTranslations.AddRange(toAdd);
             try
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 logger.LogInformation("Ajout de {Count} traductions de statuts par défaut (EN, ES, DE).", toAdd.Count);
             }
             catch (DbUpdateException ex)
@@ -302,7 +302,7 @@ public sealed class TransactionStatusService(
     {
         var allStatuses = await dbContext.TransactionStatuses
             .IgnoreQueryFilters()
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (allStatuses.Count == 0)
         {
@@ -314,7 +314,7 @@ public sealed class TransactionStatusService(
             .Where(t => t.CustomStatusId != null)
             .Select(t => t.CustomStatusId)
             .Distinct()
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var usedStatusIds = usedStatusIdsList
             .Where(id => id.HasValue)
@@ -364,7 +364,7 @@ public sealed class TransactionStatusService(
         var deletedIds = toDelete.Select(s => s.Id).ToHashSet();
         var orphanTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "TransactionCustomStatus" && deletedIds.Contains(t.EntityId))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (orphanTranslations.Count > 0)
         {
@@ -375,7 +375,7 @@ public sealed class TransactionStatusService(
 
         try
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateConcurrencyException ex)
         {

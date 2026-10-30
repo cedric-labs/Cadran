@@ -42,15 +42,15 @@ public sealed class AccountTypeService(
         var userId = currentUserService.UserId;
         if (!string.IsNullOrEmpty(userId))
         {
-            await EnsureDefaultAccountTypesForUserAsync(userId, cancellationToken);
+            await EnsureDefaultAccountTypesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
         }
 
-        await EnsureDefaultTranslationsAsync(cancellationToken);
+        await EnsureDefaultTranslationsAsync(cancellationToken).ConfigureAwait(false);
 
         return await dbContext.CustomAccountTypes
             .OrderBy(t => t.DisplayOrder)
             .ThenBy(t => t.Name)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
     public Task<CustomAccountType?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
@@ -64,11 +64,11 @@ public sealed class AccountTypeService(
         accountType.UserId = userId;
 
         var maxOrder = await dbContext.CustomAccountTypes
-            .MaxAsync(t => (int?)t.DisplayOrder, cancellationToken) ?? 0;
+            .MaxAsync(t => (int?)t.DisplayOrder, cancellationToken).ConfigureAwait(false) ?? 0;
         accountType.DisplayOrder = maxOrder + 1;
 
         dbContext.CustomAccountTypes.Add(accountType);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         return accountType;
     }
@@ -77,7 +77,7 @@ public sealed class AccountTypeService(
     {
         var existing = await dbContext.CustomAccountTypes
             .FirstOrDefaultAsync(t => t.Id == accountType.Id, cancellationToken)
-            ?? throw new KeyNotFoundException($"Type de compte {accountType.Id} non trouvé.");
+.ConfigureAwait(false) ?? throw new KeyNotFoundException($"Type de compte {accountType.Id} non trouvé.");
 
         existing.Name = accountType.Name;
         existing.Code = accountType.Code;
@@ -87,13 +87,13 @@ public sealed class AccountTypeService(
         existing.IconName = accountType.IconName;
         existing.DisplayOrder = accountType.DisplayOrder;
 
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return existing;
     }
 
     public async Task<(bool Success, string? ErrorMessage)> DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var item = await dbContext.CustomAccountTypes.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+        var item = await dbContext.CustomAccountTypes.FirstOrDefaultAsync(t => t.Id == id, cancellationToken).ConfigureAwait(false);
         if (item == null)
         {
             return (false, "Type de compte introuvable.");
@@ -104,14 +104,14 @@ public sealed class AccountTypeService(
             return (false, "Les types de comptes natifs du système ne peuvent pas être supprimés.");
         }
 
-        var usedInAccounts = await dbContext.BankAccounts.AnyAsync(a => a.CustomAccountTypeId == id, cancellationToken);
+        var usedInAccounts = await dbContext.BankAccounts.AnyAsync(a => a.CustomAccountTypeId == id, cancellationToken).ConfigureAwait(false);
         if (usedInAccounts)
         {
             return (false, "Ce type de compte est actuellement associé à un ou plusieurs comptes bancaires. Modifiez d'abord ces comptes avant de supprimer ce type.");
         }
 
         dbContext.CustomAccountTypes.Remove(item);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         return (true, null);
     }
 
@@ -121,7 +121,7 @@ public sealed class AccountTypeService(
 
         var hasExisting = await dbContext.CustomAccountTypes
             .IgnoreQueryFilters()
-            .AnyAsync(t => t.UserId == userId, cancellationToken);
+            .AnyAsync(t => t.UserId == userId, cancellationToken).ConfigureAwait(false);
         if (hasExisting) return;
 
         var defaults = new List<CustomAccountType>
@@ -153,12 +153,12 @@ public sealed class AccountTypeService(
         };
 
         dbContext.CustomAccountTypes.AddRange(defaults);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
         // Mettre à jour les comptes existants qui n'ont pas encore de CustomAccountTypeId
         var accountsWithoutType = await dbContext.BankAccounts
             .Where(a => a.CustomAccountTypeId == null)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (accountsWithoutType.Count > 0)
         {
@@ -175,25 +175,25 @@ public sealed class AccountTypeService(
                     acc.CustomAccountTypeId = chkId;
                 }
             }
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
 
         logger.LogInformation("Types de comptes français par défaut initialisés en base pour l'utilisateur {UserId}.", userId);
-        await EnsureDefaultTranslationsAsync(cancellationToken);
+        await EnsureDefaultTranslationsAsync(cancellationToken).ConfigureAwait(false);
     }
 
     private async Task EnsureDefaultTranslationsAsync(CancellationToken cancellationToken)
     {
         var types = await dbContext.CustomAccountTypes
             .Where(t => t.Code != null && t.Code != "")
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (types.Count == 0) return;
 
         var typeIds = types.Select(t => t.Id).ToHashSet();
         var existingTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "CustomAccountType" && typeIds.Contains(t.EntityId) && t.Field == "Name")
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var existingKeySet = existingTranslations
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
@@ -249,7 +249,7 @@ public sealed class AccountTypeService(
             dbContext.EntityTranslations.AddRange(toAdd);
             try
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
                 logger.LogInformation("Ajout de {Count} traductions de types de comptes par défaut (EN, ES, DE).", toAdd.Count);
             }
             catch (DbUpdateException ex)
@@ -264,7 +264,7 @@ public sealed class AccountTypeService(
     {
         var allTypes = await dbContext.CustomAccountTypes
             .IgnoreQueryFilters()
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (allTypes.Count == 0)
         {
@@ -277,7 +277,7 @@ public sealed class AccountTypeService(
             .Where(a => a.CustomAccountTypeId != null)
             .Select(a => a.CustomAccountTypeId)
             .Distinct()
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         var usedTypeIds = usedTypeIdsList
             .Where(id => id.HasValue)
@@ -288,7 +288,7 @@ public sealed class AccountTypeService(
         var accountsWithoutType = await dbContext.BankAccounts
             .IgnoreQueryFilters()
             .Where(a => a.CustomAccountTypeId == null)
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (accountsWithoutType.Count > 0)
         {
@@ -307,7 +307,7 @@ public sealed class AccountTypeService(
 
             try
             {
-                await dbContext.SaveChangesAsync(cancellationToken);
+                await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             }
             catch (DbUpdateConcurrencyException ex)
             {
@@ -365,7 +365,7 @@ public sealed class AccountTypeService(
         var deletedIds = toDelete.Select(t => t.Id).ToHashSet();
         var orphanTranslations = await dbContext.EntityTranslations
             .Where(t => t.EntityType == "CustomAccountType" && deletedIds.Contains(t.EntityId))
-            .ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 
         if (orphanTranslations.Count > 0)
         {
@@ -376,7 +376,7 @@ public sealed class AccountTypeService(
 
         try
         {
-            await dbContext.SaveChangesAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
         catch (DbUpdateConcurrencyException ex)
         {

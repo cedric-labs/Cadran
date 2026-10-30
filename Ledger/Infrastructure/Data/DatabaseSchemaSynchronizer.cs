@@ -26,31 +26,31 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
         // Application automatique des migrations EF Core (schéma complet) si nécessaire
         try
         {
-            var pendingMigrations = (await context.Database.GetPendingMigrationsAsync(cancellationToken)).ToList();
+            var pendingMigrations = (await context.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToList();
             if (pendingMigrations.Count > 0)
             {
-                await context.Database.MigrateAsync(cancellationToken);
+                await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (SqliteException ex) when (ex.SqliteErrorCode == 1)
         {
             logger.LogWarning(ex, "Avertissement lors de la migration automatique EF Core (objet SQLite déjà existant). Réconciliation automatique en cours...");
-            await ReconcilePendingMigrationsAsync(context, cancellationToken);
+            await ReconcilePendingMigrationsAsync(context, cancellationToken).ConfigureAwait(false);
         }
 
         // Sécurité colonnes pour SQLite (vérification préalable via PRAGMA table_info pour éviter les logs d'erreurs redondants)
-        await EnsureColumnExistsAsync(context, "Transactions", "BudgetDate", "TEXT", cancellationToken);
-        await EnsureColumnExistsAsync(context, "CategorizationRules", "ShiftToNextMonth", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
-        await EnsureColumnExistsAsync(context, "Transactions", "CustomStatusId", "TEXT", cancellationToken);
-        await EnsureColumnExistsAsync(context, "Categories", "IsSalary", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
-        await EnsureColumnExistsAsync(context, "BankAccounts", "CustomAccountTypeId", "TEXT", cancellationToken);
-        await EnsureColumnExistsAsync(context, "BankAccounts", "OfxAccountId", "TEXT", cancellationToken);
-        await EnsureColumnExistsAsync(context, "Transactions", "MerchantId", "TEXT", cancellationToken);
-        await EnsureColumnExistsAsync(context, "CategorizationRules", "TargetMerchantId", "TEXT", cancellationToken);
-        await EnsureColumnExistsAsync(context, "Transactions", "IsSplit", "INTEGER NOT NULL DEFAULT 0", cancellationToken);
+        await EnsureColumnExistsAsync(context, "Transactions", "BudgetDate", "TEXT", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "CategorizationRules", "ShiftToNextMonth", "INTEGER NOT NULL DEFAULT 0", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "Transactions", "CustomStatusId", "TEXT", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "Categories", "IsSalary", "INTEGER NOT NULL DEFAULT 0", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "BankAccounts", "CustomAccountTypeId", "TEXT", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "BankAccounts", "OfxAccountId", "TEXT", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "Transactions", "MerchantId", "TEXT", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "CategorizationRules", "TargetMerchantId", "TEXT", cancellationToken).ConfigureAwait(false);
+        await EnsureColumnExistsAsync(context, "Transactions", "IsSplit", "INTEGER NOT NULL DEFAULT 0", cancellationToken).ConfigureAwait(false);
 
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_Transactions_MerchantId ON Transactions (MerchantId);", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_CategorizationRules_TargetMerchantId ON CategorizationRules (TargetMerchantId);", cancellationToken);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_Transactions_MerchantId ON Transactions (MerchantId);", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_CategorizationRules_TargetMerchantId ON CategorizationRules (TargetMerchantId);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS Merchants (
             Id TEXT PRIMARY KEY,
@@ -62,8 +62,8 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             ColorHex TEXT,
             CreatedAtUtc TEXT NOT NULL,
             UpdatedAtUtc TEXT
-        );", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_Merchants_UserId_NormalizedName ON Merchants (UserId, NormalizedName);", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_Merchants_UserId_NormalizedName ON Merchants (UserId, NormalizedName);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS TransactionSplits (
             Id TEXT PRIMARY KEY,
@@ -76,9 +76,9 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             CreatedAtUtc TEXT NOT NULL,
             UpdatedAtUtc TEXT,
             CONSTRAINT FK_TransactionSplits_Transactions_TransactionId FOREIGN KEY (TransactionId) REFERENCES Transactions (Id) ON DELETE CASCADE
-        );", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_TransactionSplits_TransactionId ON TransactionSplits (TransactionId);", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_TransactionSplits_UserId_TransactionId ON TransactionSplits (UserId, TransactionId);", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_TransactionSplits_TransactionId ON TransactionSplits (TransactionId);", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_TransactionSplits_UserId_TransactionId ON TransactionSplits (UserId, TransactionId);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS CustomAccountTypes (
             Id TEXT PRIMARY KEY,
@@ -91,7 +91,7 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             IconName TEXT NOT NULL,
             IsSystem INTEGER NOT NULL,
             DisplayOrder INTEGER NOT NULL
-        );", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS TransactionStatuses (
             Id TEXT PRIMARY KEY,
@@ -106,8 +106,8 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             DisplayOrder INTEGER NOT NULL DEFAULT 1,
             CreatedAtUtc TEXT NOT NULL,
             UpdatedAtUtc TEXT
-        );", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_TransactionStatuses_UserId_Name ON TransactionStatuses (UserId, Name);", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_TransactionStatuses_UserId_Name ON TransactionStatuses (UserId, Name);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS UiFonts (
             Id TEXT PRIMARY KEY,
@@ -117,7 +117,7 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             IsActive INTEGER NOT NULL,
             IsSystem INTEGER NOT NULL,
             DisplayOrder INTEGER NOT NULL
-        );", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS EntityTranslations (
             Id TEXT PRIMARY KEY,
@@ -130,7 +130,7 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             UpdatedAtUtc TEXT
         );
         CREATE UNIQUE INDEX IF NOT EXISTS IX_EntityTranslations_Lookup 
-        ON EntityTranslations (EntityType, EntityId, LanguageCode, Field);", cancellationToken);
+        ON EntityTranslations (EntityType, EntityId, LanguageCode, Field);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS RecurringExpenses (
             Id TEXT PRIMARY KEY,
@@ -150,8 +150,8 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             Notes TEXT,
             CreatedAtUtc TEXT NOT NULL,
             UpdatedAtUtc TEXT
-        );", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_RecurringExpenses_UserId_Name ON RecurringExpenses (UserId, Name);", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_RecurringExpenses_UserId_Name ON RecurringExpenses (UserId, Name);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS ReportDashboards (
             Id TEXT PRIMARY KEY,
@@ -162,8 +162,8 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             DisplayOrder INTEGER NOT NULL DEFAULT 1,
             CreatedAtUtc TEXT NOT NULL,
             UpdatedAtUtc TEXT
-        );", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_ReportDashboards_UserId_Order ON ReportDashboards (UserId, DisplayOrder);", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_ReportDashboards_UserId_Order ON ReportDashboards (UserId, DisplayOrder);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS ReportWidgets (
             Id TEXT PRIMARY KEY,
@@ -175,8 +175,8 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             ConfigJson TEXT NOT NULL DEFAULT '{}',
             CreatedAtUtc TEXT NOT NULL,
             UpdatedAtUtc TEXT
-        );", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_ReportWidgets_DashboardId ON ReportWidgets (DashboardId);", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_ReportWidgets_DashboardId ON ReportWidgets (DashboardId);", cancellationToken).ConfigureAwait(false);
 
         await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS SavedPivotReports (
             Id TEXT PRIMARY KEY,
@@ -187,11 +187,11 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             IsDefault INTEGER NOT NULL DEFAULT 0,
             CreatedAtUtc TEXT NOT NULL,
             UpdatedAtUtc TEXT
-        );", cancellationToken);
-        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_SavedPivotReports_UserId ON SavedPivotReports (UserId);", cancellationToken);
+        );", cancellationToken).ConfigureAwait(false);
+        await EnsureTableCreatedAsync(context, "CREATE INDEX IF NOT EXISTS IX_SavedPivotReports_UserId ON SavedPivotReports (UserId);", cancellationToken).ConfigureAwait(false);
 
         // Configuration du mode WAL et pragmas SQLite
-        await ApplyDatabasePragmasAsync(context, cancellationToken);
+        await ApplyDatabasePragmasAsync(context, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -200,9 +200,9 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
     public static async Task ApplyDatabasePragmasAsync(AppDbContext context, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(context);
-        await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = WAL;", cancellationToken);
-        await context.Database.ExecuteSqlRawAsync("PRAGMA synchronous = NORMAL;", cancellationToken);
-        await context.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout = 5000;", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode = WAL;", cancellationToken).ConfigureAwait(false);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA synchronous = NORMAL;", cancellationToken).ConfigureAwait(false);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout = 5000;", cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -212,16 +212,16 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
     {
         ArgumentNullException.ThrowIfNull(context);
 
-        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE Categories SET Id = UPPER(Id), ParentCategoryId = UPPER(ParentCategoryId) WHERE Id GLOB '*[a-z]*' OR ParentCategoryId GLOB '*[a-z]*';", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE Transactions SET CategoryId = UPPER(CategoryId) WHERE CategoryId GLOB '*[a-z]*';", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE CategorizationRules SET TargetCategoryId = UPPER(TargetCategoryId) WHERE TargetCategoryId GLOB '*[a-z]*';", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE EntityTranslations SET EntityId = UPPER(EntityId) WHERE EntityId GLOB '*[a-z]*';", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE RecurringExpenses SET Id = UPPER(Id) WHERE Id GLOB '*[a-z]*';", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE ReportDashboards SET Id = UPPER(Id) WHERE Id GLOB '*[a-z]*';", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE ReportWidgets SET Id = UPPER(Id), DashboardId = UPPER(DashboardId) WHERE Id GLOB '*[a-z]*' OR DashboardId GLOB '*[a-z]*';", cancellationToken);
-        await SafeExecuteSqlAsync(context, "UPDATE SavedPivotReports SET Id = UPPER(Id) WHERE Id GLOB '*[a-z]*';", cancellationToken);
-        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;", cancellationToken);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE Categories SET Id = UPPER(Id), ParentCategoryId = UPPER(ParentCategoryId) WHERE Id GLOB '*[a-z]*' OR ParentCategoryId GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE Transactions SET CategoryId = UPPER(CategoryId) WHERE CategoryId GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE CategorizationRules SET TargetCategoryId = UPPER(TargetCategoryId) WHERE TargetCategoryId GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE EntityTranslations SET EntityId = UPPER(EntityId) WHERE EntityId GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE RecurringExpenses SET Id = UPPER(Id) WHERE Id GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE ReportDashboards SET Id = UPPER(Id) WHERE Id GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE ReportWidgets SET Id = UPPER(Id), DashboardId = UPPER(DashboardId) WHERE Id GLOB '*[a-z]*' OR DashboardId GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await SafeExecuteSqlAsync(context, "UPDATE SavedPivotReports SET Id = UPPER(Id) WHERE Id GLOB '*[a-z]*';", cancellationToken).ConfigureAwait(false);
+        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;", cancellationToken).ConfigureAwait(false);
     }
 
     private static Task EnsureTableCreatedAsync(AppDbContext context, string sql, CancellationToken cancellationToken)
@@ -237,18 +237,18 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             bool wasOpen = connection.State == System.Data.ConnectionState.Open;
             if (!wasOpen)
             {
-                await connection.OpenAsync(cancellationToken);
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             }
 
             try
             {
-                await ExecuteNonQueryCommandAsync(connection, sql, cancellationToken);
+                await ExecuteNonQueryCommandAsync(connection, sql, cancellationToken).ConfigureAwait(false);
             }
             finally
             {
                 if (!wasOpen)
                 {
-                    await connection.CloseAsync();
+                    await connection.CloseAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -273,49 +273,53 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             bool wasOpen = connection.State == System.Data.ConnectionState.Open;
             if (!wasOpen)
             {
-                await connection.OpenAsync(cancellationToken);
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             }
 
             try
             {
-                await using var checkCmd = connection.CreateCommand();
-                checkCmd.CommandText = @"
+                var checkCmd = connection.CreateCommand();
+                await using (checkCmd.ConfigureAwait(false))
+                {
+                    checkCmd.CommandText = @"
                     SELECT
                         (SELECT COUNT(1) FROM sqlite_master WHERE type = 'table' AND name = @tableName),
                         (SELECT COUNT(1) FROM pragma_table_info(@tableName) WHERE LOWER(name) = LOWER(@columnName));";
 
-                var tableParam = checkCmd.CreateParameter();
-                tableParam.ParameterName = "@tableName";
-                tableParam.Value = tableName;
-                checkCmd.Parameters.Add(tableParam);
+                    var tableParam = checkCmd.CreateParameter();
+                    tableParam.ParameterName = "@tableName";
+                    tableParam.Value = tableName;
+                    checkCmd.Parameters.Add(tableParam);
 
-                var colParam = checkCmd.CreateParameter();
-                colParam.ParameterName = "@columnName";
-                colParam.Value = columnName;
-                checkCmd.Parameters.Add(colParam);
+                    var colParam = checkCmd.CreateParameter();
+                    colParam.ParameterName = "@columnName";
+                    colParam.Value = columnName;
+                    checkCmd.Parameters.Add(colParam);
 
-                bool tableExists = false;
-                bool columnExists = false;
-                await using (var reader = await checkCmd.ExecuteReaderAsync(cancellationToken))
-                {
-                    if (await reader.ReadAsync(cancellationToken))
+                    bool tableExists = false;
+                    bool columnExists = false;
+                    var reader = await checkCmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                    await using (reader.ConfigureAwait(false))
                     {
-                        tableExists = reader.GetInt32(0) > 0;
-                        columnExists = reader.GetInt32(1) > 0;
+                        if (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                        {
+                            tableExists = reader.GetInt32(0) > 0;
+                            columnExists = reader.GetInt32(1) > 0;
+                        }
                     }
-                }
 
-                if (tableExists && !columnExists)
-                {
-                    var alterStatement = string.Concat("ALTER TABLE \"", tableName, "\" ADD COLUMN \"", columnName, "\" ", columnDefinition, ";");
-                    await ExecuteNonQueryCommandAsync(connection, alterStatement, cancellationToken);
+                    if (tableExists && !columnExists)
+                    {
+                        var alterStatement = string.Concat("ALTER TABLE \"", tableName, "\" ADD COLUMN \"", columnName, "\" ", columnDefinition, ";");
+                        await ExecuteNonQueryCommandAsync(connection, alterStatement, cancellationToken).ConfigureAwait(false);
+                    }
                 }
             }
             finally
             {
                 if (!wasOpen)
                 {
-                    await connection.CloseAsync();
+                    await connection.CloseAsync().ConfigureAwait(false);
                 }
             }
         }
@@ -327,9 +331,12 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
 
     private static async Task ExecuteNonQueryCommandAsync(DbConnection connection, string ddlStatement, CancellationToken cancellationToken)
     {
-        await using var cmd = connection.CreateCommand();
-        cmd.CommandText = ddlStatement;
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
+        var cmd = connection.CreateCommand();
+        await using (cmd.ConfigureAwait(false))
+        {
+            cmd.CommandText = ddlStatement;
+            await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task ReconcilePendingMigrationsAsync(AppDbContext context, CancellationToken cancellationToken)
@@ -339,31 +346,37 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
             await EnsureTableCreatedAsync(context, @"CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
                 ""MigrationId"" TEXT NOT NULL CONSTRAINT ""PK___EFMigrationsHistory"" PRIMARY KEY,
                 ""ProductVersion"" TEXT NOT NULL
-            );", cancellationToken);
+            );", cancellationToken).ConfigureAwait(false);
 
             var appliedMigrations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var connection = context.Database.GetDbConnection();
             bool wasOpen = connection.State == System.Data.ConnectionState.Open;
             if (!wasOpen)
             {
-                await connection.OpenAsync(cancellationToken);
+                await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
             }
 
             try
             {
-                await using var cmd = connection.CreateCommand();
-                cmd.CommandText = "SELECT \"MigrationId\" FROM \"__EFMigrationsHistory\";";
-                await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
-                while (await reader.ReadAsync(cancellationToken))
+                var cmd = connection.CreateCommand();
+                await using (cmd.ConfigureAwait(false))
                 {
-                    appliedMigrations.Add(reader.GetString(0));
+                    cmd.CommandText = "SELECT \"MigrationId\" FROM \"__EFMigrationsHistory\";";
+                    var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                    await using (reader.ConfigureAwait(false))
+                    {
+                        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                        {
+                            appliedMigrations.Add(reader.GetString(0));
+                        }
+                    }
                 }
             }
             finally
             {
                 if (!wasOpen)
                 {
-                    await connection.CloseAsync();
+                    await connection.CloseAsync().ConfigureAwait(false);
                 }
             }
 
@@ -374,7 +387,7 @@ public sealed class DatabaseSchemaSynchronizer(ILogger<DatabaseSchemaSynchronize
                 await context.Database.ExecuteSqlRawAsync(
                     "INSERT OR IGNORE INTO \"__EFMigrationsHistory\" (\"MigrationId\", \"ProductVersion\") VALUES ({0}, {1});",
                     new object[] { mig, "9.0.2" },
-                    cancellationToken);
+                    cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception rex)

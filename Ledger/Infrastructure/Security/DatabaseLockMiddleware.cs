@@ -16,7 +16,7 @@ public sealed class DatabaseLockMiddleware(RequestDelegate next)
         // Autoriser les ressources statiques et utilitaires
         if (IsStaticAsset(path))
         {
-            await next(context);
+            await next(context).ConfigureAwait(false);
             return;
         }
 
@@ -42,7 +42,7 @@ public sealed class DatabaseLockMiddleware(RequestDelegate next)
             return;
         }
 
-        await next(context);
+        await next(context).ConfigureAwait(false);
     }
 
     private static bool IsStaticAsset(string path)
