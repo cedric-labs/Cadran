@@ -54,6 +54,8 @@ Write-Host "Topics configured." -ForegroundColor Green
 $checksumsContent = Get-Content (Join-Path $DistDir "SHA256SUMS.txt") -Raw
 $cleanVersion = ($Tag -replace '^v', '')
 
+# Dans une here-string à guillemets doubles, le backtick est le caractère d'échappement : la clôture Markdown passe par une variable.
+$fence = '```'
 $releaseMarkdown = @"
 # Cadran $Tag - Privacy-First Personal Finance & Wealth Management
 
@@ -80,15 +82,14 @@ Cadran is a modern, local-first, privacy-first personal finance, budget tracking
 | Platform / Architecture | Artifact | Description |
 |---|---|---|
 | **Windows x64** | `Cadran-$cleanVersion-win-x64.zip` | Complete Windows deployment archive including Tray Supervisor (`Cadran.Launcher.exe`) and server engine. |
-| **Windows x64 (Direct)** | `Cadran-$cleanVersion-win-x64.exe` | Standalone Windows Tray Supervisor executable. |
 | **Linux x64** | `Cadran-$cleanVersion-linux-x64.tar.gz` | Complete Linux deployment archive with configuration and data directories. |
 | **Linux x64 (Direct)** | `Cadran-$cleanVersion-linux-x64` | Standalone Linux server binary. |
 | **Checksums** | `SHA256SUMS.txt` | SHA256 checksums for cryptographic verification. |
 
 ### SHA256 Integrity Checksums
-```text
+$($fence)text
 $checksumsContent
-```
+$fence
 
 For detailed instructions, consult the **[User Guide](https://github.com/curvecoder/Cadran/blob/main/docs/user-guide.md)** and **[Architecture Specification](https://github.com/curvecoder/Cadran/blob/main/docs/architecture.md)**.
 "@
