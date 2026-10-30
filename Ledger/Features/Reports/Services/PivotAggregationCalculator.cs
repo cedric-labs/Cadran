@@ -15,73 +15,12 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
 {
     public List<PivotColumnHeaderDto> BuildColumnHeaders(DateTime start, DateTime end, PivotColumnDimension colDimension)
     {
-        var cols = new List<PivotColumnHeaderDto>();
-        var culture = CultureInfo.CurrentUICulture;
-
-        if (colDimension == PivotColumnDimension.Month)
+        return colDimension switch
         {
-            var cur = new DateTime(start.Year, start.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            var endMonth = new DateTime(end.Year, end.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-            int order = 1;
-
-            while (cur <= endMonth)
-            {
-                var key = cur.ToString("yyyy-MM", CultureInfo.InvariantCulture);
-                var monthName = cur.ToString("MMM yyyy", culture);
-                monthName = char.ToUpper(monthName[0], culture) + monthName[1..];
-
-                cols.Add(new PivotColumnHeaderDto
-                {
-                    Key = key,
-                    Label = monthName,
-                    SortOrder = order++
-                });
-
-                cur = cur.AddMonths(1);
-            }
-        }
-        else if (colDimension == PivotColumnDimension.Quarter)
-        {
-            var curYear = start.Year;
-            var endYear = end.Year;
-            int order = 1;
-
-            for (int y = curYear; y <= endYear; y++)
-            {
-                for (int q = 1; q <= 4; q++)
-                {
-                    int qStartMonth = (q - 1) * 3 + 1;
-                    var qStart = new DateTime(y, qStartMonth, 1, 0, 0, 0, DateTimeKind.Utc);
-                    var qEnd = qStart.AddMonths(3).AddDays(-1);
-
-                    if (qEnd >= start && qStart <= end)
-                    {
-                        var key = $"{y}-Q{q}";
-                        cols.Add(new PivotColumnHeaderDto
-                        {
-                            Key = key,
-                            Label = $"T{q} {y}",
-                            SortOrder = order++
-                        });
-                    }
-                }
-            }
-        }
-        else // Year
-        {
-            int order = 1;
-            for (int y = start.Year; y <= end.Year; y++)
-            {
-                cols.Add(new PivotColumnHeaderDto
-                {
-                    Key = y.ToString(CultureInfo.InvariantCulture),
-                    Label = y.ToString(CultureInfo.InvariantCulture),
-                    SortOrder = order++
-                });
-            }
-        }
-
-        return cols;
+            PivotColumnDimension.Month => PivotColumnHeaderFactory.Months(start, end),
+            PivotColumnDimension.Quarter => PivotColumnHeaderFactory.Quarters(start, end),
+            _ => PivotColumnHeaderFactory.Years(start, end)
+        };
     }
 
     public string GetColumnKeyForDate(DateTime date, PivotColumnDimension dim)
@@ -258,14 +197,12 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
         }
 
         row.MonthlyAverage = Math.Round(row.RowTotal / colsCount, 2);
-        ApplyMetricTransformation(row, metricType);
+        PivotMetricTransformer.Apply(row, metricType);
     }
 
     private static string ResolveMerchantName(PivotTransactionItem transaction)
     {
-        var merchantName = !string.IsNullOrWhiteSpace(transaction.Merchant?.Name)
-            ? transaction.Merchant.Name
-            : CleanMerchant(transaction.Label, transaction.RawLabel);
+        var merchantName = PivotMerchantNamer.NameOf(transaction);
         return string.IsNullOrWhiteSpace(merchantName) ? "Autre / Non identifié" : merchantName;
     }
 
@@ -275,83 +212,26 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
         IReadOnlyList<BankAccount> allAccounts,
         PivotQueryDto query)
     {
-        var rows = new Dictionary<Guid, PivotRowDto>();
-
-        foreach (var acc in allAccounts)
-        {
-            rows[acc.Id] = new PivotRowDto
-            {
-                RowKey = acc.Id.ToString(),
-                Label = acc.Name,
-                SubLabel = acc.Bank?.Name,
-                IconName = acc.CustomAccountType?.IconName ?? "bi-wallet2",
-                ColorHex = acc.CustomAccountType?.ColorHex ?? "#2563eb",
-                CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
-                CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
-                CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
-                CellIsCredit = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal)
-            };
-        }
+        var rows = allAccounts.ToDictionary(
+            acc => acc.Id,
+            acc => PivotFlatRowAccumulator.CreateRow(
+                columns,
+                acc.Id.ToString(),
+                acc.Name,
+                acc.CustomAccountType?.IconName ?? "bi-wallet2",
+                acc.CustomAccountType?.ColorHex ?? "#2563eb",
+                acc.Bank?.Name));
 
         foreach (var t in transactions)
         {
             var colKey = GetColumnKeyForDate(t.BudgetDate ?? t.Date, query.ColumnDimension);
-            if (!columns.Any(c => string.Equals(c.Key, colKey, StringComparison.Ordinal)))
+            if (columns.Any(c => string.Equals(c.Key, colKey, StringComparison.Ordinal)) && rows.TryGetValue(t.BankAccountId, out var row))
             {
-                continue;
-            }
-
-            if (rows.TryGetValue(t.BankAccountId, out var row))
-            {
-                decimal delta;
-                if (query.FlowFilter == PivotFlowFilter.CreditsOnly || query.FlowFilter == PivotFlowFilter.DebitsOnly)
-                {
-                    delta = t.Amount;
-                }
-                else
-                {
-                    delta = t.Type == TransactionType.Credit ? t.Amount : -t.Amount;
-                }
-
-                row.CellValues[colKey] += delta;
-                row.CellCounts[colKey] += 1;
+                PivotFlatRowAccumulator.Add(row, colKey, t, query.FlowFilter);
             }
         }
 
-        int colsCount = Math.Max(1, columns.Count);
-        var activeRows = new List<PivotRowDto>();
-        var colKeys = columns.Select(c => c.Key).ToList();
-
-        foreach (var row in rows.Values)
-        {
-            row.RowTotal = row.CellValues.Values.Sum();
-            if (row.RowTotal == 0 && row.CellCounts.Values.Sum() == 0)
-            {
-                continue;
-            }
-
-            foreach (var colKey in colKeys)
-            {
-                if (query.FlowFilter == PivotFlowFilter.CreditsOnly)
-                {
-                    row.CellIsCredit[colKey] = true;
-                }
-                else if (query.FlowFilter == PivotFlowFilter.DebitsOnly)
-                {
-                    row.CellIsCredit[colKey] = false;
-                }
-                else
-                {
-                    row.CellIsCredit[colKey] = row.CellValues[colKey] >= 0;
-                }
-            }
-
-            row.MonthlyAverage = Math.Round(row.RowTotal / colsCount, 2);
-            ApplyMetricTransformation(row, query.MetricType);
-            activeRows.Add(row);
-        }
-
-        return activeRows.OrderByDescending(r => r.RowTotal).ToList();
+        return PivotFlatRowAccumulator.ActiveRowsByTotal(rows.Values, columns, query);
     }
 
     private List<PivotRowDto> AggregateByMerchant(
@@ -370,101 +250,15 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
             }
 
             var merchantName = ResolveMerchantName(t);
-
             if (!rows.TryGetValue(merchantName, out var row))
             {
-                row = new PivotRowDto
-                {
-                    RowKey = merchantName,
-                    Label = merchantName,
-                    IconName = "bi-shop",
-                    ColorHex = "#64748b",
-                    CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
-                    CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
-                    CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
-                    CellIsCredit = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal)
-                };
+                row = PivotFlatRowAccumulator.CreateRow(columns, merchantName, merchantName, "bi-shop", "#64748b");
                 rows[merchantName] = row;
             }
 
-            decimal delta;
-            if (query.FlowFilter == PivotFlowFilter.CreditsOnly || query.FlowFilter == PivotFlowFilter.DebitsOnly)
-            {
-                delta = t.Amount;
-            }
-            else
-            {
-                delta = t.Type == TransactionType.Credit ? t.Amount : -t.Amount;
-            }
-
-            row.CellValues[colKey] += delta;
-            row.CellCounts[colKey] += 1;
+            PivotFlatRowAccumulator.Add(row, colKey, t, query.FlowFilter);
         }
 
-        int colsCount = Math.Max(1, columns.Count);
-        var activeRows = new List<PivotRowDto>();
-        var colKeys = columns.Select(c => c.Key).ToList();
-
-        foreach (var row in rows.Values)
-        {
-            row.RowTotal = row.CellValues.Values.Sum();
-            if (row.RowTotal == 0 && row.CellCounts.Values.Sum() == 0)
-            {
-                continue;
-            }
-
-            foreach (var colKey in colKeys)
-            {
-                if (query.FlowFilter == PivotFlowFilter.CreditsOnly)
-                {
-                    row.CellIsCredit[colKey] = true;
-                }
-                else if (query.FlowFilter == PivotFlowFilter.DebitsOnly)
-                {
-                    row.CellIsCredit[colKey] = false;
-                }
-                else
-                {
-                    row.CellIsCredit[colKey] = row.CellValues[colKey] >= 0;
-                }
-            }
-
-            row.MonthlyAverage = Math.Round(row.RowTotal / colsCount, 2);
-            ApplyMetricTransformation(row, query.MetricType);
-            activeRows.Add(row);
-        }
-
-        return activeRows.OrderByDescending(r => r.RowTotal).ToList();
-    }
-
-    private static void ApplyMetricTransformation(PivotRowDto row, PivotMetricType metricType)
-    {
-        if (metricType == PivotMetricType.Count)
-        {
-            foreach (var k in row.CellValues.Keys.ToList())
-            {
-                row.CellValues[k] = row.CellCounts[k];
-            }
-            row.RowTotal = row.CellCounts.Values.Sum();
-            row.MonthlyAverage = Math.Round(row.RowTotal / Math.Max(1, row.CellValues.Count), 1);
-        }
-        else if (metricType == PivotMetricType.Average)
-        {
-            foreach (var k in row.CellValues.Keys.ToList())
-            {
-                var count = row.CellCounts[k];
-                row.CellValues[k] = count > 0 ? Math.Round(row.CellValues[k] / count, 2) : 0m;
-            }
-            var totalCount = row.CellCounts.Values.Sum();
-            var totalSum = row.RowTotal;
-            row.RowTotal = totalCount > 0 ? Math.Round(totalSum / totalCount, 2) : 0m;
-            row.MonthlyAverage = row.RowTotal;
-        }
-    }
-
-    private static string CleanMerchant(string label, string? rawLabel)
-    {
-        var cleaned = RecurringExpenseService.CleanTransactionLabel(label, rawLabel);
-        return string.IsNullOrEmpty(cleaned) ? label : cleaned;
+        return PivotFlatRowAccumulator.ActiveRowsByTotal(rows.Values, columns, query);
     }
 }
