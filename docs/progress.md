@@ -58,6 +58,7 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 
 ### Reste à faire
 1. Facultatif : `scripts/refresh-doc-screenshots.ps1` après `dotnet test tests/Ledger.Tests.E2E --filter DocumentationScreenshot` (46 captures générées pour 52 présentes dans le dépôt lors du dernier essai : comparer avant de commiter).
+2. Fonctionnalité demandée : saisie manuelle d'opérations (aujourd'hui seules les opérations importées existent), repérables dans le registre, rapprochées puis fusionnées avec les opérations importées pour ne garder que ces dernières. Inscrite dans la feuille de route (`Ledger/Feuille de Route…md`, Should have). À concevoir avant de coder : marquage de l'origine (`Transaction` n'a que `ImportBatchId`), critères de rapprochement, règles de fusion avec l'empreinte anti-doublons.
 
 ### Points d'attention
 - Voir « Points d'attention » plus haut (commande `verify.ps1`, fins de ligne).
