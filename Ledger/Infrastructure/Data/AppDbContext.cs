@@ -326,7 +326,7 @@ public class AppDbContext(
                 {
                     baseEntity.CreatedAtUtc = now;
                 }
-                else if (entry.State == EntityState.Modified && !entry.Property(nameof(BaseEntity.UpdatedAtUtc)).IsModified)
+                else if (entry.State == EntityState.Modified)
                 {
                     baseEntity.UpdatedAtUtc = now;
                 }

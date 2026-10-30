@@ -33,10 +33,11 @@ public sealed class TransactionsSplitTests : IDisposable
     private readonly Guid _bankAccountId = Guid.NewGuid();
     private readonly Guid _catFoodId = Guid.NewGuid();
     private readonly Guid _catHousingId = Guid.NewGuid();
+    private readonly Microsoft.Extensions.Time.Testing.FakeTimeProvider _timeProvider = new();
 
     public TransactionsSplitTests()
     {
-        (_context, _connection) = TestDbContextFactory.Create();
+        (_context, _connection) = TestDbContextFactory.Create(timeProvider: _timeProvider);
         _mockStatusService = new Mock<ITransactionStatusService>();
         _mockUiSettingsService = new Mock<IUiSettingsService>();
         _mockRulesEngineService = new Mock<IRulesEngineService>();
@@ -481,7 +482,7 @@ public sealed class TransactionsSplitTests : IDisposable
     public async Task OnPostSaveTransactionSplitsAsync_WhenTimeIsFixed_SetsUpdatedAtUtcFromTimeProvider()
     {
         var fixedUtc = new DateTimeOffset(2025, 3, 15, 18, 0, 0, TimeSpan.Zero);
-        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
+        _timeProvider.SetUtcNow(fixedUtc);
         var tx = new Transaction
         {
             Id = Guid.NewGuid(),
@@ -505,7 +506,7 @@ public sealed class TransactionsSplitTests : IDisposable
             _mockMerchantService.Object,
             _mockRecurringService.Object,
             _mockLocalizedEntityService.Object,
-            fakeTime)
+            _timeProvider)
         {
             PageContext = new PageContext(new ActionContext(httpContext, new RouteData(), new PageActionDescriptor(), new ModelStateDictionary()))
         };

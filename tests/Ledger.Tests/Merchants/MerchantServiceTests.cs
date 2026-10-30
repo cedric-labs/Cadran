@@ -21,10 +21,11 @@ public sealed class MerchantServiceTests : IDisposable
     private readonly MerchantService _service;
     private readonly Guid _bankAccountId = Guid.NewGuid();
     private readonly Guid _categoryId = Guid.NewGuid();
+    private readonly Microsoft.Extensions.Time.Testing.FakeTimeProvider _timeProvider = new();
 
     public MerchantServiceTests()
     {
-        (_context, _connection) = TestDbContextFactory.Create("test-user");
+        (_context, _connection) = TestDbContextFactory.Create("test-user", _timeProvider);
         _mockCurrentUserService = new Mock<ICurrentUserService>();
         _mockCurrentUserService.Setup(u => u.UserId).Returns("test-user");
         _service = new MerchantService(_context, _mockCurrentUserService.Object, NullLogger<MerchantService>.Instance, TimeProvider.System);
@@ -257,8 +258,8 @@ public sealed class MerchantServiceTests : IDisposable
     public async Task UpdateAsync_WhenUpdated_SetsUpdatedAtUtcFromTimeProvider()
     {
         var fixedUtc = new DateTimeOffset(2025, 3, 15, 14, 20, 0, TimeSpan.Zero);
-        var fakeTime = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(fixedUtc);
-        var service = new MerchantService(_context, _mockCurrentUserService.Object, NullLogger<MerchantService>.Instance, fakeTime);
+        _timeProvider.SetUtcNow(fixedUtc);
+        var service = new MerchantService(_context, _mockCurrentUserService.Object, NullLogger<MerchantService>.Instance, _timeProvider);
 
         var merchant = await service.CreateAsync("Boulangerie Initiale");
 
