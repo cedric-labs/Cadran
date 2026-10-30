@@ -52,17 +52,13 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 - Un champ initialisé dans une classe à constructeur primaire ne peut pas référencer un autre champ d'instance (CS0236) : passer par les paramètres du constructeur.
 - Le jeton Sonar (`.sonar-token`) est un jeton d'analyse : l'API `measures/component_tree` est refusée (« Insufficient privileges ») ; les mesures globales et `issues/search` fonctionnent.
 
-## Reprise (note de passation du 30/10/2026, fin de session)
-État : `main` à jour de tous les lots (1a à 1e, fiches 01 à 06, `tache/retrait-exe-autonome`) ; huit branches `tache/*` fusionnées puis supprimées en local. **Rien n'est poussé** (`git push`, tag et publication attendent l'accord de l'utilisateur). Dernier tag : `v1.2.1`.
-Derniers commits sur `main` : E2E `LoginWith2fa` (générateur TOTP `TotpCodeGenerator`, activation MFA par l'IHM, contexte vierge) et `UnlockDatabase` (porteur de clé verrouillé ; appeler `WebFixture.EnsureServerStarted()` avant `KestrelServices`, sinon l'hôte de test est renvoyé) ; `NumericUpDown` non épinglés dans `MainLauncherForm.ControlTree.txt` ; `.editorconfig` terminé par un saut de ligne ; `scripts/refresh-doc-screenshots.ps1` (copie `%TEMP%\cadran-doc-screenshots` vers `docs/images/screens`, non lancé).
-Release 1.2.1 : `SHA256SUMS.txt` re-téléversé sans la ligne de l'exe (30/10/2026, accord de l'utilisateur).
-`verify.ps1` sur `main` après ces commits : 38 + 703 + 52 E2E verts, QUALITY GATE PASSED (30/10/2026).
+## Reprise (note de passation du 30/10/2026, après la release 1.2.2)
+État : `main` est à jour et poussé ; le tag `v1.2.2` est posé et la Release GitHub est publiée (zip Windows sans exe autonome, archive et binaire Linux, `SHA256SUMS.txt`). Les binaires portent bien la version `1.2.2`.
+`verify.ps1` sur le code de `v1.2.2` : 38 + 703 + 52 E2E verts, QUALITY GATE PASSED (30/10/2026).
 
 ### Reste à faire
-1. Obtenir l'accord de l'utilisateur sur le numéro **v1.2.2 (PATCH)** : depuis `v1.2.1`, aucun `feat:` ni rupture ; quatre `fix:` (exe autonome, route `/Error`, `AppDbContext.UpdatedAtUtc`, annulation et `catch`), le reste en `refactor:` / `test:` / `chore:`.
-2. Sur accord : `git tag -a v1.2.2`, `git push` de `main` et du tag, puis release via `/github-release` (zip Windows seul, plus d'exe autonome ; `SHA256SUMS.txt` sans exe). Confirmer chaque action publique.
-3. Facultatif : `scripts/refresh-doc-screenshots.ps1` après `dotnet test tests/Ledger.Tests.E2E --filter DocumentationScreenshot` (46 captures générées pour 52 présentes dans le dépôt lors du dernier essai : comparer avant de commiter).
-4. (Fait) `docs/progress.md` est versionné.
+1. Facultatif : `scripts/refresh-doc-screenshots.ps1` après `dotnet test tests/Ledger.Tests.E2E --filter DocumentationScreenshot` (46 captures générées pour 52 présentes dans le dépôt lors du dernier essai : comparer avant de commiter).
+2. Facultatif : visibilité publique des dépôts (`scripts/set-public-visibility.ps1`), un dépôt à la fois, après accord.
 
 ### Points d'attention
 - Voir « Points d'attention » plus haut (commande `verify.ps1`, fins de ligne).
