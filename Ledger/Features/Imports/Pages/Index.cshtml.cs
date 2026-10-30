@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using System.Text.Json;
 using Ledger.Features.Accounts.Entities;
+using Ledger.Features.Accounts.Pages;
 using Ledger.Features.Accounts.Services;
 using Ledger.Features.Imports.Entities;
 using Ledger.Features.Imports.Services;
@@ -164,28 +165,7 @@ public class IndexModel(
             }
         }
 
-        using (var stream = System.IO.File.OpenRead(tempFilePath))
-        {
-            LastResult = await importService.ImportStatementAsync(
-                chosenAccountId,
-                originalFileName,
-                stream);
-        }
-
-        // Nettoyer le fichier temporaire
-        try
-        {
-            System.IO.File.Delete(tempFilePath);
-        }
-        catch (IOException ex)
-        {
-            _logger.LogDebug(ex, "Le fichier temporaire '{TempFilePath}' n'a pas pu être supprimé immédiatement.", tempFilePath);
-        }
-
-        if (LastResult.SuspectedDuplicates != null && LastResult.SuspectedDuplicates.Any())
-        {
-            SerializedSuspectedDuplicates = JsonSerializer.Serialize(LastResult.SuspectedDuplicates);
-        }
+        await ImportStagedFileAsync(chosenAccountId, originalFileName, tempFilePath);
 
         await LoadDataAsync();
         return Page();
@@ -238,15 +218,7 @@ public class IndexModel(
             return RedirectToPage();
         }
 
-        var legacyType = AccountType.Checking;
-        if (customAccountTypeId.HasValue)
-        {
-            var chosenType = await accountTypeService.GetByIdAsync(customAccountTypeId.Value);
-            if (chosenType != null && !string.IsNullOrEmpty(chosenType.Code) && Enum.TryParse<AccountType>(chosenType.Code, out var parsedType))
-            {
-                legacyType = parsedType;
-            }
-        }
+        var legacyType = await LegacyAccountTypeResolver.ResolveAsync(accountTypeService, customAccountTypeId, AccountType.Checking, CancellationToken.None);
 
         var newAccount = new BankAccount
         {
@@ -263,27 +235,7 @@ public class IndexModel(
         dbContext.BankAccounts.Add(newAccount);
         await dbContext.SaveChangesAsync();
 
-        using (var stream = System.IO.File.OpenRead(tempFilePath))
-        {
-            LastResult = await importService.ImportStatementAsync(
-                newAccount.Id,
-                originalFileName,
-                stream);
-        }
-
-        try
-        {
-            System.IO.File.Delete(tempFilePath);
-        }
-        catch (IOException ex)
-        {
-            _logger.LogDebug(ex, "Le fichier temporaire '{TempFilePath}' n'a pas pu être supprimé immédiatement.", tempFilePath);
-        }
-
-        if (LastResult.SuspectedDuplicates != null && LastResult.SuspectedDuplicates.Any())
-        {
-            SerializedSuspectedDuplicates = JsonSerializer.Serialize(LastResult.SuspectedDuplicates);
-        }
+        await ImportStagedFileAsync(newAccount.Id, originalFileName, tempFilePath);
 
         await LoadDataAsync();
         return Page();
@@ -427,6 +379,29 @@ public class IndexModel(
             {
                 CategoryTranslations = await localizedEntityService.GetTranslationsAsync("Category", catIds, "Name");
             }
+        }
+    }
+
+    // Importe le fichier déposé, le supprime ensuite et mémorise les doublons suspects pour la confirmation de l'utilisateur.
+    private async Task ImportStagedFileAsync(Guid accountId, string originalFileName, string tempFilePath)
+    {
+        using (var stream = System.IO.File.OpenRead(tempFilePath))
+        {
+            LastResult = await importService.ImportStatementAsync(accountId, originalFileName, stream);
+        }
+
+        try
+        {
+            System.IO.File.Delete(tempFilePath);
+        }
+        catch (IOException ex)
+        {
+            _logger.LogDebug(ex, "Le fichier temporaire '{TempFilePath}' n'a pas pu être supprimé immédiatement.", tempFilePath);
+        }
+
+        if (LastResult.SuspectedDuplicates != null && LastResult.SuspectedDuplicates.Any())
+        {
+            SerializedSuspectedDuplicates = JsonSerializer.Serialize(LastResult.SuspectedDuplicates);
         }
     }
 }
