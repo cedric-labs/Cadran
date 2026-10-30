@@ -30,7 +30,7 @@ MainLauncherForm|None|{X=0,Y=0}|derived|
   TabPage|None|{X=0,Y=0}|derived|
    Panel|Fill|{X=0,Y=0}|derived|
     Label|None|{X=20,Y=24}|derived|
-    NumericUpDown|None|{X=240,Y=22}|{Width=110, Height=24}|value=5123;min=1024;max=65535
+    NumericUpDown|None|{X=240,Y=22}|derived|value=5123;min=1024;max=65535
     CheckBox|None|{X=20,Y=60}|derived|checked=False
     CheckBox|None|{X=20,Y=92}|derived|checked=True
     CheckBox|None|{X=20,Y=124}|derived|checked=False
@@ -41,9 +41,9 @@ MainLauncherForm|None|{X=0,Y=0}|derived|
      Label|None|{X=16,Y=32}|derived|
      ComboBox|None|{X=220,Y=28}|{Width=280, Height=23}|index=2;itemCount=3
      Label|None|{X=16,Y=68}|derived|
-     NumericUpDown|None|{X=220,Y=66}|{Width=90, Height=24}|value=7;min=1;max=200
+     NumericUpDown|None|{X=220,Y=66}|derived|value=7;min=1;max=200
      Label|None|{X=16,Y=104}|derived|
-     NumericUpDown|None|{X=220,Y=102}|{Width=90, Height=24}|value=21;min=1;max=365
+     NumericUpDown|None|{X=220,Y=102}|derived|value=21;min=1;max=365
     Button|None|{X=20,Y=404}|{Width=240, Height=42}|
  Panel|Top|{X=0,Y=0}|derived|
   Label|None|{X=18,Y=20}|{Width=16, Height=16}|

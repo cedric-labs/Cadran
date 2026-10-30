@@ -145,7 +145,7 @@ public sealed class MainLauncherFormTests
 
     // Les tailles mesurées (AutoSize) ou dérivées de l'ancrage dépendent de la police et du DPI de la machine : seules les tailles fixées par le code sont épinglées.
     private static string DescribeSize(Control control) =>
-        control.AutoSize || control.Dock != DockStyle.None || control is Form or TabPage
+        control.AutoSize || control.Dock != DockStyle.None || control is Form or TabPage or NumericUpDown
             ? "derived"
             : control.Size.ToString();
 
