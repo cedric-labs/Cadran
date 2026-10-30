@@ -89,21 +89,7 @@ internal static class Program
         var baseDir = AppContext.BaseDirectory;
         var (_, workingDirectory) = ResolveServerPaths(baseDir);
 
-        var dataDirectory = Path.Combine(workingDirectory, "data");
-        Directory.CreateDirectory(dataDirectory);
-        var databaseFilePath = Path.Combine(dataDirectory, "cadran.db");
-        if (!File.Exists(databaseFilePath))
-        {
-            File.WriteAllText(databaseFilePath, "dummy");
-        }
-
-        var backupsDirectory = Path.Combine(workingDirectory, "backups");
-        Directory.CreateDirectory(backupsDirectory);
-
-        var b1 = Path.Combine(backupsDirectory, "cadran-backup-2026-10-25-080000-auto.db");
-        var b2 = Path.Combine(backupsDirectory, "cadran-backup-2026-10-24-193000-manual.db");
-        if (!File.Exists(b1)) File.WriteAllText(b1, new string('0', 1420000));
-        if (!File.Exists(b2)) File.WriteAllText(b2, new string('0', 1395000));
+        var (databaseFilePath, backupsDirectory) = DocumentationScreenshotWorkspace.Prepare(workingDirectory);
 
         var configFilePath = Path.Combine(baseDir, "launcher.json");
         var configStore = new LauncherConfigurationStore(configFilePath);

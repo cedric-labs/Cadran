@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using Cadran.Launcher.Backups;
 using Cadran.Launcher.Configuration;
@@ -37,71 +38,71 @@ public sealed class MainLauncherForm : Form
     ];
 
     // Éléments de la zone de notification (Systray)
-    private readonly NotifyIcon _trayIcon;
-    private readonly ToolStripMenuItem _trayOpenBrowserItem;
-    private readonly ToolStripMenuItem _trayStatusItem;
-    private readonly ToolStripMenuItem _trayStartServerItem;
-    private readonly ToolStripMenuItem _trayStopServerItem;
-    private readonly ToolStripMenuItem _trayShowWindowItem;
-    private readonly ToolStripMenuItem _trayExitItem;
+    private NotifyIcon _trayIcon;
+    private ToolStripMenuItem _trayOpenBrowserItem;
+    private ToolStripMenuItem _trayStatusItem;
+    private ToolStripMenuItem _trayStartServerItem;
+    private ToolStripMenuItem _trayStopServerItem;
+    private ToolStripMenuItem _trayShowWindowItem;
+    private ToolStripMenuItem _trayExitItem;
 
     // Barre d'en-tête
-    private readonly Label _statusDot;
-    private readonly Label _statusLabel;
-    private readonly LinkLabel _urlLink;
-    private readonly ComboBox _headerLangCombo;
+    private Label _statusDot;
+    private Label _statusLabel;
+    private LinkLabel _urlLink;
+    private ComboBox _headerLangCombo;
 
     // Onglets principaux
     private readonly TabControl _tabControl;
-    private readonly TabPage _dashboardTab;
-    private readonly TabPage _backupsTab;
-    private readonly TabPage _logsTab;
-    private readonly TabPage _settingsTab;
+    private TabPage _dashboardTab;
+    private TabPage _backupsTab;
+    private TabPage _logsTab;
+    private TabPage _settingsTab;
 
     // Onglet 1 : Tableau de bord
-    private readonly Panel _cardPanel;
-    private readonly Label _cardStatusTitle;
-    private readonly Label _cardStatusDescription;
-    private readonly Button _dashboardOpenBrowserButton;
-    private readonly GroupBox _dashboardActionsGroup;
-    private readonly Button _dashboardStartButton;
-    private readonly Button _dashboardStopButton;
-    private readonly Button _dashboardRestartButton;
-    private readonly GroupBox _dashboardInfoGroup;
-    private readonly Label _lastBackupLabel;
-    private readonly Button _quickBackupButton;
+    private Panel _cardPanel;
+    private Label _cardStatusTitle;
+    private Label _cardStatusDescription;
+    private Button _dashboardOpenBrowserButton;
+    private GroupBox _dashboardActionsGroup;
+    private Button _dashboardStartButton;
+    private Button _dashboardStopButton;
+    private Button _dashboardRestartButton;
+    private GroupBox _dashboardInfoGroup;
+    private Label _lastBackupLabel;
+    private Button _quickBackupButton;
 
     // Onglet 2 : Sauvegardes & Restauration
-    private readonly ListView _backupsListView;
-    private readonly Button _createBackupButton;
-    private readonly Button _restoreBackupButton;
-    private readonly Button _openBackupsFolderButton;
+    private ListView _backupsListView;
+    private Button _createBackupButton;
+    private Button _restoreBackupButton;
+    private Button _openBackupsFolderButton;
 
     // Onglet 3 : Console & Journaux
-    private readonly RichTextBox _logBox;
-    private readonly Label _searchLabel;
-    private readonly TextBox _searchBox;
-    private readonly CheckBox _autoScrollCheckBox;
-    private readonly Button _clearLogsButton;
-    private readonly Button _copyLogsButton;
+    private RichTextBox _logBox;
+    private Label _searchLabel;
+    private TextBox _searchBox;
+    private CheckBox _autoScrollCheckBox;
+    private Button _clearLogsButton;
+    private Button _copyLogsButton;
 
     // Onglet 4 : Paramètres
-    private readonly Label _portLabel;
-    private readonly NumericUpDown _portInput;
-    private readonly CheckBox _autoStartCheckBox;
-    private readonly CheckBox _autoOpenBrowserCheckBox;
-    private readonly CheckBox _startMinimizedCheckBox;
-    private readonly CheckBox _enableAutoBackupsCheckBox;
-    private readonly Label _settingsLangLabel;
-    private readonly ComboBox _settingsLangCombo;
-    private readonly GroupBox _retentionGroupBox;
-    private readonly Label _retentionModeLabel;
-    private readonly ComboBox _retentionModeCombo;
-    private readonly Label _maxFilesLabel;
-    private readonly NumericUpDown _maxBackupFilesInput;
-    private readonly Label _maxDaysLabel;
-    private readonly NumericUpDown _maxBackupDaysInput;
-    private readonly Button _saveSettingsButton;
+    private Label _portLabel;
+    private NumericUpDown _portInput;
+    private CheckBox _autoStartCheckBox;
+    private CheckBox _autoOpenBrowserCheckBox;
+    private CheckBox _startMinimizedCheckBox;
+    private CheckBox _enableAutoBackupsCheckBox;
+    private Label _settingsLangLabel;
+    private ComboBox _settingsLangCombo;
+    private GroupBox _retentionGroupBox;
+    private Label _retentionModeLabel;
+    private ComboBox _retentionModeCombo;
+    private Label _maxFilesLabel;
+    private NumericUpDown _maxBackupFilesInput;
+    private Label _maxDaysLabel;
+    private NumericUpDown _maxBackupDaysInput;
+    private Button _saveSettingsButton;
 
     /// <summary>
     /// Initialise une nouvelle instance du formulaire de supervision.
@@ -137,7 +138,31 @@ public sealed class MainLauncherForm : Form
             Icon = appIcon;
         }
 
-        // 2. Barre d'en-tête supérieure
+        // 2. Barre d'en-tête, puis onglets principaux dans l'ordre d'affichage
+        var headerPanel = BuildHeaderPanel(cultureCode);
+
+        _tabControl = new TabControl
+        {
+            Dock = DockStyle.Fill,
+            Padding = new Point(16, 8)
+        };
+
+        BuildDashboardTab();
+        BuildBackupsTab();
+        BuildLogsTab();
+        BuildSettingsTab(cultureCode);
+
+        _tabControl.TabPages.AddRange(_dashboardTab, _backupsTab, _logsTab, _settingsTab);
+        Controls.AddRange(_tabControl, headerPanel);
+
+        // 3. Zone de notification (Systray) et abonnements aux événements
+        BuildTrayIcon(appIcon);
+        AttachWindowAndSupervisorEvents();
+    }
+
+    [MemberNotNull(nameof(_statusDot), nameof(_statusLabel), nameof(_urlLink), nameof(_headerLangCombo))]
+    private Panel BuildHeaderPanel(string cultureCode)
+    {
         var headerPanel = new Panel
         {
             Dock = DockStyle.Top,
@@ -170,6 +195,13 @@ public sealed class MainLauncherForm : Form
         };
         _urlLink.LinkClicked += (_, _) => OpenBrowser();
 
+        headerPanel.Controls.AddRange(_statusDot, _statusLabel, _urlLink, BuildHeaderLanguagePanel(cultureCode));
+        return headerPanel;
+    }
+
+    [MemberNotNull(nameof(_headerLangCombo))]
+    private Panel BuildHeaderLanguagePanel(string cultureCode)
+    {
         var headerLangPanel = new Panel
         {
             Dock = DockStyle.Right,
@@ -196,26 +228,43 @@ public sealed class MainLauncherForm : Form
         _headerLangCombo.SelectedIndex = GetLanguageIndex(cultureCode);
         _headerLangCombo.SelectedIndexChanged += (_, _) => OnLanguageSelectionChanged();
 
-        headerLangPanel.Controls.AddRange(
-            headerLangLabel,
-            _headerLangCombo
-        );
+        headerLangPanel.Controls.AddRange(headerLangLabel, _headerLangCombo);
+        return headerLangPanel;
+    }
 
-        headerPanel.Controls.AddRange(
-            _statusDot, _statusLabel, _urlLink, headerLangPanel
-        );
-
-        // 3. Onglets principaux
-        _tabControl = new TabControl
+    private static Button CreateFlatButton(string text, Point location, Size size, Font font)
+    {
+        var button = new Button
         {
-            Dock = DockStyle.Fill,
-            Padding = new Point(16, 8)
+            Text = text,
+            Location = location,
+            Size = size,
+            FlatStyle = FlatStyle.Flat,
+            Font = font
         };
+        button.FlatAppearance.BorderSize = 1;
+        return button;
+    }
 
-        // =========================================================================
-        // ONGLET 1 : TABLEAU DE BORD (Accueil)
-        // =========================================================================
-        _dashboardTab = new TabPage(_localizer["Dashboard.TabTitle"]);
+    [MemberNotNull(
+        nameof(_dashboardTab),
+        nameof(_cardPanel),
+        nameof(_cardStatusTitle),
+        nameof(_cardStatusDescription),
+        nameof(_dashboardOpenBrowserButton),
+        nameof(_dashboardActionsGroup),
+        nameof(_dashboardStartButton),
+        nameof(_dashboardStopButton),
+        nameof(_dashboardRestartButton),
+        nameof(_dashboardInfoGroup),
+        nameof(_lastBackupLabel),
+        nameof(_quickBackupButton))]
+    private void BuildDashboardTab()
+    {
+        BuildDashboardStatusCard();
+        BuildDashboardServerControls();
+        BuildDashboardDatabaseGroup();
+
         var dashboardPanel = new Panel
         {
             Dock = DockStyle.Fill,
@@ -223,7 +272,15 @@ public sealed class MainLauncherForm : Form
             Padding = new Padding(24),
             BackColor = Color.White
         };
+        dashboardPanel.Controls.AddRange(_cardPanel, _dashboardActionsGroup, _dashboardInfoGroup);
 
+        _dashboardTab = new TabPage(_localizer["Dashboard.TabTitle"]);
+        _dashboardTab.Controls.Add(dashboardPanel);
+    }
+
+    [MemberNotNull(nameof(_cardPanel), nameof(_cardStatusTitle), nameof(_cardStatusDescription), nameof(_dashboardOpenBrowserButton))]
+    private void BuildDashboardStatusCard()
+    {
         _cardPanel = new Panel
         {
             Location = new Point(24, 20),
@@ -250,20 +307,19 @@ public sealed class MainLauncherForm : Form
             ForeColor = Color.FromArgb(110, 110, 110)
         };
 
-        _dashboardOpenBrowserButton = new Button
-        {
-            Text = _localizer["Dashboard.OpenBrowser"],
-            Location = new Point(20, 92),
-            Size = new Size(340, 44),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10.5f, FontStyle.Bold)
-        };
-        _dashboardOpenBrowserButton.FlatAppearance.BorderSize = 1;
+        _dashboardOpenBrowserButton = CreateFlatButton(
+            _localizer["Dashboard.OpenBrowser"],
+            new Point(20, 92),
+            new Size(340, 44),
+            new Font("Segoe UI", 10.5f, FontStyle.Bold));
         _dashboardOpenBrowserButton.Click += (_, _) => OpenBrowser();
 
         _cardPanel.Controls.AddRange(_cardStatusTitle, _cardStatusDescription, _dashboardOpenBrowserButton);
+    }
 
-        // Contrôles du serveur
+    [MemberNotNull(nameof(_dashboardActionsGroup), nameof(_dashboardStartButton), nameof(_dashboardStopButton), nameof(_dashboardRestartButton))]
+    private void BuildDashboardServerControls()
+    {
         _dashboardActionsGroup = new GroupBox
         {
             Text = _localizer["Dashboard.ServerControlGroup"],
@@ -273,42 +329,33 @@ public sealed class MainLauncherForm : Form
             Padding = new Padding(16)
         };
 
-        _dashboardStartButton = new Button
-        {
-            Text = _localizer["Dashboard.StartServer"],
-            Location = new Point(24, 38),
-            Size = new Size(220, 44),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10f, FontStyle.Bold)
-        };
-        _dashboardStartButton.FlatAppearance.BorderSize = 1;
+        _dashboardStartButton = CreateFlatButton(
+            _localizer["Dashboard.StartServer"],
+            new Point(24, 38),
+            new Size(220, 44),
+            new Font("Segoe UI", 10f, FontStyle.Bold));
         _dashboardStartButton.Click += (_, _) => RunAsyncSafe(StartServerWorkflowAsync, "Démarrage du serveur");
 
-        _dashboardStopButton = new Button
-        {
-            Text = _localizer["Dashboard.StopServer"],
-            Location = new Point(260, 38),
-            Size = new Size(220, 44),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10f, FontStyle.Bold)
-        };
-        _dashboardStopButton.FlatAppearance.BorderSize = 1;
+        _dashboardStopButton = CreateFlatButton(
+            _localizer["Dashboard.StopServer"],
+            new Point(260, 38),
+            new Size(220, 44),
+            new Font("Segoe UI", 10f, FontStyle.Bold));
         _dashboardStopButton.Click += (_, _) => RunAsyncSafe(StopServerWorkflowAsync, "Arrêt du serveur");
 
-        _dashboardRestartButton = new Button
-        {
-            Text = _localizer["Dashboard.RestartServer"],
-            Location = new Point(496, 38),
-            Size = new Size(180, 44),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 10f, FontStyle.Bold)
-        };
-        _dashboardRestartButton.FlatAppearance.BorderSize = 1;
+        _dashboardRestartButton = CreateFlatButton(
+            _localizer["Dashboard.RestartServer"],
+            new Point(496, 38),
+            new Size(180, 44),
+            new Font("Segoe UI", 10f, FontStyle.Bold));
         _dashboardRestartButton.Click += (_, _) => RunAsyncSafe(RestartServerWorkflowAsync, "Redémarrage du serveur");
 
         _dashboardActionsGroup.Controls.AddRange(_dashboardStartButton, _dashboardStopButton, _dashboardRestartButton);
+    }
 
-        // Sauvegardes rapides
+    [MemberNotNull(nameof(_dashboardInfoGroup), nameof(_lastBackupLabel), nameof(_quickBackupButton))]
+    private void BuildDashboardDatabaseGroup()
+    {
         _dashboardInfoGroup = new GroupBox
         {
             Text = _localizer["Dashboard.DatabaseGroup"],
@@ -340,51 +387,16 @@ public sealed class MainLauncherForm : Form
         _quickBackupButton.Click += (_, _) => RunAsyncSafe(CreateManualBackupAsync, "Création manuelle de sauvegarde");
 
         _dashboardInfoGroup.Controls.AddRange(_lastBackupLabel, _quickBackupButton);
+    }
 
-        dashboardPanel.Controls.AddRange(_cardPanel, _dashboardActionsGroup, _dashboardInfoGroup);
-        _dashboardTab.Controls.Add(dashboardPanel);
-
-        // =========================================================================
-        // ONGLET 2 : SAUVEGARDES & RESTAURATION
-        // =========================================================================
-        _backupsTab = new TabPage(_localizer["Backups.TabTitle"]);
+    [MemberNotNull(nameof(_backupsTab), nameof(_createBackupButton), nameof(_restoreBackupButton), nameof(_openBackupsFolderButton), nameof(_backupsListView))]
+    private void BuildBackupsTab()
+    {
         var backupsHeader = new Panel { Dock = DockStyle.Top, Height = 52, Padding = new Padding(8) };
 
-        _createBackupButton = new Button
-        {
-            Text = _localizer["Backups.Create"],
-            Location = new Point(8, 8),
-            Size = new Size(190, 34),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 9f, FontStyle.Bold)
-        };
-        _createBackupButton.FlatAppearance.BorderSize = 1;
-        ApplyButtonStyle(_createBackupButton, enabled: true, Color.FromArgb(245, 247, 250), Color.FromArgb(30, 30, 30));
-        _createBackupButton.Click += (_, _) => OnCreateBackupClicked();
-
-        _restoreBackupButton = new Button
-        {
-            Text = _localizer["Backups.Restore"],
-            Location = new Point(208, 8),
-            Size = new Size(200, 34),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 9f, FontStyle.Bold)
-        };
-        _restoreBackupButton.FlatAppearance.BorderSize = 1;
-        ApplyButtonStyle(_restoreBackupButton, enabled: true, Color.FromArgb(245, 247, 250), Color.FromArgb(30, 30, 30));
-        _restoreBackupButton.Click += (_, _) => OnRestoreBackupClicked();
-
-        _openBackupsFolderButton = new Button
-        {
-            Text = _localizer["Backups.OpenFolder"],
-            Location = new Point(418, 8),
-            Size = new Size(210, 34),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 9f, FontStyle.Bold)
-        };
-        _openBackupsFolderButton.FlatAppearance.BorderSize = 1;
-        ApplyButtonStyle(_openBackupsFolderButton, enabled: true, Color.FromArgb(245, 247, 250), Color.FromArgb(30, 30, 30));
-        _openBackupsFolderButton.Click += (_, _) => OpenBackupsFolder();
+        _createBackupButton = CreateBackupToolbarButton("Backups.Create", new Point(8, 8), 190, OnCreateBackupClicked);
+        _restoreBackupButton = CreateBackupToolbarButton("Backups.Restore", new Point(208, 8), 200, OnRestoreBackupClicked);
+        _openBackupsFolderButton = CreateBackupToolbarButton("Backups.OpenFolder", new Point(418, 8), 210, OpenBackupsFolder);
 
         backupsHeader.Controls.AddRange(_createBackupButton, _restoreBackupButton, _openBackupsFolderButton);
 
@@ -401,12 +413,21 @@ public sealed class MainLauncherForm : Form
         _backupsListView.Columns.Add(_localizer["Backups.ColSize"], 110);
         _backupsListView.Columns.Add(_localizer["Backups.ColReason"], 160);
 
+        _backupsTab = new TabPage(_localizer["Backups.TabTitle"]);
         _backupsTab.Controls.AddRange(_backupsListView, backupsHeader);
+    }
 
-        // =========================================================================
-        // ONGLET 3 : CONSOLE & JOURNAUX
-        // =========================================================================
-        _logsTab = new TabPage(_localizer["Logs.TabTitle"]);
+    private Button CreateBackupToolbarButton(string localizationKey, Point location, int width, Action onClick)
+    {
+        var button = CreateFlatButton(_localizer[localizationKey], location, new Size(width, 34), new Font("Segoe UI", 9f, FontStyle.Bold));
+        ApplyButtonStyle(button, enabled: true, Color.FromArgb(245, 247, 250), Color.FromArgb(30, 30, 30));
+        button.Click += (_, _) => onClick();
+        return button;
+    }
+
+    [MemberNotNull(nameof(_logsTab), nameof(_logBox), nameof(_searchLabel), nameof(_searchBox), nameof(_autoScrollCheckBox), nameof(_clearLogsButton), nameof(_copyLogsButton))]
+    private void BuildLogsTab()
+    {
         _logBox = new RichTextBox
         {
             Dock = DockStyle.Fill,
@@ -447,12 +468,31 @@ public sealed class MainLauncherForm : Form
         };
 
         logsBottomBar.Controls.AddRange(_searchLabel, _searchBox, _autoScrollCheckBox, _clearLogsButton, _copyLogsButton);
-        _logsTab.Controls.AddRange(_logBox, logsBottomBar);
 
-        // =========================================================================
-        // ONGLET 4 : PARAMÈTRES
-        // =========================================================================
-        _settingsTab = new TabPage(_localizer["Settings.TabTitle"]);
+        _logsTab = new TabPage(_localizer["Logs.TabTitle"]);
+        _logsTab.Controls.AddRange(_logBox, logsBottomBar);
+    }
+
+    [MemberNotNull(
+        nameof(_settingsTab),
+        nameof(_portLabel),
+        nameof(_portInput),
+        nameof(_autoStartCheckBox),
+        nameof(_autoOpenBrowserCheckBox),
+        nameof(_startMinimizedCheckBox),
+        nameof(_enableAutoBackupsCheckBox),
+        nameof(_settingsLangLabel),
+        nameof(_settingsLangCombo),
+        nameof(_retentionGroupBox),
+        nameof(_retentionModeLabel),
+        nameof(_retentionModeCombo),
+        nameof(_maxFilesLabel),
+        nameof(_maxBackupFilesInput),
+        nameof(_maxDaysLabel),
+        nameof(_maxBackupDaysInput),
+        nameof(_saveSettingsButton))]
+    private void BuildSettingsTab(string cultureCode)
+    {
         var settingsPanel = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(24) };
 
         _portLabel = new Label { Text = _localizer["Settings.HttpPort"], Location = new Point(20, 24), AutoSize = true };
@@ -482,6 +522,38 @@ public sealed class MainLauncherForm : Form
             _headerLangCombo.SelectedIndex = _settingsLangCombo.SelectedIndex;
         };
 
+        BuildRetentionGroup();
+
+        _saveSettingsButton = CreateFlatButton(
+            _localizer["Settings.Save"],
+            new Point(20, 404),
+            new Size(240, 42),
+            new Font("Segoe UI", 9.5f, FontStyle.Bold));
+        ApplyButtonStyle(_saveSettingsButton, enabled: true, BlueColor);
+        _saveSettingsButton.Click += (_, _) => SaveSettings();
+
+        settingsPanel.Controls.AddRange(
+            _portLabel, _portInput,
+            _autoStartCheckBox, _autoOpenBrowserCheckBox, _startMinimizedCheckBox, _enableAutoBackupsCheckBox,
+            _settingsLangLabel, _settingsLangCombo,
+            _retentionGroupBox,
+            _saveSettingsButton
+        );
+
+        _settingsTab = new TabPage(_localizer["Settings.TabTitle"]);
+        _settingsTab.Controls.Add(settingsPanel);
+    }
+
+    [MemberNotNull(
+        nameof(_retentionGroupBox),
+        nameof(_retentionModeLabel),
+        nameof(_retentionModeCombo),
+        nameof(_maxFilesLabel),
+        nameof(_maxBackupFilesInput),
+        nameof(_maxDaysLabel),
+        nameof(_maxBackupDaysInput))]
+    private void BuildRetentionGroup()
+    {
         _retentionGroupBox = new GroupBox
         {
             Text = _localizer["Settings.RetentionGroup"],
@@ -510,33 +582,18 @@ public sealed class MainLauncherForm : Form
         _maxBackupDaysInput = new NumericUpDown { Location = new Point(220, 102), Width = 90, Minimum = 1, Maximum = 365, Value = _currentSettings.RetentionPolicy.MaxBackupDays };
 
         _retentionGroupBox.Controls.AddRange(_retentionModeLabel, _retentionModeCombo, _maxFilesLabel, _maxBackupFilesInput, _maxDaysLabel, _maxBackupDaysInput);
+    }
 
-        _saveSettingsButton = new Button
-        {
-            Text = _localizer["Settings.Save"],
-            Location = new Point(20, 404),
-            Size = new Size(240, 42),
-            FlatStyle = FlatStyle.Flat,
-            Font = new Font("Segoe UI", 9.5f, FontStyle.Bold)
-        };
-        _saveSettingsButton.FlatAppearance.BorderSize = 1;
-        ApplyButtonStyle(_saveSettingsButton, enabled: true, BlueColor);
-        _saveSettingsButton.Click += (_, _) => SaveSettings();
-
-        settingsPanel.Controls.AddRange(
-            _portLabel, _portInput,
-            _autoStartCheckBox, _autoOpenBrowserCheckBox, _startMinimizedCheckBox, _enableAutoBackupsCheckBox,
-            _settingsLangLabel, _settingsLangCombo,
-            _retentionGroupBox,
-            _saveSettingsButton
-        );
-        _settingsTab.Controls.Add(settingsPanel);
-
-        // Ajout des onglets : Tableau de bord en première position
-        _tabControl.TabPages.AddRange(_dashboardTab, _backupsTab, _logsTab, _settingsTab);
-        Controls.AddRange(_tabControl, headerPanel);
-
-        // 4. Configuration de la zone de notification (Systray)
+    [MemberNotNull(
+        nameof(_trayIcon),
+        nameof(_trayOpenBrowserItem),
+        nameof(_trayStatusItem),
+        nameof(_trayStartServerItem),
+        nameof(_trayStopServerItem),
+        nameof(_trayShowWindowItem),
+        nameof(_trayExitItem))]
+    private void BuildTrayIcon(Icon? appIcon)
+    {
         var trayContextMenu = new ContextMenuStrip();
         _trayOpenBrowserItem = new ToolStripMenuItem(_localizer["Tray.OpenBrowser"], null, (_, _) => OpenBrowser())
         {
@@ -570,8 +627,10 @@ public sealed class MainLauncherForm : Form
             ContextMenuStrip = trayContextMenu
         };
         _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+    }
 
-        // 5. Abonnements aux événements du superviseur
+    private void AttachWindowAndSupervisorEvents()
+    {
         _processSupervisor.StateChanged += (_, e) => BeginInvoke(() => OnProcessStateChanged(e.State));
         _processSupervisor.LogReceived += (_, e) => BeginInvoke(() => OnLogReceived(e.Entry));
 
@@ -646,44 +705,10 @@ public sealed class MainLauncherForm : Form
             _logsTab.Text = _localizer["Logs.TabTitle"];
             _settingsTab.Text = _localizer["Settings.TabTitle"];
 
-            _dashboardOpenBrowserButton.Text = _localizer["Dashboard.OpenBrowser"];
-            _dashboardActionsGroup.Text = _localizer["Dashboard.ServerControlGroup"];
-            _dashboardStartButton.Text = _localizer["Dashboard.StartServer"];
-            _dashboardStopButton.Text = _localizer["Dashboard.StopServer"];
-            _dashboardRestartButton.Text = _localizer["Dashboard.RestartServer"];
-            _dashboardInfoGroup.Text = _localizer["Dashboard.DatabaseGroup"];
-            _quickBackupButton.Text = _localizer["Dashboard.QuickBackup"];
-
-            _createBackupButton.Text = _localizer["Backups.Create"];
-            _restoreBackupButton.Text = _localizer["Backups.Restore"];
-            _openBackupsFolderButton.Text = _localizer["Backups.OpenFolder"];
-
-            _backupsListView.Columns[0].Text = _localizer["Backups.ColDate"];
-            _backupsListView.Columns[1].Text = _localizer["Backups.ColName"];
-            _backupsListView.Columns[2].Text = _localizer["Backups.ColSize"];
-            _backupsListView.Columns[3].Text = _localizer["Backups.ColReason"];
-
-            _searchLabel.Text = _localizer["Logs.Filter"];
-            _autoScrollCheckBox.Text = _localizer["Logs.AutoScroll"];
-            _clearLogsButton.Text = _localizer["Logs.Clear"];
-            _copyLogsButton.Text = _localizer["Logs.CopyAll"];
-
-            _portLabel.Text = _localizer["Settings.HttpPort"];
-            _autoStartCheckBox.Text = _localizer["Settings.AutoStart"];
-            _autoOpenBrowserCheckBox.Text = _localizer["Settings.AutoOpen"];
-            _startMinimizedCheckBox.Text = _localizer["Settings.StartMinimized"];
-            _enableAutoBackupsCheckBox.Text = _localizer["Settings.AutoBackups"];
-            _settingsLangLabel.Text = _localizer["Settings.InterfaceLanguage"];
-            _settingsLangCombo.SelectedIndex = _headerLangCombo.SelectedIndex;
-            _retentionGroupBox.Text = _localizer["Settings.RetentionGroup"];
-            _retentionModeLabel.Text = _localizer["Settings.RetentionMode"];
-
-            RefreshRetentionModeItems();
-
-            _maxFilesLabel.Text = _localizer["Settings.MaxFiles"];
-            _maxDaysLabel.Text = _localizer["Settings.MaxDays"];
-            _saveSettingsButton.Text = _localizer["Settings.Save"];
-
+            ApplyDashboardLocalization();
+            ApplyBackupsLocalization();
+            ApplyLogsLocalization();
+            ApplySettingsLocalization();
             ApplyTrayLocalization();
 
             UpdateStateDisplay(_processSupervisor.State);
@@ -693,6 +718,56 @@ public sealed class MainLauncherForm : Form
         {
             _isUpdatingLanguage = false;
         }
+    }
+
+    private void ApplyDashboardLocalization()
+    {
+        _dashboardOpenBrowserButton.Text = _localizer["Dashboard.OpenBrowser"];
+        _dashboardActionsGroup.Text = _localizer["Dashboard.ServerControlGroup"];
+        _dashboardStartButton.Text = _localizer["Dashboard.StartServer"];
+        _dashboardStopButton.Text = _localizer["Dashboard.StopServer"];
+        _dashboardRestartButton.Text = _localizer["Dashboard.RestartServer"];
+        _dashboardInfoGroup.Text = _localizer["Dashboard.DatabaseGroup"];
+        _quickBackupButton.Text = _localizer["Dashboard.QuickBackup"];
+    }
+
+    private void ApplyBackupsLocalization()
+    {
+        _createBackupButton.Text = _localizer["Backups.Create"];
+        _restoreBackupButton.Text = _localizer["Backups.Restore"];
+        _openBackupsFolderButton.Text = _localizer["Backups.OpenFolder"];
+
+        _backupsListView.Columns[0].Text = _localizer["Backups.ColDate"];
+        _backupsListView.Columns[1].Text = _localizer["Backups.ColName"];
+        _backupsListView.Columns[2].Text = _localizer["Backups.ColSize"];
+        _backupsListView.Columns[3].Text = _localizer["Backups.ColReason"];
+    }
+
+    private void ApplyLogsLocalization()
+    {
+        _searchLabel.Text = _localizer["Logs.Filter"];
+        _autoScrollCheckBox.Text = _localizer["Logs.AutoScroll"];
+        _clearLogsButton.Text = _localizer["Logs.Clear"];
+        _copyLogsButton.Text = _localizer["Logs.CopyAll"];
+    }
+
+    private void ApplySettingsLocalization()
+    {
+        _portLabel.Text = _localizer["Settings.HttpPort"];
+        _autoStartCheckBox.Text = _localizer["Settings.AutoStart"];
+        _autoOpenBrowserCheckBox.Text = _localizer["Settings.AutoOpen"];
+        _startMinimizedCheckBox.Text = _localizer["Settings.StartMinimized"];
+        _enableAutoBackupsCheckBox.Text = _localizer["Settings.AutoBackups"];
+        _settingsLangLabel.Text = _localizer["Settings.InterfaceLanguage"];
+        _settingsLangCombo.SelectedIndex = _headerLangCombo.SelectedIndex;
+        _retentionGroupBox.Text = _localizer["Settings.RetentionGroup"];
+        _retentionModeLabel.Text = _localizer["Settings.RetentionMode"];
+
+        RefreshRetentionModeItems();
+
+        _maxFilesLabel.Text = _localizer["Settings.MaxFiles"];
+        _maxDaysLabel.Text = _localizer["Settings.MaxDays"];
+        _saveSettingsButton.Text = _localizer["Settings.Save"];
     }
 
     // Reconstruit les libellés du mode de rétention dans la langue active en conservant le mode choisi.
@@ -1262,6 +1337,17 @@ public sealed class MainLauncherForm : Form
         }
 
         await _processSupervisor.DisposeAsync();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        // Le NotifyIcon n'appartient à aucun conteneur de composants : sans cette libération, l'icône reste dans la zone de notification tant que le processus vit.
+        if (disposing)
+        {
+            _trayIcon?.Dispose();
+        }
+
+        base.Dispose(disposing);
     }
 
     private void RunAsyncSafe(Func<Task> action, string actionDescription)
