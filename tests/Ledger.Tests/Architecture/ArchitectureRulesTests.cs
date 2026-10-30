@@ -80,19 +80,7 @@ public partial class ArchitectureRulesTests
 
         suppressedMembers.Should().BeEmpty("aucun attribut [SuppressMessage] n'est autorisé par RULES.md");
 
-        var projectDir = FindProjectDir();
-        var violations = new List<string>();
-        foreach (var file in EnumerateSourceFiles(projectDir, "*.cs", "*.cshtml"))
-        {
-            var lines = File.ReadAllLines(file);
-            for (int i = 0; i < lines.Length; i++)
-            {
-                if (WarningSuppressionRegex().IsMatch(lines[i]))
-                {
-                    violations.Add($"{Path.GetRelativePath(projectDir, file)}:{i + 1}: {lines[i].Trim()}");
-                }
-            }
-        }
+        var violations = FindApplicationLinesMatching(WarningSuppressionRegex(), "*.cs", "*.cshtml");
 
         violations.Should().BeEmpty("les directives #pragma warning disable, // NOSONAR et [SuppressMessage] sont interdites par RULES.md");
     }
@@ -100,23 +88,40 @@ public partial class ArchitectureRulesTests
     [Fact]
     public void Codebase_ShouldNotContain_NullForgivingOperators()
     {
-        var projectDir = FindProjectDir();
-        var violations = new List<string>();
-
-        foreach (var file in EnumerateSourceFiles(projectDir, "*.cs"))
-        {
-            var lines = File.ReadAllLines(file);
-            for (int i = 0; i < lines.Length; i++)
-            {
-                var line = lines[i];
-                if (NullForgivingRegex().IsMatch(line))
-                {
-                    violations.Add($"{Path.GetRelativePath(projectDir, file)}:{i + 1}: {line.Trim()}");
-                }
-            }
-        }
+        var violations = FindApplicationLinesMatching(NullForgivingRegex(), "*.cs");
 
         violations.Should().BeEmpty("l'opérateur null-forgiving (!) est interdit par RULES.md");
+    }
+
+    [Theory]
+    [InlineData("var errors = ModelState[key]!.Errors;")]
+    [InlineData("var bar = Foo()!.Bar;")]
+    [InlineData("return value!;")]
+    [InlineData("Call(arg!);")]
+    [InlineData("Call(first!, second);")]
+    [InlineData("var x = dict![\"k\"];")]
+    [InlineData("public string Name { get; set; } = null!;")]
+    public void NullForgivingRegex_WhenLineUsesOperator_Matches(string line)
+    {
+        // Act
+        var isMatch = NullForgivingRegex().IsMatch(line);
+
+        // Assert
+        isMatch.Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("if (a != b) return;")]
+    [InlineData("if (!flag) return;")]
+    [InlineData("var message = \"Hello!\";")]
+    [InlineData("var message = \"Attention !\";")]
+    public void NullForgivingRegex_WhenLineHasNoOperator_DoesNotMatch(string line)
+    {
+        // Act
+        var isMatch = NullForgivingRegex().IsMatch(line);
+
+        // Assert
+        isMatch.Should().BeFalse();
     }
 
     [Fact]
@@ -235,24 +240,27 @@ public partial class ArchitectureRulesTests
     [Fact]
     public void SourceFiles_WhenUsingPrimaryConstructors_DoNotCopyParametersIntoFields()
     {
-        // Arrange
-        var solutionDir = FindSolutionDir();
-        var projectDirs = new[]
-        {
-            Path.Combine(solutionDir, "Ledger"),
-            Path.Combine(solutionDir, "Cadran.Launcher"),
-        };
-        var violations = new List<string>();
-
         // Act
-        foreach (var projectDir in projectDirs)
+        var violations = FindApplicationLinesMatching(PrimaryConstructorFieldCopyRegex(), "*.cs");
+
+        // Assert
+        violations.Should().BeEmpty("les paramètres des constructeurs primaires ne doivent pas être recopiés dans des champs private readonly (Règle 11 d'AGENTS.md)");
+    }
+
+    // Le lanceur est du code applicatif soumis aux mêmes interdits que le site Web ; les projets de tests
+    // restent hors périmètre car la Règle 1 y admet `!` après une assertion.
+    private static List<string> FindApplicationLinesMatching(Regex regex, params string[] patterns)
+    {
+        var solutionDir = FindSolutionDir();
+        var violations = new List<string>();
+        foreach (var projectDir in new[] { Path.Combine(solutionDir, "Ledger"), Path.Combine(solutionDir, "Cadran.Launcher") })
         {
-            foreach (var file in EnumerateSourceFiles(projectDir, "*.cs"))
+            foreach (var file in EnumerateSourceFiles(projectDir, patterns))
             {
                 var lines = File.ReadAllLines(file);
                 for (int i = 0; i < lines.Length; i++)
                 {
-                    if (PrimaryConstructorFieldCopyRegex().IsMatch(lines[i]))
+                    if (regex.IsMatch(lines[i]))
                     {
                         violations.Add($"{Path.GetRelativePath(solutionDir, file)}:{i + 1}: {lines[i].Trim()}");
                     }
@@ -260,8 +268,7 @@ public partial class ArchitectureRulesTests
             }
         }
 
-        // Assert
-        violations.Should().BeEmpty("les paramètres des constructeurs primaires ne doivent pas être recopiés dans des champs private readonly (Règle 11 d'AGENTS.md)");
+        return violations;
     }
 
     private static bool IsAttributeOrCommentLine(string line) =>
@@ -288,7 +295,10 @@ public partial class ArchitectureRulesTests
     [GeneratedRegex(@"#pragma\s+warning\s+disable|//\s*NOSONAR|\[\s*SuppressMessage", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
     private static partial Regex WarningSuppressionRegex();
 
-    [GeneratedRegex(@"\bnull!\s*;|\w+!\.\w+", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
+    // Un `!` collé à un identifiant, une parenthèse ou un crochet fermants et suivi d'un accès membre,
+    // d'un index ou d'un séparateur est un null-forgiving ; `!=`, la négation `!x` et la ponctuation
+    // des chaînes (`"Hello!"`, `"Attention !"`) ne le sont pas.
+    [GeneratedRegex(@"[\w)\]]![.;,)\[\]]", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
     private static partial Regex NullForgivingRegex();
 
     [GeneratedRegex(@"\bRedirectToPage\s*\(\s*""/", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 2000)]
