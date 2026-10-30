@@ -28,6 +28,7 @@ public sealed class PivotReportService(
     IPivotAggregationCalculator? aggregationCalculator = null) : IPivotReportService
 {
     private readonly IPivotAggregationCalculator _aggregationCalculator = aggregationCalculator ?? new PivotAggregationCalculator(localizer);
+    private readonly PivotRowSelector _rowSelector = new(localizer);
 
     public async Task<PivotResultDto> ComputePivotAsync(PivotQueryDto query, CancellationToken cancellationToken = default)
     {
@@ -163,7 +164,7 @@ public sealed class PivotReportService(
         var flatItems = await LoadFlatTransactionsAsync(query, colStart, colEnd, categories, recurringRules, cancellationToken).ConfigureAwait(false);
 
         // 5. Filtrer par rowKey
-        var (filteredItems, rowDisplayLabel) = FilterTransactionsByRowKey(flatItems, rowKey, query.RowDimension, categoryMap, categoryTranslations);
+        var (filteredItems, rowDisplayLabel) = _rowSelector.Select(flatItems, rowKey, query.RowDimension, categoryMap, categoryTranslations);
 
         filteredItems = filteredItems
             .OrderByDescending(t => t.BudgetDate ?? t.Date)
@@ -174,48 +175,7 @@ public sealed class PivotReportService(
         detail.TotalAmount = filteredItems.Sum(t => t.Type == TransactionType.Debit ? -Math.Abs(t.Amount) : Math.Abs(t.Amount));
         detail.TransactionsCount = filteredItems.Count;
 
-        detail.Transactions = filteredItems.Select(t =>
-        {
-            string cName = "Sans catégorie";
-            string? cColor = null;
-            string? cIcon = null;
-            bool isCatIncome = false;
-            bool isAnomaly = false;
-
-            if (t.CategoryId.HasValue && categoryMap.TryGetValue(t.CategoryId.Value, out var c))
-            {
-                cName = categoryTranslations.TryGetValue(c.Id, out var tr) && !string.IsNullOrWhiteSpace(tr) ? tr : c.Name;
-                cColor = c.ColorHex;
-                cIcon = c.IconName;
-                isCatIncome = c.IsIncome;
-                if ((t.Type == TransactionType.Debit && c.IsIncome) || (t.Type == TransactionType.Credit && !c.IsIncome))
-                {
-                    isAnomaly = true;
-                }
-            }
-
-            var signedAmount = t.Type == TransactionType.Debit ? -Math.Abs(t.Amount) : Math.Abs(t.Amount);
-
-            return new PivotCellTransactionItemDto
-            {
-                Id = t.Id,
-                Date = t.Date,
-                BudgetDate = t.BudgetDate,
-                BankAccountName = t.BankAccount?.Name ?? "Compte",
-                BankName = t.BankAccount?.Bank?.Name,
-                Currency = t.BankAccount?.Currency,
-                Label = t.Label,
-                RawLabel = t.RawLabel,
-                Notes = t.Notes,
-                CategoryName = cName,
-                CategoryColorHex = cColor,
-                CategoryIconName = cIcon,
-                Type = t.Type,
-                Amount = signedAmount,
-                IsCategoryIncome = isCatIncome,
-                IsAnomaly = isAnomaly
-            };
-        }).ToList();
+        detail.Transactions = filteredItems.Select(t => PivotCellTransactionItemFactory.Create(t, categoryMap, categoryTranslations)).ToList();
 
         return detail;
     }
@@ -270,11 +230,7 @@ public sealed class PivotReportService(
 
         if (query.SelectedCategoryIds != null && query.SelectedCategoryIds.Count > 0)
         {
-            var expandedCategoryIds = new HashSet<Guid>(query.SelectedCategoryIds);
-            foreach (var cat in categories.Where(c => c.ParentCategoryId.HasValue && query.SelectedCategoryIds.Contains(c.ParentCategoryId.Value)))
-            {
-                expandedCategoryIds.Add(cat.Id);
-            }
+            var expandedCategoryIds = CategorySelectionExpander.WithChildren(query.SelectedCategoryIds, categories);
 
             txQuery = txQuery.Where(t =>
                 (!t.IsSplit && t.CategoryId.HasValue && expandedCategoryIds.Contains(t.CategoryId.Value)) ||
@@ -298,27 +254,13 @@ public sealed class PivotReportService(
 
         var transactions = await txQuery.ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        if (recurringRules != null && recurringRules.Count > 0)
-        {
-            if (query.FlowFilter == PivotFlowFilter.RecurringOnly)
-            {
-                transactions = transactions.Where(t => MatchesAnyRecurring(t, recurringRules)).ToList();
-            }
-            else if (query.FlowFilter == PivotFlowFilter.NonRecurringDebitsOnly)
-            {
-                transactions = transactions.Where(t => !MatchesAnyRecurring(t, recurringRules)).ToList();
-            }
-        }
+        transactions = RecurringTransactionMatcher.Apply(transactions, query.FlowFilter, recurringRules);
 
         var flatItems = FlattenTransactions(transactions);
 
         if (query.SelectedCategoryIds != null && query.SelectedCategoryIds.Count > 0)
         {
-            var expandedCategoryIds = new HashSet<Guid>(query.SelectedCategoryIds);
-            foreach (var cat in categories.Where(c => c.ParentCategoryId.HasValue && query.SelectedCategoryIds.Contains(c.ParentCategoryId.Value)))
-            {
-                expandedCategoryIds.Add(cat.Id);
-            }
+            var expandedCategoryIds = CategorySelectionExpander.WithChildren(query.SelectedCategoryIds, categories);
             flatItems = flatItems.Where(item => item.CategoryId.HasValue && expandedCategoryIds.Contains(item.CategoryId.Value)).ToList();
         }
 
@@ -374,112 +316,6 @@ public sealed class PivotReportService(
         }
 
         return (colStart, colEnd, colDisplayLabel);
-    }
-
-    private (List<PivotTransactionItem> FilteredItems, string RowDisplayLabel) FilterTransactionsByRowKey(
-        List<PivotTransactionItem> flatItems,
-        string rowKey,
-        PivotRowDimension rowDimension,
-        Dictionary<Guid, Category> categoryMap,
-        Dictionary<Guid, string> categoryTranslations)
-    {
-        string rowDisplayLabel = rowKey;
-        List<PivotTransactionItem> filteredItems;
-
-        if (rowKey.Contains("__m__", StringComparison.Ordinal))
-        {
-            var parts = rowKey.Split("__m__");
-            var catKey = parts[0];
-            var merchantName = parts[1];
-            rowDisplayLabel = merchantName;
-
-            filteredItems = flatItems.Where(t =>
-            {
-                var m = !string.IsNullOrWhiteSpace(t.Merchant?.Name) ? t.Merchant.Name : CleanMerchant(t.Label, t.RawLabel);
-                if (!string.Equals(m, merchantName, StringComparison.OrdinalIgnoreCase))
-                {
-                    return false;
-                }
-
-                if (string.Equals(catKey, "uncategorized", StringComparison.Ordinal))
-                {
-                    return !t.CategoryId.HasValue || !categoryMap.ContainsKey(t.CategoryId.Value);
-                }
-                if (catKey.EndsWith("__direct", StringComparison.Ordinal))
-                {
-                    var pIdStr = catKey.Replace("__direct", "", StringComparison.Ordinal);
-                    if (Guid.TryParse(pIdStr, out var pId))
-                    {
-                        return t.CategoryId == pId;
-                    }
-                }
-                if (Guid.TryParse(catKey, out var cId))
-                {
-                    return t.CategoryId == cId || (t.Category != null && t.Category.ParentCategoryId == cId);
-                }
-                return true;
-            }).ToList();
-        }
-        else if (string.Equals(rowKey, "uncategorized", StringComparison.Ordinal))
-        {
-            rowDisplayLabel = localizer["Common.Uncategorized"].Value ?? "Sans catégorie";
-            filteredItems = flatItems.Where(t => !t.CategoryId.HasValue || !categoryMap.ContainsKey(t.CategoryId.Value)).ToList();
-        }
-        else if (rowKey.EndsWith("__direct", StringComparison.Ordinal))
-        {
-            var pIdStr = rowKey.Replace("__direct", "", StringComparison.Ordinal);
-            if (Guid.TryParse(pIdStr, out var pId))
-            {
-                var pCat = categoryMap.TryGetValue(pId, out var pc) ? pc : null;
-                rowDisplayLabel = pCat != null ? $"{pCat.Name} (Général)" : "Général";
-                filteredItems = flatItems.Where(t => t.CategoryId == pId).ToList();
-            }
-            else
-            {
-                filteredItems = flatItems;
-            }
-        }
-        else if (Guid.TryParse(rowKey, out var guidKey))
-        {
-            if (rowDimension == PivotRowDimension.Category)
-            {
-                var cat = categoryMap.TryGetValue(guidKey, out var c) ? c : null;
-                if (cat != null)
-                {
-                    rowDisplayLabel = categoryTranslations.TryGetValue(cat.Id, out var tr) && !string.IsNullOrWhiteSpace(tr) ? tr : cat.Name;
-                    filteredItems = flatItems.Where(t => t.CategoryId == guidKey || (t.Category != null && t.Category.ParentCategoryId == guidKey)).ToList();
-                }
-                else
-                {
-                    filteredItems = flatItems;
-                }
-            }
-            else if (rowDimension == PivotRowDimension.Account)
-            {
-                filteredItems = flatItems.Where(t => t.BankAccountId == guidKey).ToList();
-                var acc = filteredItems.FirstOrDefault()?.BankAccount;
-                rowDisplayLabel = acc?.Name ?? "Compte";
-            }
-            else
-            {
-                filteredItems = flatItems;
-            }
-        }
-        else if (rowDimension == PivotRowDimension.Merchant)
-        {
-            rowDisplayLabel = rowKey;
-            filteredItems = flatItems.Where(t =>
-            {
-                var m = !string.IsNullOrWhiteSpace(t.Merchant?.Name) ? t.Merchant.Name : CleanMerchant(t.Label, t.RawLabel);
-                return string.Equals(m, rowKey, StringComparison.OrdinalIgnoreCase);
-            }).ToList();
-        }
-        else
-        {
-            filteredItems = flatItems;
-        }
-
-        return (filteredItems, rowDisplayLabel);
     }
 
     private static List<PivotTransactionItem> FlattenTransactions(IEnumerable<Transaction> transactions)
@@ -538,29 +374,6 @@ public sealed class PivotReportService(
             }
         }
         return items;
-    }
-
-    private static bool MatchesAnyRecurring(Transaction t, List<RecurringExpense> recurringExpenses)
-    {
-        foreach (var rec in recurringExpenses)
-        {
-            if (rec.TargetBankAccountId.HasValue && rec.TargetBankAccountId.Value != t.BankAccountId)
-            {
-                continue;
-            }
-
-            if (RecurringExpenseService.MatchesPattern(t.Label, t.RawLabel, rec.Pattern) && rec.MatchesAmount(t.Amount))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static string CleanMerchant(string label, string? rawLabel)
-    {
-        var cleaned = RecurringExpenseService.CleanTransactionLabel(label, rawLabel);
-        return string.IsNullOrEmpty(cleaned) ? label : cleaned;
     }
 
     private async Task<(DateTime Start, DateTime End)> ResolvePeriodDatesAsync(PivotPeriodPreset preset, DateTime? customStart, DateTime? customEnd)
