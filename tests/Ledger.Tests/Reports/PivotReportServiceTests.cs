@@ -1183,6 +1183,71 @@ public sealed class PivotReportServiceTests : IDisposable
         result.EffectiveEndDate.Should().Be(new DateTime(2025, 4, 30, 0, 0, 0, DateTimeKind.Utc));
     }
 
+    [Fact]
+    public async Task GetCellDetailAsync_WhenCreditInExpenseCategory_MapsSignedItemsAndFlagsAnomaly()
+    {
+        _context.Transactions.Add(new Transaction
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            BankAccountId = _bankAccountId,
+            Date = new DateTime(2026, 1, 20, 0, 0, 0, DateTimeKind.Utc),
+            Amount = 50m,
+            Type = TransactionType.Credit,
+            Label = "REMBOURSEMENT LOYER",
+            CategoryId = _catHousingId
+        });
+        await _context.SaveChangesAsync();
+        var query = new PivotQueryDto
+        {
+            RowDimension = PivotRowDimension.Category,
+            ColumnDimension = PivotColumnDimension.Month,
+            PeriodPreset = PivotPeriodPreset.Custom,
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+            FlowFilter = PivotFlowFilter.All
+        };
+
+        var detail = await _pivotService.GetCellDetailAsync(query, _catHousingId.ToString(), "2026-01");
+
+        detail.TransactionsCount.Should().Be(2);
+        detail.TotalAmount.Should().Be(-750m);
+        detail.Transactions.Select(t => t.Label).Should().Equal("REMBOURSEMENT LOYER", "LOYER JANVIER");
+        var refund = detail.Transactions[0];
+        refund.Amount.Should().Be(50m);
+        refund.IsAnomaly.Should().BeTrue();
+        refund.CategoryName.Should().Be("Logement");
+        refund.CategoryColorHex.Should().Be("#ef4444");
+        refund.BankAccountName.Should().Be("Compte Courant");
+        refund.BankName.Should().Be("Banque Test");
+        var rent = detail.Transactions[1];
+        rent.Amount.Should().Be(-800m);
+        rent.IsAnomaly.Should().BeFalse();
+        rent.IsCategoryIncome.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task GetCellDetailAsync_WhenTransactionHasNoCategory_NamesItUncategorized()
+    {
+        var query = new PivotQueryDto
+        {
+            RowDimension = PivotRowDimension.Category,
+            ColumnDimension = PivotColumnDimension.Month,
+            PeriodPreset = PivotPeriodPreset.Custom,
+            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            EndDate = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+            FlowFilter = PivotFlowFilter.All
+        };
+
+        var detail = await _pivotService.GetCellDetailAsync(query, "uncategorized", "2026-01");
+
+        var salary = detail.Transactions.Should().ContainSingle().Which;
+        salary.CategoryName.Should().Be("Sans catégorie");
+        salary.CategoryColorHex.Should().BeNull();
+        salary.Amount.Should().Be(2500m);
+        salary.IsAnomaly.Should().BeFalse();
+    }
+
     public void Dispose()
     {
         _context.Dispose();
