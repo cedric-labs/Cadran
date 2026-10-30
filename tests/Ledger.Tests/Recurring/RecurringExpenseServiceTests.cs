@@ -648,6 +648,108 @@ public sealed class RecurringExpenseServiceTests : IDisposable
         candidates.Should().ContainSingle(c => c.Pattern.Contains("ABONNEMENT FIBRE", StringComparison.OrdinalIgnoreCase));
     }
 
+    private static readonly DateTimeOffset DetectionToday = new(2026, 3, 10, 10, 0, 0, TimeSpan.Zero);
+
+    private async Task<List<RecurringCandidateDto>> DetectWithDebitsAsync(string label, params (DateTime Date, decimal Amount)[] debits)
+    {
+        foreach (var (date, amount) in debits)
+        {
+            _context.Transactions.Add(new Transaction
+            {
+                Id = Guid.NewGuid(),
+                UserId = "test-user-id",
+                BankAccountId = _bankAccountId,
+                Date = date,
+                Amount = amount,
+                Type = TransactionType.Debit,
+                Label = label
+            });
+        }
+
+        await _context.SaveChangesAsync();
+        var service = new RecurringExpenseService(_context, new Microsoft.Extensions.Time.Testing.FakeTimeProvider(DetectionToday));
+        var candidates = await service.DetectCandidatesAsync();
+        return candidates.Where(c => c.Pattern.Contains(label.Split(' ')[^1], StringComparison.OrdinalIgnoreCase)).ToList();
+    }
+
+    private static DateTime Utc(int year, int month, int day) => new(year, month, day, 0, 0, 0, DateTimeKind.Utc);
+
+    [Fact]
+    public async Task DetectCandidatesAsync_WhenThreeFixedQuarterlyDebits_ReturnsQuarterlyCandidateWithScore85()
+    {
+        var candidates = await DetectWithDebitsAsync("ASSURANCE HABITATION",
+            (Utc(2025, 4, 5), 120m), (Utc(2025, 7, 4), 120m), (Utc(2025, 10, 3), 120m));
+
+        var candidate = candidates.Should().ContainSingle().Subject;
+        candidate.Frequency.Should().Be(RecurringFrequency.Quarterly);
+        candidate.OccurrencesCount.Should().Be(3);
+        candidate.ConfidenceScore.Should().Be(85);
+        candidate.ExpectedDayOfMonth.Should().Be(4);
+        candidate.LastAmount.Should().Be(120m);
+        candidate.SampleTransactions.Should().HaveCount(3);
+    }
+
+    [Fact]
+    public async Task DetectCandidatesAsync_WhenTwoDebitsOneYearApart_ReturnsAnnualCandidateWithScore65()
+    {
+        var candidates = await DetectWithDebitsAsync("COTISATION ANNUELLE",
+            (Utc(2025, 3, 12), 80m), (Utc(2026, 3, 12), 80m));
+
+        var candidate = candidates.Should().ContainSingle().Subject;
+        candidate.Frequency.Should().Be(RecurringFrequency.Annual);
+        candidate.ConfidenceScore.Should().Be(65);
+    }
+
+    [Fact]
+    public async Task DetectCandidatesAsync_WhenIntervalsAreIrregular_ReturnsNoCandidate()
+    {
+        var candidates = await DetectWithDebitsAsync("ACHAT IRREGULIER",
+            (Utc(2025, 5, 1), 50m), (Utc(2025, 6, 20), 50m), (Utc(2025, 8, 9), 50m));
+
+        candidates.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DetectCandidatesAsync_WhenAmountsVaryByMoreThanTwoAndAHalf_ReturnsNoCandidate()
+    {
+        var candidates = await DetectWithDebitsAsync("FACTURE VARIABLE",
+            (Utc(2025, 5, 3), 10m), (Utc(2025, 6, 3), 20m), (Utc(2025, 7, 3), 30m));
+
+        candidates.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task DetectCandidatesAsync_WhenIssuerHasTwoStableAmounts_SplitsIntoOneCandidatePerAmount()
+    {
+        var candidates = await DetectWithDebitsAsync("CONTRAT MUTUELLE",
+            (Utc(2025, 4, 2), 45m), (Utc(2025, 5, 2), 45m), (Utc(2025, 6, 2), 45m),
+            (Utc(2025, 4, 12), 25m), (Utc(2025, 5, 12), 25m), (Utc(2025, 6, 12), 25m));
+
+        candidates.Select(c => c.AverageAmount).Should().BeEquivalentTo([45m, 25m]);
+        candidates.Should().OnlyContain(c => c.Frequency == RecurringFrequency.Monthly && c.OccurrencesCount == 3);
+    }
+
+    [Fact]
+    public async Task DetectCandidatesAsync_WhenRecurringExpenseAlreadyMatchesPattern_FlagsCandidateAsConfigured()
+    {
+        _context.RecurringExpenses.Add(new RecurringExpense
+        {
+            Id = Guid.NewGuid(),
+            UserId = "test-user-id",
+            Name = "Salle de sport",
+            Pattern = "SALLE",
+            ExpectedAmount = 30m,
+            IsActive = true
+        });
+
+        var candidates = await DetectWithDebitsAsync("ABONNEMENT SALLE",
+            (Utc(2025, 5, 8), 30m), (Utc(2025, 6, 8), 30m), (Utc(2025, 7, 8), 30m));
+
+        var candidate = candidates.Should().ContainSingle().Subject;
+        candidate.IsAlreadyConfigured.Should().BeTrue();
+        candidate.ConfiguredExpenseName.Should().Be("salle de sport");
+    }
+
     public void Dispose()
     {
         _context.Dispose();
