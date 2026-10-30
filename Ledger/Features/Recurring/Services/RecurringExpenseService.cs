@@ -281,221 +281,28 @@ public sealed class RecurringExpenseService(AppDbContext dbContext, TimeProvider
 
     public async Task<List<RecurringCandidateDto>> DetectCandidatesAsync(CancellationToken cancellationToken = default)
     {
-        // 1. Charger les règles récurrentes déjà existantes et les motifs ignorés
-        var existingExpenses = (await dbContext.RecurringExpenses
+        var existingRules = (await dbContext.RecurringExpenses
             .Select(r => new { r.Id, r.Name, r.Pattern })
             .ToListAsync(cancellationToken).ConfigureAwait(false))
-            .Select(r => new { r.Id, Name = r.Name.ToLowerInvariant(), Pattern = r.Pattern.ToLowerInvariant() })
+            .Select(r => new ExistingRecurringRule(r.Id, r.Name.ToLowerInvariant(), r.Pattern.ToLowerInvariant()))
             .ToList();
 
         var ignoredPatterns = await GetIgnoredPatternsAsync(cancellationToken).ConfigureAwait(false);
 
-        // 2. Analyser les transactions de dépenses sur les 12 derniers mois
         var cutoffDate = timeProvider.GetLocalNow().Date.AddMonths(-12);
-        var transactions = await dbContext.Transactions
+        var debits = await dbContext.Transactions
             .Include(t => t.Category)
             .Include(t => t.BankAccount)
             .Where(t => t.Type == TransactionType.Debit && t.Date >= cutoffDate)
             .OrderBy(t => t.Date)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        if (transactions.Count < 3) return new List<RecurringCandidateDto>();
-
-        // 3. Regrouper les transactions par "clé d'émetteur" nettoyée
-        var rawGroups = new Dictionary<string, List<Transaction>>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var tx in transactions)
+        if (debits.Count < 3)
         {
-            var cleanedKey = CleanTransactionLabel(tx.Label, tx.RawLabel);
-            if (string.IsNullOrWhiteSpace(cleanedKey) || cleanedKey.Length < 3) continue;
-
-            if (!rawGroups.TryGetValue(cleanedKey, out var list))
-            {
-                list = new List<Transaction>();
-                rawGroups[cleanedKey] = list;
-            }
-            list.Add(tx);
+            return [];
         }
 
-        // 3b. Sous-regroupement intelligent : si un émetteur (ex: AXA) a plusieurs contrats avec des montants stables distincts
-        // (ex: un contrat à 45€ et un contrat à 25€), on les découpe en sous-groupes par palier de montant !
-        var groups = new Dictionary<string, List<Transaction>>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var (key, txList) in rawGroups)
-        {
-            if (txList.Count < 2) continue;
-
-            // Détecter si les montants sont dispersés en plusieurs montants réguliers distincts
-            var distinctAmounts = txList
-                .GroupBy(t => Math.Round(t.Amount, 1))
-                .Where(g => g.Count() >= 2)
-                .ToList();
-
-            if (distinctAmounts.Count > 1)
-            {
-                // Multi-contrats sous le même émetteur ! Séparer par montant
-                foreach (var amountGroup in distinctAmounts)
-                {
-                    var subList = amountGroup.OrderBy(t => t.Date).ToList();
-                    var subKey = $"{key} ({amountGroup.Key:0.00} €)";
-                    groups[subKey] = subList;
-                }
-            }
-            else
-            {
-                groups[key] = txList;
-            }
-        }
-
-        var candidates = new List<RecurringCandidateDto>();
-
-        // 4. Analyser la cadence temporelle et la consistance pour chaque groupe
-        foreach (var kvp in groups)
-        {
-            var rawKey = kvp.Key;
-            var txList = kvp.Value.OrderBy(t => t.Date).ToList();
-
-            // Il faut au moins 2 ou 3 occurrences
-            if (txList.Count < 2) continue;
-
-            // Si rawKey comporte un suffixe de montant (ex: "AXA (45.00 €)"), en extraire le pattern de recherche
-            var matchingPattern = rawKey.Contains('(', StringComparison.Ordinal) ? rawKey.Substring(0, rawKey.IndexOf('(', StringComparison.Ordinal)).Trim() : rawKey.Trim();
-            var cleanPatternLower = matchingPattern.ToLowerInvariant();
-            var suggestedName = FormatSuggestedName(rawKey);
-            var cleanSuggestedNameLower = suggestedName.Trim().ToLowerInvariant();
-
-            // Vérifier si ce motif a été ignoré définitivement par l'utilisateur
-            if (ignoredPatterns.Any(p =>
-                string.Equals(p, matchingPattern, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(p, rawKey, StringComparison.OrdinalIgnoreCase) ||
-                matchingPattern.Contains(p, StringComparison.OrdinalIgnoreCase) ||
-                p.Contains(matchingPattern, StringComparison.OrdinalIgnoreCase)))
-            {
-                continue;
-            }
-
-            // Vérifier si cette charge est déjà couverte par une règle existante
-            var matchingExisting = existingExpenses.FirstOrDefault(e =>
-                string.Equals(e.Pattern, cleanPatternLower, StringComparison.Ordinal) ||
-                cleanPatternLower.Contains(e.Pattern, StringComparison.Ordinal) ||
-                e.Pattern.Contains(cleanPatternLower, StringComparison.Ordinal) ||
-                string.Equals(e.Name, cleanSuggestedNameLower, StringComparison.Ordinal) ||
-                cleanSuggestedNameLower.Contains(e.Name, StringComparison.Ordinal) ||
-                e.Name.Contains(cleanSuggestedNameLower, StringComparison.Ordinal));
-
-            // Calcul des écarts de jours entre occurrences consécutives
-            var intervals = new List<int>();
-            for (int i = 1; i < txList.Count; i++)
-            {
-                var days = (txList[i].Date - txList[i - 1].Date).Days;
-                if (days > 0) intervals.Add(days);
-            }
-
-            if (intervals.Count == 0) continue;
-
-            var avgInterval = intervals.Average();
-            RecurringFrequency detectedFrequency;
-            bool isRegularCadence = false;
-
-            // Détection de la fréquence
-            if (avgInterval >= 25 && avgInterval <= 36)
-            {
-                detectedFrequency = RecurringFrequency.Monthly;
-                // Vérifier que chaque intervalle est proche d'un mois (tolérance ±12 jours)
-                isRegularCadence = intervals.All(d => d >= 20 && d <= 45);
-            }
-            else if (avgInterval >= 80 && avgInterval <= 100)
-            {
-                detectedFrequency = RecurringFrequency.Quarterly;
-                isRegularCadence = intervals.All(d => d >= 75 && d <= 110);
-            }
-            else if (avgInterval >= 340 && avgInterval <= 390)
-            {
-                detectedFrequency = RecurringFrequency.Annual;
-                isRegularCadence = true;
-            }
-            else
-            {
-                // Intervalle irrégulier
-                continue;
-            }
-
-            if (!isRegularCadence && txList.Count < 3) continue;
-
-            // Analyse des montants
-            var amounts = txList.Select(t => t.Amount).ToList();
-            var avgAmount = Math.Round(amounts.Average(), 2);
-            var lastAmount = amounts[^1];
-            var minAmount = amounts.Min();
-            var maxAmount = amounts.Max();
-
-            // Vérifier la stabilité du montant (le max ne doit pas être 3x le min pour un abonnement)
-            if (minAmount > 0 && (maxAmount / minAmount) > 2.5m)
-            {
-                continue;
-            }
-
-            // Jour du mois habituel
-            var daysOfMonth = txList.Select(t => t.Date.Day).ToList();
-            var medianDay = daysOfMonth.Order().ElementAt(daysOfMonth.Count / 2);
-
-            // Catégorie la plus fréquente
-            var categoryGroup = txList
-                .Select(t => t.Category)
-                .OfType<Ledger.Features.Categories.Entities.Category>()
-                .GroupBy(c => c)
-                .OrderByDescending(g => g.Count())
-                .FirstOrDefault();
-
-            var accountGroup = txList
-                .Select(t => t.BankAccount)
-                .OfType<Ledger.Features.Accounts.Entities.BankAccount>()
-                .GroupBy(b => b)
-                .OrderByDescending(g => g.Count())
-                .FirstOrDefault();
-
-            // Score de confiance (50 à 95%)
-            int score = 50;
-            if (txList.Count >= 3) score += 20;
-            if (txList.Count >= 5) score += 15;
-            if (Math.Abs(maxAmount - minAmount) < 0.10m) score += 15; // Montant strictement fixe
-
-            var candidate = new RecurringCandidateDto
-            {
-                Pattern = matchingPattern,
-                SuggestedName = suggestedName,
-                AverageAmount = avgAmount,
-                LastAmount = lastAmount,
-                ExpectedDayOfMonth = medianDay,
-                Frequency = detectedFrequency,
-                SuggestedCategoryId = categoryGroup?.Key.Id,
-                SuggestedCategoryName = categoryGroup?.Key.Name,
-                SuggestedCategoryIcon = categoryGroup?.Key.IconName,
-                SuggestedCategoryColor = categoryGroup?.Key.ColorHex,
-                BankAccountId = accountGroup?.Key.Id,
-                BankAccountName = accountGroup?.Key.Name,
-                OccurrencesCount = txList.Count,
-                FirstDate = txList[0].Date,
-                LastDate = txList[^1].Date,
-                ConfidenceScore = Math.Min(98, score),
-                IsAlreadyConfigured = matchingExisting != null,
-                ConfiguredExpenseName = matchingExisting?.Name,
-                SampleTransactions = txList.TakeLast(3).Select(t => new TransactionSampleDto
-                {
-                    Id = t.Id,
-                    Date = t.Date,
-                    Label = t.Label,
-                    Amount = t.Amount
-                }).ToList()
-            };
-
-            candidates.Add(candidate);
-        }
-
-        return candidates
-            .OrderByDescending(c => c.ConfidenceScore)
-            .ThenByDescending(c => c.OccurrencesCount)
-            .ToList();
+        return new RecurringCandidateDetector(existingRules, ignoredPatterns).Detect(debits);
     }
 
     private static bool AppliesToMonth(RecurringFrequency freq, int month)
