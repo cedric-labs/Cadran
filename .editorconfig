@@ -77,8 +77,8 @@ dotnet_diagnostic.CA1309.severity = warning
 dotnet_diagnostic.CA1310.severity = warning
 dotnet_diagnostic.CA1311.severity = warning
 
-# Privilégier la complexité cognitive (SonarQube S3776) plutôt qu'une limite arbitraire de 60 lignes (notamment pour les tests xUnit)
-dotnet_diagnostic.MA0051.severity = none
+# Une méthode de production de plus de 60 lignes ou 40 instructions doit être découpée en composants métier nommés (Règle 4) ; les tests en sont exclus ci-dessous
+dotnet_diagnostic.MA0051.severity = warning
 
 # Autoriser plusieurs DTOs/Modèles cohésifs dans un même fichier de Vertical Slice
 dotnet_diagnostic.MA0048.severity = none
@@ -102,3 +102,5 @@ dotnet_diagnostic.IDE0161.severity = none
 [tests/**.cs]
 # xUnit1030 interdit ConfigureAwait(false) dans les méthodes de test : désactiver MA0004 évite un conflit entre analyseurs
 dotnet_diagnostic.MA0004.severity = none
+# Une méthode de test Arrange-Act-Assert décrit un scénario complet : la découper en fragments le rendrait illisible
+dotnet_diagnostic.MA0051.severity = none
