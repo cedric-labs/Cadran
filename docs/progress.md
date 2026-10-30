@@ -58,7 +58,6 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 
 ### Reste à faire
 1. Facultatif : `scripts/refresh-doc-screenshots.ps1` après `dotnet test tests/Ledger.Tests.E2E --filter DocumentationScreenshot` (46 captures générées pour 52 présentes dans le dépôt lors du dernier essai : comparer avant de commiter).
-2. Facultatif : visibilité publique des dépôts (`scripts/set-public-visibility.ps1`), un dépôt à la fois, après accord.
 
 ### Points d'attention
 - Voir « Points d'attention » plus haut (commande `verify.ps1`, fins de ligne).
