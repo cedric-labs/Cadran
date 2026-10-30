@@ -15,28 +15,6 @@ public sealed class AccountTypeService(
     ICurrentUserService currentUserService,
     ILogger<AccountTypeService> logger) : IAccountTypeService
 {
-    private static readonly IReadOnlyDictionary<string, (string En, string Es, string De)> DefaultAccountTypeTranslations =
-        new Dictionary<string, (string En, string Es, string De)>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["Checking"] = ("Checking Account", "Cuenta Corriente", "Girokonto"),
-            ["CreditCard"] = ("Deferred Debit / Credit Card", "Tarjeta de crédito / débito diferido", "Kreditkarte / Aufgeschobene Debitkarte"),
-            ["Cash"] = ("Cash / Wallet", "Efectivo / Cartera", "Bargeld / Geldbörse"),
-            ["LivretA"] = ("Livret A Savings", "Cuenta de ahorro Livret A", "Livret A Sparkonto"),
-            ["Ldds"] = ("Sustainable Development Savings (LDDS)", "Ahorro Sostenible y Solidario (LDDS)", "Nachhaltiges Sparkonto (LDDS)"),
-            ["Lep"] = ("Popular Savings Account (LEP)", "Cuenta de Ahorro Popular (LEP)", "Volkssparkonto (LEP)"),
-            ["LivretJeune"] = ("Youth Savings Account", "Cuenta de Ahorro Joven", "Jugendsparkonto"),
-            ["Savings"] = ("Bank Savings Account (CSL)", "Cuenta de Ahorro Bancaria (CSL)", "Banksparkonto (CSL)"),
-            ["Pel"] = ("Home Savings Plan (PEL)", "Plan de Ahorro para la Vivienda (PEL)", "Bausparplan (PEL)"),
-            ["Cel"] = ("Home Savings Account (CEL)", "Cuenta de Ahorro para la Vivienda (CEL)", "Bausparkonto (CEL)"),
-            ["Cat"] = ("Term Deposit Account (CAT)", "Depósito a Plazo Fijo", "Festgeldkonto"),
-            ["Pea"] = ("Equity Savings Plan (PEA)", "Plan de Ahorro en Acciones (PEA)", "Aktiensparplan (PEA)"),
-            ["Investment"] = ("Standard Securities Account (CTO)", "Cuenta de Valores Ordinaria (CTO)", "Wertpapierdepot (CTO)"),
-            ["PartsSociales"] = ("Member Shares Account", "Cuenta de Cuotas Participativas", "Genossenschaftsanteile-Konto"),
-            ["AssuranceVie"] = ("Life Insurance Policy", "Seguro de Vida", "Lebensversicherung"),
-            ["Per"] = ("Retirement Savings Plan (PER)", "Plan de Pensiones / Jubilación (PER)", "Renten-Sparplan (PER)"),
-            ["Crypto"] = ("Cryptocurrencies / Other Assets", "Criptomonedas / Otros activos", "Kryptowährungen / Sonstige Vermögenswerte")
-        };
-
     public async Task<List<CustomAccountType>> GetAllAccountTypesAsync(CancellationToken cancellationToken = default)
     {
         var userId = currentUserService.UserId;
@@ -124,33 +102,7 @@ public sealed class AccountTypeService(
             .AnyAsync(t => t.UserId == userId, cancellationToken).ConfigureAwait(false);
         if (hasExisting) return;
 
-        var defaults = new List<CustomAccountType>
-        {
-            // Liquidités
-            new() { UserId = userId, Name = "Compte de Dépôt", Code = "Checking", Description = "Compte courant pour la gestion quotidienne", CategoryGroup = AccountCategoryGroup.Liquid, ColorHex = "#3b82f6", IconName = "bi-wallet2", IsSystem = true, DisplayOrder = 1 },
-            new() { UserId = userId, Name = "Carte à débit différé / Crédit", Code = "CreditCard", Description = "Compte carte à débit différé ou carte de crédit", CategoryGroup = AccountCategoryGroup.Liquid, ColorHex = "#ffc107", IconName = "bi-credit-card", IsSystem = true, DisplayOrder = 2 },
-            new() { UserId = userId, Name = "Portefeuille / Espèces", Code = "Cash", Description = "Espèces et argent liquide", CategoryGroup = AccountCategoryGroup.Liquid, ColorHex = "#6c757d", IconName = "bi-cash-stack", IsSystem = true, DisplayOrder = 3 },
-
-            // Épargne réglementée
-            new() { UserId = userId, Name = "Livret A", Code = "LivretA", Description = "Livret d'épargne réglementée défiscalisé", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#0dcaf0", IconName = "bi-piggy-bank", IsSystem = true, DisplayOrder = 4 },
-            new() { UserId = userId, Name = "LDD Solidaire", Code = "Ldds", Description = "Livret de développement durable et solidaire", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#0dcaf0", IconName = "bi-tree", IsSystem = true, DisplayOrder = 5 },
-            new() { UserId = userId, Name = "Livret d'Épargne Populaire (LEP)", Code = "Lep", Description = "Livret d'épargne populaire sous conditions de ressources", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#0dcaf0", IconName = "bi-heart", IsSystem = true, DisplayOrder = 6 },
-            new() { UserId = userId, Name = "Livret Jeune", Code = "LivretJeune", Description = "Livret réservé aux 12-25 ans", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#0dcaf0", IconName = "bi-person", IsSystem = true, DisplayOrder = 7 },
-
-            // Épargne logement & bancaire
-            new() { UserId = userId, Name = "Livret bancaire (CSL)", Code = "Savings", Description = "Compte sur livret bancaire ordinaire fiscalisé", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#0dcaf0", IconName = "bi-safe", IsSystem = true, DisplayOrder = 8 },
-            new() { UserId = userId, Name = "Carré mauve (PEL)", Code = "Pel", Description = "Plan Épargne Logement (Carré Mauve au Crédit Agricole)", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#6f42c1", IconName = "bi-house-door", IsSystem = true, DisplayOrder = 9 },
-            new() { UserId = userId, Name = "Compte Épargne Logement (CEL)", Code = "Cel", Description = "Compte Épargne Logement", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#6f42c1", IconName = "bi-house", IsSystem = true, DisplayOrder = 10 },
-            new() { UserId = userId, Name = "Compte à terme (CAT)", Code = "Cat", Description = "Placement à terme à taux fixé", CategoryGroup = AccountCategoryGroup.Savings, ColorHex = "#20c997", IconName = "bi-clock-history", IsSystem = true, DisplayOrder = 11 },
-
-            // Bourse & Titres
-            new() { UserId = userId, Name = "Plan d'Épargne en Actions (PEA)", Code = "Pea", Description = "PEA bancaire ou PEA-PME pour actions européennes", CategoryGroup = AccountCategoryGroup.Investment, ColorHex = "#198754", IconName = "bi-graph-up-arrow", IsSystem = true, DisplayOrder = 12 },
-            new() { UserId = userId, Name = "Compte-Titres Ordinaire (CTO)", Code = "Investment", Description = "Compte titres pour actions, obligations et ETF internationaux", CategoryGroup = AccountCategoryGroup.Investment, ColorHex = "#198754", IconName = "bi-pie-chart", IsSystem = true, DisplayOrder = 13 },
-            new() { UserId = userId, Name = "Compte Parts Sociales", Code = "PartsSociales", Description = "Parts sociales en banque mutualiste / coopérative", CategoryGroup = AccountCategoryGroup.Investment, ColorHex = "#198754", IconName = "bi-building-fill", IsSystem = true, DisplayOrder = 14 },
-            new() { UserId = userId, Name = "Assurance-Vie", Code = "AssuranceVie", Description = "Contrat d'assurance-vie ou de capitalisation", CategoryGroup = AccountCategoryGroup.Investment, ColorHex = "#198754", IconName = "bi-shield-check", IsSystem = true, DisplayOrder = 15 },
-            new() { UserId = userId, Name = "Plan d'Épargne Retraite (PER)", Code = "Per", Description = "Épargne pour la retraite", CategoryGroup = AccountCategoryGroup.Investment, ColorHex = "#198754", IconName = "bi-umbrella", IsSystem = true, DisplayOrder = 16 },
-            new() { UserId = userId, Name = "Crypto-monnaies / Autres actifs", Code = "Crypto", Description = "Comptes d'actifs numériques, métaux ou divers", CategoryGroup = AccountCategoryGroup.Investment, ColorHex = "#fd7e14", IconName = "bi-currency-bitcoin", IsSystem = true, DisplayOrder = 17 }
-        };
+        var defaults = DefaultAccountTypeCatalog.CreateFor(userId);
 
         dbContext.CustomAccountTypes.AddRange(defaults);
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -199,50 +151,7 @@ public sealed class AccountTypeService(
             .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}")
             .ToHashSet(StringComparer.Ordinal);
 
-        var toAdd = new List<EntityTranslation>();
-        foreach (var type in types)
-        {
-            if (string.IsNullOrEmpty(type.Code) || !DefaultAccountTypeTranslations.TryGetValue(type.Code, out var trans))
-            {
-                continue;
-            }
-
-            if (!existingKeySet.Contains($"{type.Id}:en") && !string.IsNullOrWhiteSpace(trans.En))
-            {
-                toAdd.Add(new EntityTranslation
-                {
-                    EntityType = "CustomAccountType",
-                    EntityId = type.Id,
-                    Field = "Name",
-                    LanguageCode = "en",
-                    Translation = trans.En
-                });
-            }
-
-            if (!existingKeySet.Contains($"{type.Id}:es") && !string.IsNullOrWhiteSpace(trans.Es))
-            {
-                toAdd.Add(new EntityTranslation
-                {
-                    EntityType = "CustomAccountType",
-                    EntityId = type.Id,
-                    Field = "Name",
-                    LanguageCode = "es",
-                    Translation = trans.Es
-                });
-            }
-
-            if (!existingKeySet.Contains($"{type.Id}:de") && !string.IsNullOrWhiteSpace(trans.De))
-            {
-                toAdd.Add(new EntityTranslation
-                {
-                    EntityType = "CustomAccountType",
-                    EntityId = type.Id,
-                    Field = "Name",
-                    LanguageCode = "de",
-                    Translation = trans.De
-                });
-            }
-        }
+        var toAdd = AccountTypeTranslationPlanner.PlanMissing(types, existingKeySet);
 
         if (toAdd.Count > 0)
         {
@@ -292,18 +201,7 @@ public sealed class AccountTypeService(
 
         if (accountsWithoutType.Count > 0)
         {
-            foreach (var acc in accountsWithoutType)
-            {
-                var code = acc.Type.ToString();
-                var matchingType = allTypes.FirstOrDefault(t => string.Equals(t.UserId, acc.UserId, StringComparison.Ordinal) && string.Equals(t.Code, code, StringComparison.OrdinalIgnoreCase))
-                    ?? allTypes.FirstOrDefault(t => string.Equals(t.UserId, acc.UserId, StringComparison.Ordinal) && string.Equals(t.Code, "Checking", StringComparison.OrdinalIgnoreCase));
-
-                if (matchingType != null)
-                {
-                    acc.CustomAccountTypeId = matchingType.Id;
-                    usedTypeIds.Add(matchingType.Id);
-                }
-            }
+            UntypedAccountLinker.LinkToMatchingTypes(accountsWithoutType, allTypes, usedTypeIds);
 
             try
             {
@@ -316,45 +214,7 @@ public sealed class AccountTypeService(
             }
         }
 
-        var toDelete = new List<CustomAccountType>();
-
-        // 3. Regroupement par utilisateur et clé d'identification (Code prioritaire, sinon Nom)
-        var groups = allTypes.GroupBy(t => (
-            UserId: t.UserId,
-            Key: !string.IsNullOrWhiteSpace(t.Code)
-                ? $"CODE:{t.Code.Trim().ToUpperInvariant()}"
-                : $"NAME:{t.Name.Trim().ToUpperInvariant()}"
-        ));
-
-        foreach (var group in groups)
-        {
-            var groupList = group.ToList();
-            if (groupList.Count <= 1)
-            {
-                continue;
-            }
-
-            var usedInGroup = groupList.Where(t => usedTypeIds.Contains(t.Id)).ToList();
-            var unusedInGroup = groupList.Where(t => !usedTypeIds.Contains(t.Id)).ToList();
-
-            if (usedInGroup.Count > 0)
-            {
-                // Règle : Ne pas supprimer les types déjà utilisés par un compte.
-                // Tous les exemplaires non utilisés de ce même type sont des doublons superflus.
-                toDelete.AddRange(unusedInGroup);
-            }
-            else
-            {
-                // Aucun compte n'utilise ce type : on conserve un exemplaire unique (le plus ancien)
-                // et on supprime tous les doublons excédentaires non utilisés.
-                var canonical = unusedInGroup
-                    .OrderBy(t => t.CreatedAtUtc)
-                    .ThenBy(t => t.Id)
-                    .First();
-
-                toDelete.AddRange(unusedInGroup.Where(t => t.Id != canonical.Id));
-            }
-        }
+        var toDelete = DuplicateAccountTypeSelector.SelectRemovable(allTypes, usedTypeIds);
 
         if (toDelete.Count == 0)
         {
