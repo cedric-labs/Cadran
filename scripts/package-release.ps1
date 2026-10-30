@@ -41,9 +41,6 @@ try {
     Write-Host "Creating $winZip ..." -ForegroundColor Yellow
     Compress-Archive -Path "$winPublishDir\*" -DestinationPath $winZip -CompressionLevel Optimal
 
-    $winStandaloneExe = Join-Path $DistDir "Cadran-$Version-win-x64.exe"
-    Copy-Item (Join-Path $winPublishDir "Cadran.Launcher.exe") $winStandaloneExe -Force
-
     Write-Step "3. Building Linux x64 self-contained package"
     if (Test-Path $linuxPublishDir) {
         Remove-Item -Path $linuxPublishDir -Recurse -Force
