@@ -1,10 +1,4 @@
-using System.Text.Json;
-using Ledger.Features.Accounts.Services;
-using Ledger.Features.Categories.Services;
-using Ledger.Features.Security.Models;
 using Ledger.Features.Settings.Services;
-using Ledger.Infrastructure.Configuration;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -16,6 +10,8 @@ namespace Ledger.Infrastructure.Data;
 /// </summary>
 public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSeeder> logger, TimeProvider timeProvider)
 {
+    private readonly SupportedCurrenciesSettingInitializer _currenciesSettingInitializer = new(timeProvider);
+
     /// <summary>
     /// Initialise les données de référence globales et par utilisateur (devises, polices, catégories et types de comptes).
     /// </summary>
@@ -37,57 +33,10 @@ public sealed class DatabaseReferenceDataSeeder(ILogger<DatabaseReferenceDataSee
         }
 
         // 3. Initialisation des devises configurables dans AppSettings si absent
-        var currenciesSetting = await context.AppSettings.FirstOrDefaultAsync(s => s.Key == "Currencies:Supported", cancellationToken).ConfigureAwait(false);
-        if (currenciesSetting == null)
-        {
-            context.AppSettings.Add(new AppSettingEntity
-            {
-                Key = "Currencies:Supported",
-                Value = JsonSerializer.Serialize(CurrencyService.DefaultCurrencies),
-                Description = "Liste des devises monétaires configurables du système",
-                UpdatedAtUtc = timeProvider.GetUtcNow().UtcDateTime
-            });
-            await context.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
-        }
+        await _currenciesSettingInitializer.EnsureAsync(context, cancellationToken).ConfigureAwait(false);
 
         // 4. Initialisation des catégories et données de référence par défaut pour les utilisateurs existants
-        var categorySeedService = serviceProvider.GetService<ICategorySeedService>();
-        var accountTypeService = serviceProvider.GetService<IAccountTypeService>();
-        var transactionStatusService = serviceProvider.GetService<ITransactionStatusService>();
-        var userManager = serviceProvider.GetService<UserManager<ApplicationUser>>();
-
-        // Nettoyage au démarrage des doublons non utilisés
-        if (accountTypeService != null)
-        {
-            await accountTypeService.DeduplicateAccountTypesAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        if (transactionStatusService != null)
-        {
-            await transactionStatusService.DeduplicateStatusesAsync(cancellationToken).ConfigureAwait(false);
-        }
-
-        if (userManager != null)
-        {
-            var existingUserIds = await userManager.Users.Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
-            foreach (var userId in existingUserIds)
-            {
-                if (categorySeedService != null)
-                {
-                    await categorySeedService.EnsureDefaultCategoriesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
-                }
-
-                if (accountTypeService != null)
-                {
-                    await accountTypeService.EnsureDefaultAccountTypesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
-                }
-
-                if (transactionStatusService != null)
-                {
-                    await transactionStatusService.EnsureDefaultStatusesForUserAsync(userId, cancellationToken).ConfigureAwait(false);
-                }
-            }
-        }
+        await UserReferenceDataSeeder.SeedAsync(serviceProvider, cancellationToken).ConfigureAwait(false);
 
         logger.LogInformation("Données de référence et paramètres applicatifs initialisés avec succès.");
     }
