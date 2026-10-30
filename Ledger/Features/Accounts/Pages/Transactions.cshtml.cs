@@ -125,13 +125,12 @@ public class TransactionsModel(
         var allFiltered = await query.ToListAsync(cancellationToken);
         allFiltered = await ApplyPostEvaluationFiltersAsync(allFiltered, cancellationToken);
 
-        TotalCount = allFiltered.Count;
-        TotalDebits = allFiltered.Where(t => t.Type == TransactionType.Debit).Sum(t => t.Amount);
-        TotalCredits = allFiltered.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
-        SalaryCredits = allFiltered
-            .Where(t => t.Type == TransactionType.Credit && t.Category != null && t.Category.IsSalary)
-            .Sum(t => t.Amount);
-        OtherCredits = TotalCredits - SalaryCredits;
+        var totals = TransactionTotals.Of(allFiltered);
+        TotalCount = totals.Count;
+        TotalDebits = totals.Debits;
+        TotalCredits = totals.Credits;
+        SalaryCredits = totals.SalaryCredits;
+        OtherCredits = totals.OtherCredits;
 
         await PaginateAndLoadMatchesAsync(allFiltered, cancellationToken);
 

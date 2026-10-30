@@ -164,27 +164,7 @@ public abstract class TransactionOperationsPageModelBase(
     {
         if (CategoryId.HasValue)
         {
-            if (CategoryId.Value == Guid.Empty)
-            {
-                query = query.Where(t => t.CategoryId == null);
-            }
-            else
-            {
-                var selectedCat = await DbContext.Categories
-                    .Include(c => c.SubCategories)
-                    .FirstOrDefaultAsync(c => c.Id == CategoryId.Value, cancellationToken);
-
-                if (selectedCat != null && selectedCat.SubCategories.Count > 0)
-                {
-                    var allIds = selectedCat.SubCategories.Select(s => s.Id).ToList();
-                    allIds.Add(selectedCat.Id);
-                    query = query.Where(t => t.CategoryId != null && allIds.Contains(t.CategoryId.Value));
-                }
-                else
-                {
-                    query = query.Where(t => t.CategoryId == CategoryId.Value);
-                }
-            }
+            query = await TransactionCategoryFilter.ApplyAsync(query, DbContext, CategoryId.Value, cancellationToken);
         }
 
         if (!string.IsNullOrWhiteSpace(SearchTerm))
@@ -214,31 +194,7 @@ public abstract class TransactionOperationsPageModelBase(
 
         if (AmountValue.HasValue && !string.IsNullOrWhiteSpace(AmountOperator))
         {
-            var val = AmountValue.Value;
-            switch (AmountOperator.ToLowerInvariant())
-            {
-                case "gt":
-                    query = query.Where(t => t.Amount > val);
-                    break;
-                case "gte":
-                    query = query.Where(t => t.Amount >= val);
-                    break;
-                case "lt":
-                    query = query.Where(t => t.Amount < val);
-                    break;
-                case "lte":
-                    query = query.Where(t => t.Amount <= val);
-                    break;
-                case "eq":
-                    query = query.Where(t => t.Amount == val);
-                    break;
-                case "between":
-                    var maxVal = AmountMaxValue ?? val;
-                    var minB = Math.Min(val, maxVal);
-                    var maxB = Math.Max(val, maxVal);
-                    query = query.Where(t => t.Amount >= minB && t.Amount <= maxB);
-                    break;
-            }
+            query = TransactionAmountFilter.Apply(query, AmountOperator, AmountValue.Value, AmountMaxValue);
         }
 
         return query;
