@@ -180,6 +180,31 @@ public sealed class DatabaseBackupSupervisorTests : IDisposable
     }
 
     [Fact]
+    public void ApplyRetentionPolicy_WhenModeIsBoth_PurgesExpiredThenExcessAmongRemaining()
+    {
+        var supervisor = new DatabaseBackupSupervisor(_databaseFilePath, _backupDirectoryPath, TimeProvider.System);
+        var expired = Path.Combine(_backupDirectoryPath, "cadran_backup_20260901_120000_old.db");
+        var oldestFresh = Path.Combine(_backupDirectoryPath, "cadran_backup_20261018_120000_a.db");
+        var middleFresh = Path.Combine(_backupDirectoryPath, "cadran_backup_20261019_120000_b.db");
+        var newestFresh = Path.Combine(_backupDirectoryPath, "cadran_backup_20261020_120000_c.db");
+        foreach (var (path, ageDays) in new[] { (expired, 40), (oldestFresh, 5), (middleFresh, 3), (newestFresh, 1) })
+        {
+            File.WriteAllText(path, "DUMMY");
+            File.SetCreationTimeUtc(path, DateTime.UtcNow.AddDays(-ageDays));
+        }
+
+        var options = new BackupRetentionOptions(Mode: BackupRetentionMode.Both, MaxBackupFiles: 2, MaxBackupDays: 15);
+
+        var deletedCount = supervisor.ApplyRetentionPolicy(options);
+
+        deletedCount.Should().Be(2);
+        File.Exists(expired).Should().BeFalse();
+        File.Exists(oldestFresh).Should().BeFalse();
+        File.Exists(middleFresh).Should().BeTrue();
+        File.Exists(newestFresh).Should().BeTrue();
+    }
+
+    [Fact]
     public async Task CreateBackupAsync_WhenTimeIsFixed_NamesBackupWithTimestamp()
     {
         var fixedUtc = new DateTimeOffset(2025, 3, 15, 8, 5, 9, TimeSpan.Zero);
