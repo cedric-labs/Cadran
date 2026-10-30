@@ -199,84 +199,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext, TimeProvider
             .Where(t => (t.BudgetDate ?? t.Date) >= startOfMonth && (t.BudgetDate ?? t.Date) <= endOfMonth)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        var today = timeProvider.GetLocalNow().Date;
-        var summary = new MonthlyRecurringSummaryDto
-        {
-            Year = year,
-            Month = month
-        };
-
-        // Calcul des revenus du mois
-        var creditTransactions = monthTransactions.Where(t => t.Type == TransactionType.Credit).ToList();
-        summary.TotalIncome = creditTransactions.Sum(t => t.Amount);
-        summary.SalaryIncome = creditTransactions
-            .Where(t => t.Category != null && t.Category.IsSalary)
-            .Sum(t => t.Amount);
-
-        // Suivi de chaque charge récurrente
-        var usedTxIds = new HashSet<Guid>();
-
-        foreach (var expense in activeExpenses)
-        {
-            // Vérifier si cette charge s'applique ce mois-ci selon sa fréquence
-            if (!AppliesToMonth(expense.Frequency, month))
-            {
-                continue;
-            }
-
-            // Recherche d'une transaction correspondante dans le mois
-            var match = monthTransactions
-                .Where(t => t.Type == TransactionType.Debit && !usedTxIds.Contains(t.Id))
-                .Where(t => expense.TargetBankAccountId == null || t.BankAccountId == expense.TargetBankAccountId.Value)
-                .Where(t => MatchesPattern(t.Label, t.RawLabel, expense.Pattern))
-                .Where(t => expense.MatchesAmount(t.Amount))
-                .OrderBy(t => Math.Abs(t.Amount - expense.ExpectedAmount))
-                .FirstOrDefault();
-
-            var item = new MonthlyRecurringItemDto
-            {
-                Expense = expense,
-                ExpectedAmount = expense.ExpectedAmount
-            };
-
-            if (match != null)
-            {
-                usedTxIds.Add(match.Id);
-                item.Status = RecurringMonthStatus.Debited;
-                item.ActualDebitedAmount = match.Amount;
-                item.ActualDebitedDate = match.BudgetDate ?? match.Date;
-                item.ActualTransactionId = match.Id;
-                item.ActualTransactionLabel = match.Label;
-
-                summary.TotalDebited += match.Amount;
-            }
-            else
-            {
-                // Pas encore débité : en attente ou en retard
-                var isCurrentMonth = (year == today.Year && month == today.Month);
-                var isPastMonth = (startOfMonth < new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc));
-
-                if (isPastMonth)
-                {
-                    item.Status = RecurringMonthStatus.Overdue;
-                }
-                else if (isCurrentMonth && expense.ExpectedDayOfMonth.HasValue && today.Day > expense.ExpectedDayOfMonth.Value + 3)
-                {
-                    item.Status = RecurringMonthStatus.Overdue;
-                }
-                else
-                {
-                    item.Status = RecurringMonthStatus.Pending;
-                }
-
-                summary.TotalPending += expense.ExpectedAmount;
-            }
-
-            summary.TotalExpected += expense.ExpectedAmount;
-            summary.Items.Add(item);
-        }
-
-        return summary;
+        return MonthlyRecurringSummaryBuilder.Build(year, month, timeProvider.GetLocalNow().Date, activeExpenses, monthTransactions);
     }
 
     public async Task<List<RecurringCandidateDto>> DetectCandidatesAsync(CancellationToken cancellationToken = default)
@@ -305,7 +228,7 @@ public sealed class RecurringExpenseService(AppDbContext dbContext, TimeProvider
         return new RecurringCandidateDetector(existingRules, ignoredPatterns).Detect(debits);
     }
 
-    private static bool AppliesToMonth(RecurringFrequency freq, int month)
+    internal static bool AppliesToMonth(RecurringFrequency freq, int month)
     {
         var mapped = freq switch
         {
