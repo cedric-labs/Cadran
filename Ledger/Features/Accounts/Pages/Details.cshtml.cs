@@ -60,12 +60,7 @@ public class DetailsModel(
 
     public async Task<IActionResult> OnGetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var defaultPeriod = await UiSettingsService.GetDefaultPeriodAsync(cancellationToken);
-        var defaultPageSize = await UiSettingsService.GetTransactionsPageSizeAsync(cancellationToken);
-        int fallbackPageSize = defaultPageSize > 0 ? defaultPageSize : 50;
-        EffectivePageSize = PageSize is > 0 ? PageSize.Value : fallbackPageSize;
-        MaxTransactionsLimit = EffectivePageSize;
-        ShowKpiCents = await UiSettingsService.GetShowKpiCentsAsync(cancellationToken);
+        var defaultPeriod = await LoadListingSettingsAsync(cancellationToken);
 
         var resolvedPeriod = BudgetPeriodCalculator.ResolvePeriod(Period, StartDate, EndDate, defaultPeriod);
         StartDate = resolvedPeriod.StartDate;

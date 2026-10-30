@@ -119,6 +119,18 @@ public abstract class TransactionOperationsPageModelBase(
         }
     }
 
+    // Retourne la période par défaut ; fixe aussi la taille de page effective (50 si le réglage est absent) et l'affichage des centimes.
+    protected async Task<string> LoadListingSettingsAsync(CancellationToken cancellationToken)
+    {
+        var defaultPeriod = await UiSettingsService.GetDefaultPeriodAsync(cancellationToken);
+        var defaultPageSize = await UiSettingsService.GetTransactionsPageSizeAsync(cancellationToken);
+        int fallbackPageSize = defaultPageSize > 0 ? defaultPageSize : 50;
+        EffectivePageSize = PageSize is > 0 ? PageSize.Value : fallbackPageSize;
+        MaxTransactionsLimit = EffectivePageSize;
+        ShowKpiCents = await UiSettingsService.GetShowKpiCentsAsync(cancellationToken);
+        return defaultPeriod;
+    }
+
     protected async Task LoadReferenceSelectorsAsync(string tableColumnsKey, Guid? accountFilterForRecurring = null, CancellationToken cancellationToken = default)
     {
         AvailableStatuses = await StatusService.GetAllStatusesAsync(cancellationToken) ?? new();

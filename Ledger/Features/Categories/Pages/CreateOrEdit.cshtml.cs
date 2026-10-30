@@ -63,16 +63,7 @@ public class CreateOrEditModel(
         Id = id;
         SupportedLanguages = languageService.GetSupportedLanguages();
 
-        AvailableParentCategories = await dbContext.Categories
-            .Where(c => c.ParentCategoryId == null && (!id.HasValue || c.Id != id.Value))
-            .OrderBy(c => c.Name)
-            .ToListAsync(cancellationToken);
-
-        CategoryTranslations = await localizedEntityService.GetTranslationsAsync(
-            "Category",
-            AvailableParentCategories.Select(c => c.Id),
-            "Name",
-            cancellationToken: cancellationToken);
+        await LoadParentCategoryOptionsAsync(id, cancellationToken);
 
         if (id.HasValue)
         {
@@ -94,16 +85,7 @@ public class CreateOrEditModel(
                 ? localizedVal
                 : cat.Name;
 
-            Input = new InputModel
-            {
-                Name = displayName,
-                TranslationsJson = JsonSerializer.Serialize(ExistingTranslations),
-                IconName = cat.IconName,
-                ColorHex = cat.ColorHex,
-                IsIncome = cat.IsIncome,
-                IsSalary = cat.IsSalary,
-                ParentCategoryId = cat.ParentCategoryId
-            };
+            Input = BuildInputFrom(cat, displayName);
         }
         else if (parentId.HasValue)
         {
@@ -129,16 +111,7 @@ public class CreateOrEditModel(
 
         if (!ModelState.IsValid)
         {
-            AvailableParentCategories = await dbContext.Categories
-                .Where(c => c.ParentCategoryId == null && (!id.HasValue || c.Id != id.Value))
-                .OrderBy(c => c.Name)
-                .ToListAsync(cancellationToken);
-
-            CategoryTranslations = await localizedEntityService.GetTranslationsAsync(
-                "Category",
-                AvailableParentCategories.Select(c => c.Id),
-                "Name",
-                cancellationToken: cancellationToken);
+            await LoadParentCategoryOptionsAsync(id, cancellationToken);
 
             ExistingTranslations = DeserializeTranslations(Input.TranslationsJson);
 
@@ -166,12 +139,7 @@ public class CreateOrEditModel(
             var cat = await dbContext.Categories.FindAsync([id.Value], cancellationToken);
             if (cat == null) return NotFound();
 
-            cat.Name = canonicalName;
-            cat.IconName = Input.IconName;
-            cat.ColorHex = Input.ColorHex;
-            cat.IsIncome = Input.IsIncome;
-            cat.IsSalary = Input.IsIncome && Input.IsSalary;
-            cat.ParentCategoryId = Input.ParentCategoryId;
+            ApplyInput(cat, canonicalName);
             targetId = cat.Id;
         }
         else
@@ -179,13 +147,9 @@ public class CreateOrEditModel(
             var cat = new Category
             {
                 UserId = string.Empty, // Injecté par SaveChangesAsync
-                Name = canonicalName,
-                IconName = Input.IconName,
-                ColorHex = Input.ColorHex,
-                IsIncome = Input.IsIncome,
-                IsSalary = Input.IsIncome && Input.IsSalary,
-                ParentCategoryId = Input.ParentCategoryId
+                Name = canonicalName
             };
+            ApplyInput(cat, canonicalName);
             dbContext.Categories.Add(cat);
             targetId = cat.Id;
         }
@@ -221,5 +185,44 @@ public class CreateOrEditModel(
             // Repli gracieux : un JSON de traductions corrompu retourne un dictionnaire vide pour éviter de bloquer l'édition
             return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
+    }
+
+    private async Task LoadParentCategoryOptionsAsync(Guid? editedCategoryId, CancellationToken cancellationToken)
+    {
+        AvailableParentCategories = await dbContext.Categories
+            .Where(c => c.ParentCategoryId == null && (!editedCategoryId.HasValue || c.Id != editedCategoryId.Value))
+            .OrderBy(c => c.Name)
+            .ToListAsync(cancellationToken);
+
+        CategoryTranslations = await localizedEntityService.GetTranslationsAsync(
+            "Category",
+            AvailableParentCategories.Select(c => c.Id),
+            "Name",
+            cancellationToken: cancellationToken);
+    }
+
+    private InputModel BuildInputFrom(Category category, string displayName)
+    {
+        return new InputModel
+        {
+            Name = displayName,
+            TranslationsJson = JsonSerializer.Serialize(ExistingTranslations),
+            IconName = category.IconName,
+            ColorHex = category.ColorHex,
+            IsIncome = category.IsIncome,
+            IsSalary = category.IsSalary,
+            ParentCategoryId = category.ParentCategoryId
+        };
+    }
+
+    // Une catégorie n'est un salaire que si elle est aussi un revenu.
+    private void ApplyInput(Category category, string canonicalName)
+    {
+        category.Name = canonicalName;
+        category.IconName = Input.IconName;
+        category.ColorHex = Input.ColorHex;
+        category.IsIncome = Input.IsIncome;
+        category.IsSalary = Input.IsIncome && Input.IsSalary;
+        category.ParentCategoryId = Input.ParentCategoryId;
     }
 }
