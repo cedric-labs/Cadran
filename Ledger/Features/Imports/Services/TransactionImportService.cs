@@ -1,5 +1,3 @@
-using System.Globalization;
-using System.Text.RegularExpressions;
 using Ledger.Features.Accounts.Entities;
 using Ledger.Features.Imports.Entities;
 using Ledger.Features.Imports.Strategies;
@@ -25,6 +23,9 @@ public sealed class TransactionImportService(
     ILogger<TransactionImportService> logger,
     IStringLocalizer localizer) : ITransactionImportService
 {
+    private readonly ImportResultFactory resultFactory = new(localizer);
+    private readonly ImportAccountResolver accountResolver = new(dbContext);
+    private readonly ImportTransactionScreener screener = new(dbContext, uiSettingsService, new ImportResultFactory(localizer));
 
     public async Task<ImportResultDto> ImportStatementAsync(
         Guid? bankAccountId,
@@ -39,97 +40,22 @@ public sealed class TransactionImportService(
         await fileStream.CopyToAsync(memoryStream, cancellationToken).ConfigureAwait(false);
         memoryStream.Position = 0;
 
-        // 1. Sélection de la stratégie de parsing (Pattern Strategy)
         var parser = parsers.FirstOrDefault(p => p.CanHandle(fileName, memoryStream));
         memoryStream.Position = 0;
-
         if (parser == null)
         {
-            return new ImportResultDto(false, string.Format(CultureInfo.CurrentCulture, localizer["Imports.NoCompatibleParserFound"], fileName), 0, 0, 0, 0, null);
+            return resultFactory.NoCompatibleParser(fileName);
         }
 
-        // 2. Détection de l'identifiant OFX <ACCTID> si le format est OFX
-        string? detectedOfxAcctId = null;
-        bool autoMatchedByOfx = false;
-        if (string.Equals(parser.SupportedFormat, "OFX", StringComparison.Ordinal))
+        var resolution = await accountResolver.ResolveAsync(parser, memoryStream, bankAccountId, cancellationToken).ConfigureAwait(false);
+        if (resolution.Account is not { } account)
         {
-            detectedOfxAcctId = await OfxStatementParser.ExtractOfxAccountIdAsync(memoryStream, cancellationToken).ConfigureAwait(false);
-            memoryStream.Position = 0;
-        }
-
-        BankAccount? account = null;
-
-        // Si un ACCTID est détecté dans le fichier OFX, on recherche un compte configuré avec cet identifiant
-        if (!string.IsNullOrEmpty(detectedOfxAcctId))
-        {
-            // Recherche par correspondance exacte ou normalisée (sans espaces/tirets)
-            var cleanAcctId = Regex.Replace(detectedOfxAcctId, @"[\s\-]", "", RegexOptions.None, TimeSpan.FromMilliseconds(250));
-            var allAccounts = await dbContext.BankAccounts
-                .Include(a => a.Bank)
-                .Where(a => !a.IsArchived)
-                .ToListAsync(cancellationToken).ConfigureAwait(false);
-
-            var matchedAccount = allAccounts.FirstOrDefault(a =>
-                !string.IsNullOrEmpty(a.OfxAccountId) &&
-                (string.Equals(a.OfxAccountId.Trim(), detectedOfxAcctId, StringComparison.OrdinalIgnoreCase) ||
-                 string.Equals(Regex.Replace(a.OfxAccountId, @"[\s\-]", "", RegexOptions.None, TimeSpan.FromMilliseconds(250)), cleanAcctId, StringComparison.OrdinalIgnoreCase)));
-
-            if (matchedAccount != null)
-            {
-                account = matchedAccount;
-                bankAccountId = matchedAccount.Id;
-                autoMatchedByOfx = true;
-            }
-        }
-
-        // Si non apparié par ACCTID et qu'un compte a été sélectionné manuellement
-        if (account == null && bankAccountId.HasValue && bankAccountId.Value != Guid.Empty)
-        {
-            account = await dbContext.BankAccounts
-                .Include(a => a.Bank)
-                .FirstOrDefaultAsync(a => a.Id == bankAccountId.Value, cancellationToken).ConfigureAwait(false);
-        }
-
-        // Si aucun compte n'est trouvé ou sélectionné
-        if (account == null)
-        {
-            if (!string.IsNullOrEmpty(detectedOfxAcctId))
-            {
-                return new ImportResultDto(
-                    Success: false,
-                    Message: string.Format(CultureInfo.CurrentCulture, localizer["Imports.OfxAcctIdNoMatchMessage"], detectedOfxAcctId),
-                    TotalParsed: 0,
-                    TotalImported: 0,
-                    TotalDuplicatesSkipped: 0,
-                    TotalAutoCategorized: 0,
-                    BatchId: null,
-                    DetectedOfxAcctId: detectedOfxAcctId,
-                    RequiresAccountSelection: true);
-            }
-
             var isOfx = string.Equals(parser.SupportedFormat, "OFX", StringComparison.Ordinal);
-            return new ImportResultDto(
-                Success: false,
-                Message: localizer["Imports.NoMatchingAccountFound"],
-                TotalParsed: 0,
-                TotalImported: 0,
-                TotalDuplicatesSkipped: 0,
-                TotalAutoCategorized: 0,
-                BatchId: null,
-                RequiresAccountSelection: isOfx);
+            return resultFactory.AccountSelectionRequired(resolution.DetectedOfxAcctId, isOfx);
         }
 
-        var effectiveBankAccountId = account.Id;
+        var mappingProfile = await FindMappingProfileAsync(csvProfileIdOverride ?? account.CsvMappingProfileId, cancellationToken).ConfigureAwait(false);
 
-        // 3. Récupération du profil de mapping CSV
-        CsvMappingProfile? mappingProfile = null;
-        var targetProfileId = csvProfileIdOverride ?? account.CsvMappingProfileId;
-        if (targetProfileId.HasValue)
-        {
-            mappingProfile = await dbContext.CsvMappingProfiles.FindAsync([targetProfileId.Value], cancellationToken).ConfigureAwait(false);
-        }
-
-        // 4. Exécution du parsing
         IReadOnlyList<Models.ImportedTransactionDto> parsedDtos;
         try
         {
@@ -139,199 +65,73 @@ public sealed class TransactionImportService(
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             logger.LogError(ex, "Erreur lors du parsing du relevé bancaire {FileName}", fileName);
-            return new ImportResultDto(false, string.Format(CultureInfo.CurrentCulture, localizer["Imports.FileReadError"], ex.Message), 0, 0, 0, 0, null);
+            return resultFactory.FileReadError(ex);
         }
 
         if (parsedDtos.Count == 0)
         {
-            return new ImportResultDto(true, localizer["Imports.NoValidTransactionsDetected"], 0, 0, 0, 0, null);
+            return resultFactory.NoValidTransactions();
         }
 
-        // 5. Détection intelligente des doublons
-        var minDate = parsedDtos.Min(p => p.Date).AddDays(-3);
-        var maxDate = parsedDtos.Max(p => p.Date).AddDays(3);
+        var screening = await screener.ScreenAsync(parsedDtos, account.Id, cancellationToken).ConfigureAwait(false);
 
-        var existingTransactions = await dbContext.Transactions
-            .Where(t => t.BankAccountId == effectiveBankAccountId && t.Date >= minDate && t.Date <= maxDate)
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-
-        var newTransactions = new List<Transaction>();
-        var suspectedDuplicates = new List<SuspectedDuplicateDto>();
-        int confirmedDuplicatesCount = 0;
-
-        var batchAcceptedReferences = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var batchAcceptedRows = new List<(DateTime Date, decimal Amount, TransactionType Type, string Label, HashSet<string> Tokens)>();
-
-        var existingCategories = await dbContext.Categories
-            .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase, cancellationToken).ConfigureAwait(false);
-
-        var defaultStatus = await dbContext.TransactionStatuses
-            .FirstOrDefaultAsync(s => s.IsDefault, cancellationToken).ConfigureAwait(false);
-
-        var toleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken).ConfigureAwait(false);
-
-        int indexCounter = 0;
-        foreach (var dto in parsedDtos)
-        {
-            // 1. Règle absolue : Doublon strict de référence (même fichier réimporté ou export de la même banque)
-            if (!string.IsNullOrEmpty(dto.Reference))
-            {
-                bool isDuplicateFitId = existingTransactions.Any(t => string.Equals(t.Reference, dto.Reference, StringComparison.OrdinalIgnoreCase))
-                                     || batchAcceptedReferences.Contains(dto.Reference);
-
-                if (isDuplicateFitId)
-                {
-                    confirmedDuplicatesCount++;
-                    continue;
-                }
-            }
-
-            // 2. Détection intelligente de doublon multi-sources (Même montant, date identique ou proche +/- toleranceDays jours, libellés similaires)
-            var dtoTokens = ExtractMeaningfulTokens(dto.Label, dto.RawLabel);
-
-            // Recherche parmi les opérations déjà enregistrées en base
-            var matchingExisting = existingTransactions.FirstOrDefault(t =>
-                t.Amount == dto.Amount &&
-                t.Type == dto.Type &&
-                Math.Abs((t.Date.Date - dto.Date.Date).TotalDays) <= toleranceDays &&
-                IsLabelMatching(dtoTokens, t.Label, t.RawLabel, dto.Date.Date == t.Date.Date));
-
-            // Recherche parmi les opérations acceptées plus tôt dans le même fichier
-            var matchingBatch = batchAcceptedRows.FirstOrDefault(r =>
-                r.Amount == dto.Amount &&
-                r.Type == dto.Type &&
-                Math.Abs((r.Date.Date - dto.Date.Date).TotalDays) <= toleranceDays &&
-                IsTokenSetMatching(dtoTokens, r.Tokens, dto.Date.Date == r.Date.Date));
-
-            if (matchingExisting != null || matchingBatch != default)
-            {
-                string matchDesc;
-                if (matchingExisting != null)
-                {
-                    var refSuffix = string.IsNullOrEmpty(matchingExisting.Reference) ? "" : " | " + string.Format(CultureInfo.CurrentCulture, localizer["Imports.BankRefPrefix"], matchingExisting.Reference);
-                    matchDesc = string.Format(CultureInfo.CurrentCulture, localizer["Imports.ExistingMatchDesc"], matchingExisting.Label, matchingExisting.Date.ToString("dd/MM/yyyy", CultureInfo.CurrentCulture), matchingExisting.Amount.ToString("C2", CultureInfo.CurrentCulture) + refSuffix);
-                }
-                else
-                {
-                    matchDesc = string.Format(CultureInfo.CurrentCulture, localizer["Imports.BatchMatchDesc"], matchingBatch.Label, matchingBatch.Date.ToString("dd/MM/yyyy", CultureInfo.CurrentCulture));
-                }
-
-                suspectedDuplicates.Add(new SuspectedDuplicateDto(
-                    Index: indexCounter++,
-                    Date: dto.Date,
-                    ValueDate: dto.ValueDate,
-                    Amount: dto.Amount,
-                    Type: dto.Type,
-                    Label: dto.Label,
-                    RawLabel: dto.RawLabel,
-                    ExistingMatchLabel: matchDesc,
-                    Reference: dto.Reference,
-                    CategoryName: dto.CategoryName
-                ));
-                continue;
-            }
-
-            if (!string.IsNullOrEmpty(dto.Reference))
-            {
-                batchAcceptedReferences.Add(dto.Reference);
-            }
-            batchAcceptedRows.Add((dto.Date, dto.Amount, dto.Type, dto.Label, dtoTokens));
-
-            Guid? directCategoryId = null;
-            if (!string.IsNullOrEmpty(dto.CategoryName) && existingCategories.TryGetValue(dto.CategoryName, out var foundCatId))
-            {
-                directCategoryId = foundCatId;
-            }
-
-            var transaction = new Transaction
-            {
-                UserId = string.Empty, // Auto-rempli par SaveChangesAsync
-                BankAccountId = effectiveBankAccountId,
-                Date = dto.Date,
-                ValueDate = dto.ValueDate,
-                Amount = dto.Amount,
-                Type = dto.Type,
-                Status = defaultStatus?.Code switch
-                {
-                    "Pending" => TransactionStatus.Pending,
-                    "Reconciled" => TransactionStatus.Reconciled,
-                    _ => TransactionStatus.Cleared
-                },
-                CustomStatusId = defaultStatus?.Id,
-                Label = dto.Label,
-                RawLabel = dto.RawLabel,
-                Reference = dto.Reference,
-                CategoryId = directCategoryId
-            };
-
-            newTransactions.Add(transaction);
-        }
-
-        // 6. Application du Moteur de Règles de catégorisation automatique pour les transactions non encore catégorisées
-        var uncategorized = newTransactions.Where(t => t.CategoryId == null).ToList();
+        // Seules les opérations non catégorisées par le fichier passent par le moteur de règles
+        var uncategorized = screening.NewTransactions.Where(t => t.CategoryId == null).ToList();
         await rulesEngineService.ApplyRulesToTransactionsAsync(uncategorized, cancellationToken).ConfigureAwait(false);
-        int totalCategorized = newTransactions.Count(t => t.CategoryId != null);
+        var totalCategorized = screening.NewTransactions.Count(t => t.CategoryId != null);
 
-        // 7. Enregistrement en base de données et traçabilité
+        var batch = await SaveBatchAsync(account.Id, fileName, parser.SupportedFormat, parsedDtos.Count, screening, totalCategorized, cancellationToken).ConfigureAwait(false);
+        return resultFactory.Success(parsedDtos.Count, screening, totalCategorized, batch.Id, account, resolution);
+    }
+
+    private async Task<CsvMappingProfile?> FindMappingProfileAsync(Guid? profileId, CancellationToken cancellationToken)
+    {
+        if (profileId is not { } id)
+        {
+            return null;
+        }
+
+        return await dbContext.CsvMappingProfiles.FindAsync([id], cancellationToken).ConfigureAwait(false);
+    }
+
+    private async Task<ImportBatch> SaveBatchAsync(
+        Guid bankAccountId,
+        string fileName,
+        string format,
+        int totalParsed,
+        ImportScreening screening,
+        int totalCategorized,
+        CancellationToken cancellationToken)
+    {
         var batch = new ImportBatch
         {
             UserId = string.Empty,
-            BankAccountId = effectiveBankAccountId,
+            BankAccountId = bankAccountId,
             FileName = fileName,
-            Format = parser.SupportedFormat,
-            TotalParsed = parsedDtos.Count,
-            TotalImported = newTransactions.Count,
-            TotalDuplicatesSkipped = confirmedDuplicatesCount + suspectedDuplicates.Count,
+            Format = format,
+            TotalParsed = totalParsed,
+            TotalImported = screening.NewTransactions.Count,
+            TotalDuplicatesSkipped = screening.ConfirmedDuplicatesCount + screening.SuspectedDuplicates.Count,
             TotalAutoCategorized = totalCategorized
         };
 
+        // Le lot est enregistré en premier pour obtenir l'identifiant que les opérations référencent.
         dbContext.ImportBatches.Add(batch);
         await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
 
-        foreach (var tx in newTransactions)
+        if (screening.NewTransactions.Count == 0)
         {
-            tx.ImportBatchId = batch.Id;
+            return batch;
         }
 
-        if (newTransactions.Count > 0)
+        foreach (var transaction in screening.NewTransactions)
         {
-            dbContext.Transactions.AddRange(newTransactions);
-            await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            transaction.ImportBatchId = batch.Id;
         }
 
-        string accountName = $"{account.Bank?.Name} - {account.Name}";
-        string message;
-        if (autoMatchedByOfx)
-        {
-            message = string.Format(CultureInfo.CurrentCulture, localizer["Imports.OfxAutoMatchedMessage"], accountName, detectedOfxAcctId);
-        }
-        else
-        {
-            message = string.Format(CultureInfo.CurrentCulture, localizer["Imports.AccountImportMessage"], accountName);
-        }
-
-        if (suspectedDuplicates.Count > 0)
-        {
-            message += string.Format(CultureInfo.CurrentCulture, localizer["Imports.ImportWithDuplicatesMessage"], newTransactions.Count, suspectedDuplicates.Count);
-        }
-        else
-        {
-            message += string.Format(CultureInfo.CurrentCulture, localizer["Imports.ImportSuccessMessage"], newTransactions.Count, confirmedDuplicatesCount, totalCategorized);
-        }
-
-        return new ImportResultDto(
-            Success: true,
-            Message: message,
-            TotalParsed: parsedDtos.Count,
-            TotalImported: newTransactions.Count,
-            TotalDuplicatesSkipped: confirmedDuplicatesCount,
-            TotalAutoCategorized: totalCategorized,
-            BatchId: batch.Id,
-            SuspectedDuplicates: suspectedDuplicates,
-            DetectedOfxAcctId: detectedOfxAcctId,
-            TargetBankAccountId: effectiveBankAccountId,
-            TargetBankAccountName: accountName,
-            AutoMatchedByOfx: autoMatchedByOfx);
+        dbContext.Transactions.AddRange(screening.NewTransactions);
+        await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        return batch;
     }
 
     public async Task<int> ConfirmDuplicatesAsync(
@@ -348,44 +148,15 @@ public sealed class TransactionImportService(
         var batch = await dbContext.ImportBatches
             .FirstOrDefaultAsync(b => b.Id == batchId, cancellationToken).ConfigureAwait(false);
 
-        var existingCategories = await dbContext.Categories
+        var categoryIdsByName = await dbContext.Categories
             .ToDictionaryAsync(c => c.Name, c => c.Id, StringComparer.OrdinalIgnoreCase, cancellationToken).ConfigureAwait(false);
 
         var defaultStatus = await dbContext.TransactionStatuses
             .FirstOrDefaultAsync(s => s.IsDefault, cancellationToken).ConfigureAwait(false);
 
-        var newTransactions = new List<Transaction>();
-        foreach (var dto in confirmedDuplicates)
-        {
-            Guid? directCatId = null;
-            if (!string.IsNullOrEmpty(dto.CategoryName) && existingCategories.TryGetValue(dto.CategoryName, out var foundCatId))
-            {
-                directCatId = foundCatId;
-            }
-
-            var tx = new Transaction
-            {
-                UserId = string.Empty,
-                BankAccountId = bankAccountId,
-                Date = dto.Date,
-                ValueDate = dto.ValueDate,
-                Amount = dto.Amount,
-                Type = dto.Type,
-                Status = defaultStatus?.Code switch
-                {
-                    "Pending" => TransactionStatus.Pending,
-                    "Reconciled" => TransactionStatus.Reconciled,
-                    _ => TransactionStatus.Cleared
-                },
-                CustomStatusId = defaultStatus?.Id,
-                Label = dto.Label,
-                RawLabel = dto.RawLabel,
-                Reference = dto.Reference,
-                CategoryId = directCatId,
-                ImportBatchId = batchId
-            };
-            newTransactions.Add(tx);
-        }
+        var newTransactions = confirmedDuplicates
+            .Select(duplicate => ImportedTransactionFactory.Create(duplicate, bankAccountId, batchId, defaultStatus, categoryIdsByName))
+            .ToList();
 
         int categorizedCount = await rulesEngineService.ApplyRulesToTransactionsAsync(newTransactions, cancellationToken).ConfigureAwait(false);
 
@@ -549,9 +320,6 @@ public sealed class TransactionImportService(
 
     private static HashSet<string> ExtractMeaningfulTokens(string? label, string? rawLabel) =>
         StatementForge.Analysis.StatementLabelAnalyzer.ExtractMeaningfulTokens(label, rawLabel);
-
-    private static bool IsLabelMatching(HashSet<string> dtoTokens, string? existingLabel, string? existingRawLabel, bool sameDate) =>
-        StatementForge.Analysis.StatementLabelAnalyzer.IsLabelMatching(dtoTokens, existingLabel, existingRawLabel, sameDate);
 
     private static bool IsTokenSetMatching(HashSet<string> tokensA, HashSet<string> tokensB, bool sameDate) =>
         StatementForge.Analysis.StatementLabelAnalyzer.IsTokenSetMatching(tokensA, tokensB, sameDate);
