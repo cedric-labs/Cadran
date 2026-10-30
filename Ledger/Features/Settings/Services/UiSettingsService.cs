@@ -280,72 +280,7 @@ public sealed class UiSettingsService(
         var existingCount = await dbContext.UiFonts.CountAsync(cancellationToken).ConfigureAwait(false);
         if (existingCount == 0)
         {
-            var defaultFonts = new List<UiFont>
-            {
-                new()
-                {
-                    Name = "Inter",
-                    FontFamilyCss = "'Inter', system-ui, -apple-system, sans-serif",
-                    GoogleFontUrl = null,
-                    IsActive = true,
-                    IsSystem = true,
-                    DisplayOrder = 1
-                },
-                new()
-                {
-                    Name = "Système (Défaut OS)",
-                    FontFamilyCss = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-                    GoogleFontUrl = null,
-                    IsActive = false,
-                    IsSystem = true,
-                    DisplayOrder = 2
-                },
-                new()
-                {
-                    Name = "Roboto",
-                    FontFamilyCss = "'Roboto', system-ui, sans-serif",
-                    GoogleFontUrl = null,
-                    IsActive = false,
-                    IsSystem = true,
-                    DisplayOrder = 3
-                },
-                new()
-                {
-                    Name = "Open Sans",
-                    FontFamilyCss = "'Open Sans', system-ui, sans-serif",
-                    GoogleFontUrl = null,
-                    IsActive = false,
-                    IsSystem = true,
-                    DisplayOrder = 4
-                },
-                new()
-                {
-                    Name = "Poppins",
-                    FontFamilyCss = "'Poppins', system-ui, sans-serif",
-                    GoogleFontUrl = null,
-                    IsActive = false,
-                    IsSystem = true,
-                    DisplayOrder = 5
-                },
-                new()
-                {
-                    Name = "Plus Jakarta Sans",
-                    FontFamilyCss = "'Plus Jakarta Sans', system-ui, sans-serif",
-                    GoogleFontUrl = null,
-                    IsActive = false,
-                    IsSystem = true,
-                    DisplayOrder = 6
-                },
-                new()
-                {
-                    Name = "Fira Sans",
-                    FontFamilyCss = "'Fira Sans', system-ui, sans-serif",
-                    GoogleFontUrl = null,
-                    IsActive = false,
-                    IsSystem = true,
-                    DisplayOrder = 7
-                }
-            };
+            var defaultFonts = DefaultUiFontCatalog.Create();
 
             await dbContext.UiFonts.AddRangeAsync(defaultFonts, cancellationToken).ConfigureAwait(false);
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
