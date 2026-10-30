@@ -207,92 +207,8 @@ public sealed class TransactionImportService(
             .OrderBy(t => t.Date)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        var groups = new List<ExistingDuplicateGroupDto>();
-        var processed = new HashSet<Guid>();
-
-        // 1. Passe 1 : Détection des doublons sur le même jour (Date exacte, même Montant et Type)
-        var byExactDateAmount = transactions
-            .GroupBy(t => (t.Date.Date, t.Amount, t.Type));
-
-        foreach (var grp in byExactDateAmount)
-        {
-            if (grp.Count() <= 1) continue;
-
-            var list = grp.Where(t => !processed.Contains(t.Id)).ToList();
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (processed.Contains(list[i].Id)) continue;
-
-                var cluster = new List<Transaction> { list[i] };
-                var tokensI = ExtractMeaningfulTokens(list[i].Label, list[i].RawLabel);
-
-                for (int j = i + 1; j < list.Count; j++)
-                {
-                    if (processed.Contains(list[j].Id)) continue;
-
-                    var tokensJ = ExtractMeaningfulTokens(list[j].Label, list[j].RawLabel);
-                    if (IsTokenSetMatching(tokensI, tokensJ, sameDate: true))
-                    {
-                        cluster.Add(list[j]);
-                        processed.Add(list[j].Id);
-                    }
-                }
-
-                if (cluster.Count > 1)
-                {
-                    processed.Add(list[i].Id);
-                    var key = $"{grp.Key.Date:yyyyMMdd}_{grp.Key.Amount}_{grp.Key.Type}_{cluster[0].Id}";
-                    groups.Add(new ExistingDuplicateGroupDto(key, grp.Key.Date, grp.Key.Amount, grp.Key.Type, cluster));
-                }
-            }
-        }
-
-        // 2. Passe 2 : Détection des doublons potentiels à dates proches selon la tolérance configurée en base (ou minimum 5 jours)
         var toleranceDays = await uiSettingsService.GetDuplicateToleranceDaysAsync(cancellationToken).ConfigureAwait(false);
-        var clusterTolerance = Math.Max(toleranceDays, 5);
-
-        var byAmountAndType = transactions
-            .Where(t => !processed.Contains(t.Id))
-            .GroupBy(t => (t.Amount, t.Type));
-
-        foreach (var grp in byAmountAndType)
-        {
-            if (grp.Count() <= 1) continue;
-
-            var list = grp.OrderBy(t => t.Date).ToList();
-            for (int i = 0; i < list.Count; i++)
-            {
-                if (processed.Contains(list[i].Id)) continue;
-
-                var cluster = new List<Transaction> { list[i] };
-                var tokensI = ExtractMeaningfulTokens(list[i].Label, list[i].RawLabel);
-
-                for (int j = i + 1; j < list.Count; j++)
-                {
-                    if (processed.Contains(list[j].Id)) continue;
-
-                    var daysDiff = Math.Abs((list[j].Date.Date - list[i].Date.Date).TotalDays);
-                    if (daysDiff <= clusterTolerance)
-                    {
-                        var tokensJ = ExtractMeaningfulTokens(list[j].Label, list[j].RawLabel);
-                        if (IsTokenSetMatching(tokensI, tokensJ, sameDate: false))
-                        {
-                            cluster.Add(list[j]);
-                            processed.Add(list[j].Id);
-                        }
-                    }
-                }
-
-                if (cluster.Count > 1)
-                {
-                    processed.Add(list[i].Id);
-                    var key = $"{cluster[0].Date:yyyyMMdd}_{grp.Key.Amount}_{grp.Key.Type}_{cluster[0].Id}";
-                    groups.Add(new ExistingDuplicateGroupDto(key, cluster[0].Date, grp.Key.Amount, grp.Key.Type, cluster));
-                }
-            }
-        }
-
-        return groups.OrderByDescending(g => g.Date).ToList();
+        return ExistingDuplicateDetector.Detect(transactions, toleranceDays);
     }
 
     public async Task<int> DeleteExistingDuplicatesAsync(
@@ -317,10 +233,4 @@ public sealed class TransactionImportService(
 
         return toDelete.Count;
     }
-
-    private static HashSet<string> ExtractMeaningfulTokens(string? label, string? rawLabel) =>
-        StatementForge.Analysis.StatementLabelAnalyzer.ExtractMeaningfulTokens(label, rawLabel);
-
-    private static bool IsTokenSetMatching(HashSet<string> tokensA, HashSet<string> tokensB, bool sameDate) =>
-        StatementForge.Analysis.StatementLabelAnalyzer.IsTokenSetMatching(tokensA, tokensB, sameDate);
 }
