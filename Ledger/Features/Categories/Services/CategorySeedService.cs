@@ -109,13 +109,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
             .Where(c => c.UserId == userId)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
-        var existingCatIds = existingCategories.Select(c => c.Id).ToHashSet();
-        var allCategoryTranslations = await dbContext.EntityTranslations
-            .Where(t => t.EntityType == "Category")
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-        var existingTranslations = allCategoryTranslations
-            .Where(t => existingCatIds.Contains(t.EntityId))
-            .ToList();
+        var existingTranslations = await LoadCategoryTranslationsAsync(existingCategories.Select(c => c.Id).ToHashSet(), cancellationToken).ConfigureAwait(false);
 
         var plan = new DefaultCategoryRestorePlan(userId, timeProvider.GetUtcNow().UtcDateTime, existingTranslations);
         var parents = existingCategories.Where(c => c.ParentCategoryId == null).ToList();
@@ -159,86 +153,13 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
 
     private async Task EnsureMissingTranslationsAsync(List<Category> categories, CancellationToken cancellationToken)
     {
-        var categoryIds = categories.Select(c => c.Id).ToHashSet();
-        var allCategoryTranslations = await dbContext.EntityTranslations
-            .Where(t => t.EntityType == "Category")
-            .ToListAsync(cancellationToken).ConfigureAwait(false);
-        var existingTranslations = allCategoryTranslations
-            .Where(t => categoryIds.Contains(t.EntityId))
-            .ToList();
+        var existingTranslations = await LoadCategoryTranslationsAsync(categories.Select(c => c.Id).ToHashSet(), cancellationToken).ConfigureAwait(false);
 
-        var existingMap = existingTranslations
-            .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}:{t.Field.ToLowerInvariant()}")
-            .ToHashSet(StringComparer.Ordinal);
-
-        var templates = GetDefaultCategoryTemplates();
-        var flatTemplates = new List<CategoryTemplateDto>();
-        void CollectTemplates(CategoryTemplateDto tpl)
-        {
-            flatTemplates.Add(tpl);
-            foreach (var sub in tpl.SubCategories)
-            {
-                CollectTemplates(sub);
-            }
-        }
-
-        foreach (var parent in templates)
-        {
-            CollectTemplates(parent);
-        }
-
-        var translationsToAdd = new List<EntityTranslation>();
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-
-        foreach (var cat in categories)
-        {
-            if (string.IsNullOrWhiteSpace(cat.Name))
-            {
-                continue;
-            }
-
-            var matchingTemplate = flatTemplates.FirstOrDefault(tpl => CategoryTemplateMatcher.Matches(cat, tpl, existingTranslations));
-            if (matchingTemplate != null)
-            {
-                foreach (var (lang, text) in matchingTemplate.Translations)
-                {
-                    if (!string.IsNullOrWhiteSpace(text))
-                    {
-                        var key = $"{cat.Id}:{lang.ToLowerInvariant()}:name";
-                        if (!existingMap.Contains(key))
-                        {
-                            translationsToAdd.Add(new EntityTranslation
-                            {
-                                EntityType = "Category",
-                                EntityId = cat.Id,
-                                LanguageCode = lang.ToLowerInvariant(),
-                                Field = "Name",
-                                Translation = text,
-                                CreatedAtUtc = now
-                            });
-                            existingMap.Add(key);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                var frKey = $"{cat.Id}:fr:name";
-                if (!existingMap.Contains(frKey))
-                {
-                    translationsToAdd.Add(new EntityTranslation
-                    {
-                        EntityType = "Category",
-                        EntityId = cat.Id,
-                        LanguageCode = "fr",
-                        Field = "Name",
-                        Translation = cat.Name,
-                        CreatedAtUtc = now
-                    });
-                    existingMap.Add(frKey);
-                }
-            }
-        }
+        var translationsToAdd = MissingCategoryTranslationPlanner.Plan(
+            categories,
+            existingTranslations,
+            GetDefaultCategoryTemplates(),
+            timeProvider.GetUtcNow().UtcDateTime);
 
         if (translationsToAdd.Count > 0)
         {
@@ -246,5 +167,16 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             logger.LogInformation("{Count} traductions de catégories manquantes ont été ajoutées.", translationsToAdd.Count);
         }
+    }
+
+    private async Task<List<EntityTranslation>> LoadCategoryTranslationsAsync(HashSet<Guid> categoryIds, CancellationToken cancellationToken)
+    {
+        var allCategoryTranslations = await dbContext.EntityTranslations
+            .Where(t => t.EntityType == "Category")
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+        return allCategoryTranslations
+            .Where(t => categoryIds.Contains(t.EntityId))
+            .ToList();
     }
 }
