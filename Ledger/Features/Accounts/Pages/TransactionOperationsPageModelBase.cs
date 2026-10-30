@@ -355,92 +355,44 @@ public abstract class TransactionOperationsPageModelBase(
             }
         }
 
-        Guid? targetMerchantId = merchantId;
-        if (!string.IsNullOrWhiteSpace(newMerchantName))
-        {
-            var createdMerchant = await MerchantService.GetOrCreateByNameAsync(newMerchantName.Trim(), cancellationToken: cancellationToken);
-            targetMerchantId = createdMerchant.Id;
-        }
-        else if (merchantId.HasValue && merchantId.Value == Guid.Empty)
-        {
-            targetMerchantId = null;
-        }
-
-        Merchant? updatedMerchant = null;
-        if (targetMerchantId.HasValue)
-        {
-            updatedMerchant = await MerchantService.GetByIdAsync(targetMerchantId.Value, cancellationToken);
-        }
+        var targetMerchantId = await ResolveTargetMerchantIdAsync(merchantId, newMerchantName, cancellationToken);
+        var updatedMerchant = targetMerchantId.HasValue
+            ? await MerchantService.GetByIdAsync(targetMerchantId.Value, cancellationToken)
+            : null;
 
         transaction.BudgetDate = budgetDate;
         transaction.Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+        await new TransactionStatusApplier(StatusService).ApplyAsync(transaction, statusId, status, cancellationToken);
 
-        if (statusId.HasValue && statusId.Value != Guid.Empty)
+        var recipients = applyToSimilarLabels && !string.IsNullOrWhiteSpace(transaction.Label)
+            ? await DbContext.Transactions.Where(t => t.Label == transaction.Label).ToListAsync(cancellationToken)
+            : [transaction];
+        foreach (var recipient in recipients)
         {
-            var customStatus = await StatusService.GetByIdAsync(statusId.Value, cancellationToken);
-            if (customStatus != null)
-            {
-                transaction.CustomStatusId = customStatus.Id;
-                transaction.CustomStatus = customStatus;
-                if (!string.IsNullOrEmpty(customStatus.Code) && Enum.TryParse<TransactionStatus>(customStatus.Code, out var enumStatus))
-                {
-                    transaction.Status = enumStatus;
-                }
-            }
-        }
-        else if (status.HasValue)
-        {
-            transaction.Status = status.Value;
-        }
-
-        if (applyToSimilarLabels && !string.IsNullOrWhiteSpace(transaction.Label))
-        {
-            var label = transaction.Label;
-            var similarTransactions = await DbContext.Transactions
-                .Where(t => t.Label == label)
-                .ToListAsync(cancellationToken);
-
-            foreach (var t in similarTransactions)
-            {
-                t.CategoryId = targetCategoryId;
-                t.MerchantId = targetMerchantId;
-            }
-        }
-        else
-        {
-            transaction.CategoryId = targetCategoryId;
-            transaction.MerchantId = targetMerchantId;
+            recipient.CategoryId = targetCategoryId;
+            recipient.MerchantId = targetMerchantId;
         }
 
         await DbContext.SaveChangesAsync(cancellationToken);
 
         if (IsJsonRequest())
         {
-            var isShifted = transaction.BudgetDate.HasValue &&
-                (transaction.BudgetDate.Value.Year != transaction.Date.Year || transaction.BudgetDate.Value.Month != transaction.Date.Month);
-
-            return new JsonResult(new
-            {
-                success = true,
-                categoryId = targetCategoryId,
-                categoryName = updatedCategory?.Name ?? "Non catégorisé",
-                categoryIcon = updatedCategory?.IconName ?? "bi-tag",
-                categoryColor = updatedCategory?.ColorHex ?? "#6c757d",
-                merchantId = targetMerchantId,
-                merchantName = updatedMerchant?.Name ?? "",
-                budgetDate = transaction.BudgetDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                budgetDateStr = transaction.BudgetDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                isShifted,
-                budgetBadgeText = (isShifted && transaction.BudgetDate.HasValue) ? transaction.BudgetDate.Value.ToString("MM/yyyy", CultureInfo.CurrentCulture) : null,
-                notes = transaction.Notes,
-                statusId = transaction.CustomStatusId,
-                statusDisplayName = transaction.GetStatusDisplayName(),
-                statusColorHex = transaction.GetStatusColorHex(),
-                statusIconClass = transaction.GetStatusIconClass()
-            });
+            return new JsonResult(CategoryUpdateResponseFactory.Create(
+                transaction, targetCategoryId, updatedCategory, targetMerchantId, updatedMerchant));
         }
 
         return RedirectToRefererOrDefault(transaction);
+    }
+
+    private async Task<Guid?> ResolveTargetMerchantIdAsync(Guid? merchantId, string? newMerchantName, CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(newMerchantName))
+        {
+            var createdMerchant = await MerchantService.GetOrCreateByNameAsync(newMerchantName.Trim(), cancellationToken: cancellationToken);
+            return createdMerchant.Id;
+        }
+
+        return merchantId == Guid.Empty ? null : merchantId;
     }
 
     public async Task<IActionResult> OnPostUpdateStatusAsync(Guid transactionId, Guid statusId, CancellationToken cancellationToken = default)
