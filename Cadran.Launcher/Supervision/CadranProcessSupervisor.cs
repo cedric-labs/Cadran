@@ -79,20 +79,7 @@ public sealed class CadranProcessSupervisor(
 
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = applicationExecutablePath,
-                WorkingDirectory = workingDirectory,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
-
-            startInfo.EnvironmentVariables["Server__Port"] = port.ToString(CultureInfo.InvariantCulture);
-            startInfo.EnvironmentVariables["ASPNETCORE_URLS"] = ServerUrl;
-            // Ne pas ouvrir le navigateur depuis Kestrel lui-même car le superviseur s'en charge selon les paramètres de l'UI
-            startInfo.EnvironmentVariables["Server__AutoLaunchBrowser"] = "false";
+            var startInfo = ServerProcessStartInfoFactory.Create(applicationExecutablePath, workingDirectory, port, ServerUrl);
 
             var process = new Process
             {
@@ -100,36 +87,7 @@ public sealed class CadranProcessSupervisor(
                 EnableRaisingEvents = true
             };
 
-            _isServerListening = false;
-
-            process.OutputDataReceived += (_, args) =>
-            {
-                if (args.Data is not null)
-                {
-                    var level = LogEntry.ParseLogLevel(args.Data);
-                    EmitLog(level, args.Data);
-
-                    if (args.Data.Contains("Now listening on", StringComparison.OrdinalIgnoreCase) ||
-                        args.Data.Contains("Application started", StringComparison.OrdinalIgnoreCase))
-                    {
-                        _isServerListening = true;
-                    }
-                }
-            };
-
-            process.ErrorDataReceived += (_, args) =>
-            {
-                if (args.Data is not null)
-                {
-                    EmitLog(LogLevel.Error, args.Data);
-                }
-            };
-
-            process.Exited += (_, _) =>
-            {
-                State = ProcessState.Stopped;
-                EmitLog(LogLevel.Information, "Le processus serveur s'est arrêté.");
-            };
+            AttachProcessEventHandlers(process);
 
             if (!process.Start())
             {
@@ -160,6 +118,40 @@ public sealed class CadranProcessSupervisor(
             EmitLog(LogLevel.Critical, $"Erreur inattendue au démarrage du processus : {ex.Message}");
             return false;
         }
+    }
+
+    private void AttachProcessEventHandlers(Process process)
+    {
+        _isServerListening = false;
+
+        process.OutputDataReceived += (_, args) =>
+        {
+            if (args.Data is not null)
+            {
+                var level = LogEntry.ParseLogLevel(args.Data);
+                EmitLog(level, args.Data);
+
+                if (args.Data.Contains("Now listening on", StringComparison.OrdinalIgnoreCase) ||
+                    args.Data.Contains("Application started", StringComparison.OrdinalIgnoreCase))
+                {
+                    _isServerListening = true;
+                }
+            }
+        };
+
+        process.ErrorDataReceived += (_, args) =>
+        {
+            if (args.Data is not null)
+            {
+                EmitLog(LogLevel.Error, args.Data);
+            }
+        };
+
+        process.Exited += (_, _) =>
+        {
+            State = ProcessState.Stopped;
+            EmitLog(LogLevel.Information, "Le processus serveur s'est arrêté.");
+        };
     }
 
     /// <inheritdoc />
