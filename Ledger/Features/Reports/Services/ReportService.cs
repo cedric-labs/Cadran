@@ -183,39 +183,30 @@ public sealed class ReportService(
             case "KpiExpenses":
                 KpiWidgetFiller.FillExpenses(result, transactions, periodLabel);
                 break;
-
             case "KpiIncome":
                 KpiWidgetFiller.FillIncome(result, transactions, periodLabel);
                 break;
-
             case "KpiSavings":
                 KpiWidgetFiller.FillSavings(result, transactions, periodLabel);
                 break;
-
             case "KpiRemainingToLive":
                 await FillRemainingToLiveAsync(result, cancellationToken).ConfigureAwait(false);
                 break;
-
             case "ChartDoughnutExpenses":
                 ComputeCategoryDoughnut(result, transactions, TransactionType.Debit, catTranslations);
                 break;
-
             case "ChartDoughnutIncome":
                 ComputeCategoryDoughnut(result, transactions, TransactionType.Credit, catTranslations);
                 break;
-
             case "ChartBarMonthly":
                 await ComputeMonthlyComparisonBarAsync(result).ConfigureAwait(false);
                 break;
-
             case "ChartLineSavings":
                 await ComputeCumulativeSavingsLineAsync(result).ConfigureAwait(false);
                 break;
-
             case "TopExpensesList":
                 ComputeTopExpensesList(result, transactions, catTranslations, config.TopCount);
                 break;
-
             case "RecurringGauges":
                 await FillRecurringGaugesAsync(result, cancellationToken).ConfigureAwait(false);
                 break;

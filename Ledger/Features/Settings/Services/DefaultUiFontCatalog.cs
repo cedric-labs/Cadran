@@ -12,71 +12,28 @@ internal static class DefaultUiFontCatalog
     /// </summary>
     public static List<UiFont> Create()
     {
-        return new List<UiFont>
+        return
+        [
+            SystemFont("Inter", "'Inter', system-ui, -apple-system, sans-serif", displayOrder: 1, isActive: true),
+            SystemFont("Système (Défaut OS)", "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif", displayOrder: 2),
+            SystemFont("Roboto", "'Roboto', system-ui, sans-serif", displayOrder: 3),
+            SystemFont("Open Sans", "'Open Sans', system-ui, sans-serif", displayOrder: 4),
+            SystemFont("Poppins", "'Poppins', system-ui, sans-serif", displayOrder: 5),
+            SystemFont("Plus Jakarta Sans", "'Plus Jakarta Sans', system-ui, sans-serif", displayOrder: 6),
+            SystemFont("Fira Sans", "'Fira Sans', system-ui, sans-serif", displayOrder: 7)
+        ];
+    }
+
+    private static UiFont SystemFont(string name, string fontFamilyCss, int displayOrder, bool isActive = false)
+    {
+        return new UiFont
         {
-            new()
-            {
-                Name = "Inter",
-                FontFamilyCss = "'Inter', system-ui, -apple-system, sans-serif",
-                GoogleFontUrl = null,
-                IsActive = true,
-                IsSystem = true,
-                DisplayOrder = 1
-            },
-            new()
-            {
-                Name = "Système (Défaut OS)",
-                FontFamilyCss = "system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
-                GoogleFontUrl = null,
-                IsActive = false,
-                IsSystem = true,
-                DisplayOrder = 2
-            },
-            new()
-            {
-                Name = "Roboto",
-                FontFamilyCss = "'Roboto', system-ui, sans-serif",
-                GoogleFontUrl = null,
-                IsActive = false,
-                IsSystem = true,
-                DisplayOrder = 3
-            },
-            new()
-            {
-                Name = "Open Sans",
-                FontFamilyCss = "'Open Sans', system-ui, sans-serif",
-                GoogleFontUrl = null,
-                IsActive = false,
-                IsSystem = true,
-                DisplayOrder = 4
-            },
-            new()
-            {
-                Name = "Poppins",
-                FontFamilyCss = "'Poppins', system-ui, sans-serif",
-                GoogleFontUrl = null,
-                IsActive = false,
-                IsSystem = true,
-                DisplayOrder = 5
-            },
-            new()
-            {
-                Name = "Plus Jakarta Sans",
-                FontFamilyCss = "'Plus Jakarta Sans', system-ui, sans-serif",
-                GoogleFontUrl = null,
-                IsActive = false,
-                IsSystem = true,
-                DisplayOrder = 6
-            },
-            new()
-            {
-                Name = "Fira Sans",
-                FontFamilyCss = "'Fira Sans', system-ui, sans-serif",
-                GoogleFontUrl = null,
-                IsActive = false,
-                IsSystem = true,
-                DisplayOrder = 7
-            }
+            Name = name,
+            FontFamilyCss = fontFamilyCss,
+            GoogleFontUrl = null,
+            IsActive = isActive,
+            IsSystem = true,
+            DisplayOrder = displayOrder
         };
     }
 }
