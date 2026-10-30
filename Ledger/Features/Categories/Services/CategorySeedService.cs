@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
@@ -118,167 +117,33 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
             .Where(t => existingCatIds.Contains(t.EntityId))
             .ToList();
 
-        var existingParents = existingCategories.Where(c => c.ParentCategoryId == null).ToList();
-        var existingSubsByParent = existingCategories
+        var plan = new DefaultCategoryRestorePlan(userId, timeProvider.GetUtcNow().UtcDateTime, existingTranslations);
+        var parents = existingCategories.Where(c => c.ParentCategoryId == null).ToList();
+        var subsByParent = existingCategories
             .Where(c => c.ParentCategoryId.HasValue)
             .GroupBy(c => c.ParentCategoryId.GetValueOrDefault())
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        var now = timeProvider.GetUtcNow().UtcDateTime;
-        var categoriesToAdd = new List<Category>();
-        var translationsToAdd = new List<EntityTranslation>();
-        var existingTranslationsMap = existingTranslations
-            .Select(t => $"{t.EntityId}:{t.LanguageCode.ToLowerInvariant()}:{t.Field.ToLowerInvariant()}")
-            .ToHashSet(StringComparer.Ordinal);
-
-        int restoredCount = 0;
-
         foreach (var parentTemplate in templates)
         {
-            var matchingParent = existingParents.FirstOrDefault(p => MatchesTemplate(p, parentTemplate, existingTranslations));
-            Category parentCategory;
+            var parent = plan.Apply(parentTemplate, parents, parentCategoryId: null);
 
-            if (matchingParent == null)
+            if (!subsByParent.TryGetValue(parent.Id, out var subs))
             {
-                parentCategory = new Category
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    Name = parentTemplate.GetDefaultName(),
-                    ColorHex = parentTemplate.ColorHex,
-                    IconName = parentTemplate.IconName,
-                    IsIncome = parentTemplate.IsIncome,
-                    IsSalary = false,
-                    ParentCategoryId = null,
-                    CreatedAtUtc = now
-                };
-                categoriesToAdd.Add(parentCategory);
-                existingParents.Add(parentCategory);
-                restoredCount++;
-
-                foreach (var (lang, text) in parentTemplate.Translations)
-                {
-                    if (!string.IsNullOrWhiteSpace(text))
-                    {
-                        translationsToAdd.Add(new EntityTranslation
-                        {
-                            EntityType = "Category",
-                            EntityId = parentCategory.Id,
-                            LanguageCode = lang.ToLowerInvariant(),
-                            Field = "Name",
-                            Translation = text,
-                            CreatedAtUtc = now
-                        });
-                        existingTranslationsMap.Add($"{parentCategory.Id}:{lang.ToLowerInvariant()}:name");
-                    }
-                }
-            }
-            else
-            {
-                parentCategory = matchingParent;
-                foreach (var (lang, text) in parentTemplate.Translations)
-                {
-                    if (!string.IsNullOrWhiteSpace(text))
-                    {
-                        var key = $"{parentCategory.Id}:{lang.ToLowerInvariant()}:name";
-                        if (!existingTranslationsMap.Contains(key))
-                        {
-                            translationsToAdd.Add(new EntityTranslation
-                            {
-                                EntityType = "Category",
-                                EntityId = parentCategory.Id,
-                                LanguageCode = lang.ToLowerInvariant(),
-                                Field = "Name",
-                                Translation = text,
-                                CreatedAtUtc = now
-                            });
-                            existingTranslationsMap.Add(key);
-                        }
-                    }
-                }
-            }
-
-            if (!existingSubsByParent.TryGetValue(parentCategory.Id, out var existingSubs))
-            {
-                existingSubs = new List<Category>();
-                existingSubsByParent[parentCategory.Id] = existingSubs;
+                subs = [];
+                subsByParent[parent.Id] = subs;
             }
 
             foreach (var subTemplate in parentTemplate.SubCategories)
             {
-                var matchingSub = existingSubs.FirstOrDefault(s => MatchesTemplate(s, subTemplate, existingTranslations));
-                if (matchingSub == null)
-                {
-                    var subCategory = new Category
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        Name = subTemplate.GetDefaultName(),
-                        ColorHex = subTemplate.ColorHex,
-                        IconName = subTemplate.IconName,
-                        IsIncome = subTemplate.IsIncome,
-                        IsSalary = subTemplate.IsSalary,
-                        ParentCategoryId = parentCategory.Id,
-                        CreatedAtUtc = now
-                    };
-                    categoriesToAdd.Add(subCategory);
-                    existingSubs.Add(subCategory);
-                    restoredCount++;
-
-                    foreach (var (lang, text) in subTemplate.Translations)
-                    {
-                        if (!string.IsNullOrWhiteSpace(text))
-                        {
-                            translationsToAdd.Add(new EntityTranslation
-                            {
-                                EntityType = "Category",
-                                EntityId = subCategory.Id,
-                                LanguageCode = lang.ToLowerInvariant(),
-                                Field = "Name",
-                                Translation = text,
-                                CreatedAtUtc = now
-                            });
-                            existingTranslationsMap.Add($"{subCategory.Id}:{lang.ToLowerInvariant()}:name");
-                        }
-                    }
-                }
-                else
-                {
-                    foreach (var (lang, text) in subTemplate.Translations)
-                    {
-                        if (!string.IsNullOrWhiteSpace(text))
-                        {
-                            var key = $"{matchingSub.Id}:{lang.ToLowerInvariant()}:name";
-                            if (!existingTranslationsMap.Contains(key))
-                            {
-                                translationsToAdd.Add(new EntityTranslation
-                                {
-                                    EntityType = "Category",
-                                    EntityId = matchingSub.Id,
-                                    LanguageCode = lang.ToLowerInvariant(),
-                                    Field = "Name",
-                                    Translation = text,
-                                    CreatedAtUtc = now
-                                });
-                                existingTranslationsMap.Add(key);
-                            }
-                        }
-                    }
-                }
+                plan.Apply(subTemplate, subs, parent.Id);
             }
         }
 
-        if (categoriesToAdd.Count > 0)
-        {
-            dbContext.Categories.AddRange(categoriesToAdd);
-        }
+        dbContext.Categories.AddRange(plan.CategoriesToAdd);
+        dbContext.EntityTranslations.AddRange(plan.TranslationsToAdd);
 
-        if (translationsToAdd.Count > 0)
-        {
-            dbContext.EntityTranslations.AddRange(translationsToAdd);
-        }
-
-        if (categoriesToAdd.Count > 0 || translationsToAdd.Count > 0)
+        if (plan.CategoriesToAdd.Count > 0 || plan.TranslationsToAdd.Count > 0)
         {
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
@@ -286,10 +151,10 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
         logger.LogInformation(
             "Restauration des catégories terminée pour {UserId} : {RestoredCount} catégories ajoutées, {TransCount} traductions.",
             userId,
-            restoredCount,
-            translationsToAdd.Count);
+            plan.CategoriesToAdd.Count,
+            plan.TranslationsToAdd.Count);
 
-        return restoredCount;
+        return plan.CategoriesToAdd.Count;
     }
 
     private async Task EnsureMissingTranslationsAsync(List<Category> categories, CancellationToken cancellationToken)
@@ -332,7 +197,7 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
                 continue;
             }
 
-            var matchingTemplate = flatTemplates.FirstOrDefault(tpl => MatchesTemplate(cat, tpl, existingTranslations));
+            var matchingTemplate = flatTemplates.FirstOrDefault(tpl => CategoryTemplateMatcher.Matches(cat, tpl, existingTranslations));
             if (matchingTemplate != null)
             {
                 foreach (var (lang, text) in matchingTemplate.Translations)
@@ -381,46 +246,5 @@ public class CategorySeedService(AppDbContext dbContext, ILogger<CategorySeedSer
             await dbContext.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             logger.LogInformation("{Count} traductions de catégories manquantes ont été ajoutées.", translationsToAdd.Count);
         }
-    }
-
-    private static bool MatchesTemplate(Category category, CategoryTemplateDto template, List<EntityTranslation> existingTranslations)
-    {
-        var normalizedCategoryName = NormalizeString(category.Name);
-        var categoryNames = existingTranslations
-            .Where(t => t.EntityId == category.Id && string.Equals(t.Field, "Name", StringComparison.OrdinalIgnoreCase))
-            .Select(t => NormalizeString(t.Translation))
-            .ToHashSet(StringComparer.Ordinal);
-
-        categoryNames.Add(normalizedCategoryName);
-
-        return template.Translations.Values.Any(templateTranslation =>
-            categoryNames.Contains(NormalizeString(templateTranslation)));
-    }
-
-    private static string NormalizeString(string? text)
-    {
-        if (string.IsNullOrWhiteSpace(text))
-        {
-            return string.Empty;
-        }
-
-        return StripAccents(text.Trim()).ToLowerInvariant();
-    }
-
-    private static string StripAccents(string text)
-    {
-        var normalizedString = text.Normalize(NormalizationForm.FormD);
-        var stringBuilder = new StringBuilder(text.Length);
-
-        foreach (var c in normalizedString)
-        {
-            var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
-            if (unicodeCategory != UnicodeCategory.NonSpacingMark)
-            {
-                stringBuilder.Append(c);
-            }
-        }
-
-        return stringBuilder.ToString().Normalize(NormalizationForm.FormC);
     }
 }

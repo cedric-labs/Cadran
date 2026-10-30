@@ -194,6 +194,24 @@ public sealed class CategorySeedServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task RestoreDefaultCategories_WhenTranslationsWereLost_ReAddsThemWithoutCreatingCategories()
+    {
+        // Arrange
+        await _service.EnsureDefaultCategoriesForUserAsync(TestUserId);
+        var initialTranslations = await _context.EntityTranslations.CountAsync();
+        _context.EntityTranslations.RemoveRange(_context.EntityTranslations);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var restored = await _service.RestoreDefaultCategoriesAsync(TestUserId);
+
+        // Assert
+        Assert.Equal(0, restored);
+        Assert.Equal(initialTranslations, await _context.EntityTranslations.CountAsync());
+        Assert.Equal(115, await _context.Categories.IgnoreQueryFilters().Where(c => c.UserId == TestUserId).CountAsync());
+    }
+
+    [Fact]
     public void CategoryTemplateDto_GetDefaultName_CoversAllFallbackBranches()
     {
         // 1. "fr" présent et non-vide
