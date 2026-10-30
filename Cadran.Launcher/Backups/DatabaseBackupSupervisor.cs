@@ -157,34 +157,7 @@ public sealed class DatabaseBackupSupervisor(string databaseFilePath, string bac
             .OrderByDescending(f => f.CreationTimeUtc)
             .ToList();
 
-        var filesToDelete = new HashSet<FileInfo>();
-
-        // Éviction par ancienneté
-        if (normalizedOptions.Mode is BackupRetentionMode.Days or BackupRetentionMode.Both)
-        {
-            var cutoffDate = timeProvider.GetUtcNow().AddDays(-normalizedOptions.MaxBackupDays);
-            foreach (var file in backupFiles)
-            {
-                if (new DateTimeOffset(file.CreationTimeUtc, TimeSpan.Zero) < cutoffDate)
-                {
-                    filesToDelete.Add(file);
-                }
-            }
-        }
-
-        // Éviction par nombre de fichiers
-        if (normalizedOptions.Mode is BackupRetentionMode.FileCount or BackupRetentionMode.Both)
-        {
-            var remainingAfterDateFilter = backupFiles.Where(f => !filesToDelete.Contains(f)).ToList();
-            if (remainingAfterDateFilter.Count > normalizedOptions.MaxBackupFiles)
-            {
-                var excess = remainingAfterDateFilter.Skip(normalizedOptions.MaxBackupFiles);
-                foreach (var file in excess)
-                {
-                    filesToDelete.Add(file);
-                }
-            }
-        }
+        var filesToDelete = ExpiredBackupSelector.Select(backupFiles, normalizedOptions, timeProvider.GetUtcNow());
 
         var deletedCount = 0;
         foreach (var file in filesToDelete)
