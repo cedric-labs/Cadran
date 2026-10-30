@@ -118,7 +118,6 @@ public class CreateOrEditModel(
             return Page();
         }
 
-        // Récupérer les traductions soumises
         var submittedTranslations = DeserializeTranslations(Input.TranslationsJson);
 
         // S'assurer que la langue courante contient bien la valeur du champ principal
@@ -156,8 +155,7 @@ public class CreateOrEditModel(
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
-        // Enregistrer les traductions multilingues dynamiques (toutes langues envoyées ou supportées)
-        // Mettre à jour chaque langue présente dans le dictionnaire soumis
+        // Enregistrer les traductions multilingues : chaque langue présente dans le dictionnaire soumis est mise à jour
         foreach (var (langCode, val) in submittedTranslations)
         {
             if (!string.IsNullOrWhiteSpace(langCode))

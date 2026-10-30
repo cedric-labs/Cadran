@@ -77,15 +77,7 @@ public class DetailsModel(
             return NotFound();
         }
 
-        if (Account.CustomAccountType != null)
-        {
-            LocalizedAccountTypeName = await LocalizedEntityService.GetTranslationAsync(
-                "CustomAccountType",
-                Account.CustomAccountType.Id,
-                "Name",
-                Account.CustomAccountType.Name,
-                cancellationToken: cancellationToken);
-        }
+        await LoadLocalizedAccountTypeNameAsync(Account, cancellationToken);
 
         BalanceSummary = await balanceService.GetAccountBalanceAsync(id, cancellationToken);
 
@@ -121,6 +113,19 @@ public class DetailsModel(
         await PaginateAndLoadMatchesAsync(allFiltered, cancellationToken);
 
         return Page();
+    }
+
+    private async Task LoadLocalizedAccountTypeNameAsync(BankAccount account, CancellationToken cancellationToken)
+    {
+        if (account.CustomAccountType != null)
+        {
+            LocalizedAccountTypeName = await LocalizedEntityService.GetTranslationAsync(
+                "CustomAccountType",
+                account.CustomAccountType.Id,
+                "Name",
+                account.CustomAccountType.Name,
+                cancellationToken: cancellationToken);
+        }
     }
 
     public string GetPageUrl(int page)
