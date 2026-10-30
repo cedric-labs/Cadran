@@ -197,42 +197,19 @@ public sealed class ReportService(
         switch (widget.WidgetType)
         {
             case "KpiExpenses":
-                var totalExp = transactions.Where(t => t.Type == TransactionType.Debit).Sum(t => t.Amount);
-                result.KpiValue = totalExp;
-                result.KpiFormattedValue = totalExp.ToString("C2", CultureInfo.CurrentCulture);
-                result.KpiSubtext = periodLabel;
-                result.KpiIcon = "bi-arrow-down-circle";
-                result.KpiColor = "#ef4444";
+                KpiWidgetFiller.FillExpenses(result, transactions, periodLabel);
                 break;
 
             case "KpiIncome":
-                var totalInc = transactions.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
-                result.KpiValue = totalInc;
-                result.KpiFormattedValue = totalInc.ToString("C2", CultureInfo.CurrentCulture);
-                result.KpiSubtext = periodLabel;
-                result.KpiIcon = "bi-arrow-up-circle";
-                result.KpiColor = "#10b981";
+                KpiWidgetFiller.FillIncome(result, transactions, periodLabel);
                 break;
 
             case "KpiSavings":
-                var exp = transactions.Where(t => t.Type == TransactionType.Debit).Sum(t => t.Amount);
-                var inc = transactions.Where(t => t.Type == TransactionType.Credit).Sum(t => t.Amount);
-                var net = inc - exp;
-                result.KpiValue = net;
-                result.KpiFormattedValue = (net >= 0 ? "+" : "") + net.ToString("C2", CultureInfo.CurrentCulture);
-                result.KpiSubtext = periodLabel;
-                result.KpiIcon = "bi-piggy-bank";
-                result.KpiColor = net >= 0 ? "#10b981" : "#ef4444";
+                KpiWidgetFiller.FillSavings(result, transactions, periodLabel);
                 break;
 
             case "KpiRemainingToLive":
-                var now = timeProvider.GetLocalNow().Date;
-                var summaryR = await recurringService.GetMonthlySummaryAsync(now.Year, now.Month, cancellationToken).ConfigureAwait(false);
-                result.KpiValue = summaryR.EstimatedRemainingToLive;
-                result.KpiFormattedValue = summaryR.EstimatedRemainingToLive.ToString("C2", CultureInfo.CurrentCulture);
-                result.KpiSubtext = string.Format(CultureInfo.CurrentCulture, localizer["Reports.IncomeMinusFixedExpenses"], summaryR.TotalIncome.ToString("C0", CultureInfo.CurrentCulture), summaryR.TotalExpected.ToString("C0", CultureInfo.CurrentCulture));
-                result.KpiIcon = "bi-cash-coin";
-                result.KpiColor = summaryR.EstimatedRemainingToLive >= 0 ? "#3b82f6" : "#f59e0b";
+                await FillRemainingToLiveAsync(result, cancellationToken).ConfigureAwait(false);
                 break;
 
             case "ChartDoughnutExpenses":
@@ -256,17 +233,33 @@ public sealed class ReportService(
                 break;
 
             case "RecurringGauges":
-                var today = timeProvider.GetLocalNow().Date;
-                var monthlyRec = await recurringService.GetMonthlySummaryAsync(today.Year, today.Month, cancellationToken).ConfigureAwait(false);
-                result.RecurringExpected = monthlyRec.TotalExpected;
-                result.RecurringDebited = monthlyRec.TotalDebited;
-                result.RecurringPending = monthlyRec.TotalPending;
-                result.RecurringProgressPercent = monthlyRec.ProgressPercentage;
-                result.KpiSubtext = $"{monthlyRec.Items.Count(i => i.Status == Recurring.Models.RecurringMonthStatus.Debited)}/{monthlyRec.Items.Count} {localizer["Reports.DebitedSoFar"]}";
+                await FillRecurringGaugesAsync(result, cancellationToken).ConfigureAwait(false);
                 break;
         }
 
         return result;
+    }
+
+    private async Task FillRemainingToLiveAsync(WidgetDataDto result, CancellationToken cancellationToken)
+    {
+        var now = timeProvider.GetLocalNow().Date;
+        var summary = await recurringService.GetMonthlySummaryAsync(now.Year, now.Month, cancellationToken).ConfigureAwait(false);
+        result.KpiValue = summary.EstimatedRemainingToLive;
+        result.KpiFormattedValue = summary.EstimatedRemainingToLive.ToString("C2", CultureInfo.CurrentCulture);
+        result.KpiSubtext = string.Format(CultureInfo.CurrentCulture, localizer["Reports.IncomeMinusFixedExpenses"], summary.TotalIncome.ToString("C0", CultureInfo.CurrentCulture), summary.TotalExpected.ToString("C0", CultureInfo.CurrentCulture));
+        result.KpiIcon = "bi-cash-coin";
+        result.KpiColor = summary.EstimatedRemainingToLive >= 0 ? "#3b82f6" : "#f59e0b";
+    }
+
+    private async Task FillRecurringGaugesAsync(WidgetDataDto result, CancellationToken cancellationToken)
+    {
+        var today = timeProvider.GetLocalNow().Date;
+        var monthly = await recurringService.GetMonthlySummaryAsync(today.Year, today.Month, cancellationToken).ConfigureAwait(false);
+        result.RecurringExpected = monthly.TotalExpected;
+        result.RecurringDebited = monthly.TotalDebited;
+        result.RecurringPending = monthly.TotalPending;
+        result.RecurringProgressPercent = monthly.ProgressPercentage;
+        result.KpiSubtext = $"{monthly.Items.Count(i => i.Status == Recurring.Models.RecurringMonthStatus.Debited)}/{monthly.Items.Count} {localizer["Reports.DebitedSoFar"]}";
     }
 
     private void ComputeCategoryDoughnut(WidgetDataDto result, List<Transaction> transactions, TransactionType type, Dictionary<Guid, string> catTranslations)
