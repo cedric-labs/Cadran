@@ -163,51 +163,9 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
         IReadOnlyDictionary<Guid, string> categoryNames,
         PivotQueryDto query)
     {
-        var categoryMap = allCategories.ToDictionary(c => c.Id);
-        var uncategorizedLabel = localizer["Common.Uncategorized"].Value ?? "Sans catégorie";
-
-        var topLevelCategories = allCategories.Where(c => !c.ParentCategoryId.HasValue).ToList();
-        var rowsByParentKey = new Dictionary<string, PivotRowDto>(StringComparer.Ordinal);
-
-        foreach (var topCat in topLevelCategories)
-        {
-            var key = topCat.Id.ToString();
-            var label = categoryNames.TryGetValue(topCat.Id, out var n) ? n : topCat.Name;
-            rowsByParentKey[key] = new PivotRowDto
-            {
-                RowKey = key,
-                Label = label,
-                IsIncome = topCat.IsIncome,
-                IconName = topCat.IconName ?? "bi-tag",
-                ColorHex = topCat.ColorHex ?? "#64748b",
-                CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
-                CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
-                CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
-                CellIsCredit = columns.ToDictionary(c => c.Key, _ => topCat.IsIncome, StringComparer.Ordinal)
-            };
-        }
-
-        var uncatKey = "uncategorized";
-        rowsByParentKey[uncatKey] = new PivotRowDto
-        {
-            RowKey = uncatKey,
-            Label = uncategorizedLabel,
-            IsIncome = false,
-            IconName = "bi-question-circle",
-            ColorHex = "#94a3b8",
-            CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
-            CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
-            CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
-            CellIsCredit = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal)
-        };
-
-        var subRowsDict = new Dictionary<string, PivotRowDto>(StringComparer.Ordinal);
-        var thirdRowsDict = new Dictionary<string, PivotRowDto>(StringComparer.Ordinal);
-
-        var parentCatIdsWithChildren = allCategories
-            .Where(c => c.ParentCategoryId.HasValue)
-            .Select(c => c.ParentCategoryId.GetValueOrDefault())
-            .ToHashSet();
+        var topRows = CreateTopLevelCategoryRows(columns, allCategories, categoryNames);
+        var resolver = new CategoryPlacementResolver(allCategories, categoryNames, localizer["Common.General"].Value ?? "Général");
+        var tree = new CategoryPivotTree(columns);
 
         foreach (var t in transactions)
         {
@@ -217,221 +175,67 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                 continue;
             }
 
-            string parentKey;
-            string? childKey = null;
-            string? childLabel = null;
-            string? childIcon = null;
-            string? childColor = null;
-            bool? isChildIncome = null;
-
-            if (!t.CategoryId.HasValue || !categoryMap.TryGetValue(t.CategoryId.Value, out var cat))
-            {
-                parentKey = uncatKey;
-            }
-            else if (cat.ParentCategoryId.HasValue && categoryMap.TryGetValue(cat.ParentCategoryId.Value, out var parentCat))
-            {
-                parentKey = parentCat.Id.ToString();
-                childKey = cat.Id.ToString();
-                childLabel = categoryNames.TryGetValue(cat.Id, out var cn) ? cn : cat.Name;
-                childIcon = cat.IconName ?? parentCat.IconName ?? "bi-tag";
-                childColor = cat.ColorHex ?? parentCat.ColorHex ?? "#64748b";
-                isChildIncome = cat.IsIncome;
-            }
-            else
-            {
-                parentKey = cat.Id.ToString();
-                if (parentCatIdsWithChildren.Contains(cat.Id))
-                {
-                    childKey = $"{parentKey}__direct";
-                    childLabel = $"{categoryNames.GetValueOrDefault(cat.Id, cat.Name)} ({localizer["Common.General"].Value ?? "Général"})";
-                    childIcon = cat.IconName ?? "bi-tag";
-                    childColor = cat.ColorHex ?? "#64748b";
-                    isChildIncome = cat.IsIncome;
-                }
-            }
-
-            if (!rowsByParentKey.TryGetValue(parentKey, out var parentRow))
+            var placement = resolver.Resolve(t);
+            if (!topRows.TryGetValue(placement.ParentKey, out var parentRow))
             {
                 continue;
             }
 
-            bool isAnomaly = false;
-            decimal delta;
-            if (parentRow.IsIncome)
-            {
-                if (t.Type == TransactionType.Credit)
-                {
-                    delta = t.Amount;
-                }
-                else
-                {
-                    delta = -t.Amount;
-                    isAnomaly = true;
-                }
-            }
-            else
-            {
-                if (t.Type == TransactionType.Debit)
-                {
-                    delta = t.Amount;
-                }
-                else
-                {
-                    delta = -t.Amount;
-                    isAnomaly = true;
-                }
-            }
+            // Une opération de sens contraire à la catégorie (remboursement sur une dépense) vient en déduction et signale une anomalie.
+            var expectedType = parentRow.IsIncome ? TransactionType.Credit : TransactionType.Debit;
+            var isAnomaly = t.Type != expectedType;
+            var delta = isAnomaly ? -t.Amount : t.Amount;
 
-            if (isAnomaly)
-            {
-                parentRow.CellHasAnomalies[colKey] = true;
-            }
-
-            parentRow.CellValues[colKey] += delta;
-            parentRow.CellCounts[colKey] += 1;
-
-            var merchantName = !string.IsNullOrWhiteSpace(t.Merchant?.Name)
-                ? t.Merchant.Name
-                : CleanMerchant(t.Label, t.RawLabel);
-            if (string.IsNullOrWhiteSpace(merchantName))
-            {
-                merchantName = "Autre / Non identifié";
-            }
-
-            if (childKey != null)
-            {
-                if (!subRowsDict.TryGetValue(childKey, out var subRow))
-                {
-                    subRow = new PivotRowDto
-                    {
-                        RowKey = childKey,
-                        ParentRowKey = parentKey,
-                        IsSubRow = true,
-                        IsIncome = isChildIncome ?? parentRow.IsIncome,
-                        Label = childLabel ?? "Sous-catégorie",
-                        IconName = childIcon,
-                        ColorHex = childColor,
-                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
-                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
-                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
-                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => isChildIncome ?? parentRow.IsIncome, StringComparer.Ordinal)
-                    };
-                    subRowsDict[childKey] = subRow;
-                    parentRow.SubRows.Add(subRow);
-                }
-
-                if (isAnomaly)
-                {
-                    subRow.CellHasAnomalies[colKey] = true;
-                }
-
-                subRow.CellValues[colKey] += delta;
-                subRow.CellCounts[colKey] += 1;
-
-                var thirdKey = $"{childKey}__m__{merchantName}";
-                if (!thirdRowsDict.TryGetValue(thirdKey, out var thirdRow))
-                {
-                    thirdRow = new PivotRowDto
-                    {
-                        RowKey = thirdKey,
-                        ParentRowKey = childKey,
-                        IsSubRow = true,
-                        IsIncome = subRow.IsIncome,
-                        Label = merchantName,
-                        IconName = "bi-shop",
-                        ColorHex = childColor,
-                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
-                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
-                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
-                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => subRow.IsIncome, StringComparer.Ordinal)
-                    };
-                    thirdRowsDict[thirdKey] = thirdRow;
-                    subRow.SubRows.Add(thirdRow);
-                }
-
-                if (isAnomaly)
-                {
-                    thirdRow.CellHasAnomalies[colKey] = true;
-                }
-
-                thirdRow.CellValues[colKey] += delta;
-                thirdRow.CellCounts[colKey] += 1;
-            }
-            else
-            {
-                var directThirdKey = $"{parentKey}__m__{merchantName}";
-                if (!thirdRowsDict.TryGetValue(directThirdKey, out var directThirdRow))
-                {
-                    directThirdRow = new PivotRowDto
-                    {
-                        RowKey = directThirdKey,
-                        ParentRowKey = parentKey,
-                        IsSubRow = true,
-                        IsIncome = parentRow.IsIncome,
-                        Label = merchantName,
-                        IconName = "bi-shop",
-                        ColorHex = parentRow.ColorHex,
-                        CellValues = columns.ToDictionary(c => c.Key, _ => 0m, StringComparer.Ordinal),
-                        CellCounts = columns.ToDictionary(c => c.Key, _ => 0, StringComparer.Ordinal),
-                        CellHasAnomalies = columns.ToDictionary(c => c.Key, _ => false, StringComparer.Ordinal),
-                        CellIsCredit = columns.ToDictionary(c => c.Key, _ => parentRow.IsIncome, StringComparer.Ordinal)
-                    };
-                    thirdRowsDict[directThirdKey] = directThirdRow;
-                    parentRow.SubRows.Add(directThirdRow);
-                }
-
-                if (isAnomaly)
-                {
-                    directThirdRow.CellHasAnomalies[colKey] = true;
-                }
-
-                directThirdRow.CellValues[colKey] += delta;
-                directThirdRow.CellCounts[colKey] += 1;
-            }
+            PivotRowFactory.Accumulate(parentRow, colKey, delta, isAnomaly);
+            tree.Add(parentRow, placement, ResolveMerchantName(t), colKey, delta, isAnomaly);
         }
 
+        return FinalizeCategoryRows(topRows.Values, columns, query.MetricType);
+    }
+
+    private Dictionary<string, PivotRowDto> CreateTopLevelCategoryRows(
+        IReadOnlyList<PivotColumnHeaderDto> columns,
+        IReadOnlyList<Category> allCategories,
+        IReadOnlyDictionary<Guid, string> categoryNames)
+    {
+        var rows = new Dictionary<string, PivotRowDto>(StringComparer.Ordinal);
+
+        foreach (var topCat in allCategories.Where(c => !c.ParentCategoryId.HasValue))
+        {
+            var key = topCat.Id.ToString();
+            var label = categoryNames.TryGetValue(topCat.Id, out var name) ? name : topCat.Name;
+            rows[key] = PivotRowFactory.Create(columns, key, label, topCat.IsIncome, topCat.IconName ?? "bi-tag", topCat.ColorHex ?? "#64748b");
+        }
+
+        var uncategorizedLabel = localizer["Common.Uncategorized"].Value ?? "Sans catégorie";
+        rows[CategoryPlacementResolver.UncategorizedKey] = PivotRowFactory.Create(
+            columns, CategoryPlacementResolver.UncategorizedKey, uncategorizedLabel, false, "bi-question-circle", "#94a3b8");
+        return rows;
+    }
+
+    private static List<PivotRowDto> FinalizeCategoryRows(
+        IEnumerable<PivotRowDto> topRows,
+        IReadOnlyList<PivotColumnHeaderDto> columns,
+        PivotMetricType metricType)
+    {
+        var colKeys = columns.Select(col => col.Key).ToList();
         int colsCount = Math.Max(1, columns.Count);
         var activeRows = new List<PivotRowDto>();
 
-        foreach (var parentRow in rowsByParentKey.Values)
+        foreach (var parentRow in topRows)
         {
-            parentRow.RowTotal = parentRow.CellValues.Values.Sum();
-            if (parentRow.RowTotal == 0 && parentRow.CellCounts.Values.Sum() == 0)
+            if (parentRow.CellValues.Values.Sum() == 0 && parentRow.CellCounts.Values.Sum() == 0)
             {
                 continue;
             }
 
-            var colKeys = columns.Select(col => col.Key).ToList();
-            foreach (var key in colKeys)
-            {
-                var v = parentRow.CellValues[key];
-                parentRow.CellIsCredit[key] = parentRow.IsIncome ? v >= 0 : v < 0;
-            }
-
-            parentRow.MonthlyAverage = Math.Round(parentRow.RowTotal / colsCount, 2);
-            ApplyMetricTransformation(parentRow, query.MetricType);
-
+            FinalizeCategoryRow(parentRow, colKeys, colsCount, metricType);
             foreach (var sub in parentRow.SubRows)
             {
-                sub.RowTotal = sub.CellValues.Values.Sum();
-                foreach (var key in colKeys)
+                FinalizeCategoryRow(sub, colKeys, colsCount, metricType);
+                foreach (var merchant in sub.SubRows)
                 {
-                    var sv = sub.CellValues[key];
-                    sub.CellIsCredit[key] = sub.IsIncome ? sv >= 0 : sv < 0;
-                }
-                sub.MonthlyAverage = Math.Round(sub.RowTotal / colsCount, 2);
-                ApplyMetricTransformation(sub, query.MetricType);
-
-                foreach (var third in sub.SubRows)
-                {
-                    third.RowTotal = third.CellValues.Values.Sum();
-                    foreach (var key in colKeys)
-                    {
-                        var tv = third.CellValues[key];
-                        third.CellIsCredit[key] = third.IsIncome ? tv >= 0 : tv < 0;
-                    }
-                    third.MonthlyAverage = Math.Round(third.RowTotal / colsCount, 2);
-                    ApplyMetricTransformation(third, query.MetricType);
+                    FinalizeCategoryRow(merchant, colKeys, colsCount, metricType);
                 }
 
                 sub.SubRows = sub.SubRows.OrderByDescending(m => m.RowTotal).ToList();
@@ -442,6 +246,27 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
         }
 
         return activeRows.OrderByDescending(r => r.RowTotal).ToList();
+    }
+
+    private static void FinalizeCategoryRow(PivotRowDto row, List<string> colKeys, int colsCount, PivotMetricType metricType)
+    {
+        row.RowTotal = row.CellValues.Values.Sum();
+        foreach (var key in colKeys)
+        {
+            var value = row.CellValues[key];
+            row.CellIsCredit[key] = row.IsIncome ? value >= 0 : value < 0;
+        }
+
+        row.MonthlyAverage = Math.Round(row.RowTotal / colsCount, 2);
+        ApplyMetricTransformation(row, metricType);
+    }
+
+    private static string ResolveMerchantName(PivotTransactionItem transaction)
+    {
+        var merchantName = !string.IsNullOrWhiteSpace(transaction.Merchant?.Name)
+            ? transaction.Merchant.Name
+            : CleanMerchant(transaction.Label, transaction.RawLabel);
+        return string.IsNullOrWhiteSpace(merchantName) ? "Autre / Non identifié" : merchantName;
     }
 
     private List<PivotRowDto> AggregateByAccount(
@@ -544,13 +369,7 @@ public sealed class PivotAggregationCalculator(IStringLocalizer localizer) : IPi
                 continue;
             }
 
-            var merchantName = !string.IsNullOrWhiteSpace(t.Merchant?.Name)
-                ? t.Merchant.Name
-                : CleanMerchant(t.Label, t.RawLabel);
-            if (string.IsNullOrWhiteSpace(merchantName))
-            {
-                merchantName = "Autre / Non identifié";
-            }
+            var merchantName = ResolveMerchantName(t);
 
             if (!rows.TryGetValue(merchantName, out var row))
             {
