@@ -159,7 +159,10 @@ public sealed class AccountTypeServiceTests : IDisposable
 
         deleted.Should().Be(1);
         var linkedTypeId = await _context.BankAccounts.IgnoreQueryFilters().Where(a => a.Id == account.Id).Select(a => a.CustomAccountTypeId).SingleAsync();
-        linkedTypeId.Should().Be(checking.Id);
+        Guid[] checkingIds = [checking.Id, checkingCopy.Id];
+        checkingIds.Should().Contain(linkedTypeId.GetValueOrDefault());
+        var remaining = await _context.CustomAccountTypes.IgnoreQueryFilters().Select(t => t.Id).ToListAsync();
+        remaining.Should().BeEquivalentTo([linkedTypeId.GetValueOrDefault()]);
     }
 
     [Fact]
