@@ -98,3 +98,7 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 - **Fins de ligne** : dépôt en LF (`core.autocrlf=true`). `Transactions.cshtml` était en CRLF avec BOM et git le voyait comme non texte (diff de tout le fichier) : converti en LF, diff réduit à 13 lignes. Les fichiers créés sont en LF. `grep $'\r'` est trompeur dans cet environnement : utiliser `od -c` ou `git diff --numstat`.
 - **Écart de méthode** : le test E2E a été écrit après l'IHM (aucun rouge préalable possible sans la modale) ; les tests unitaires ont un rouge prouvé.
 - **Lot 3** : `ManualEntryMatchFinder` (paires opération manuelle / importée), à inspirer de `Features/Imports/Services/ExistingDuplicateDetector.cs`. Python n'est pas installé : éditer avec `sed` ou l'outil Edit.
+
+### Lot 3 de la saisie manuelle (31/10/2026)
+- `ManualEntryMatchFinder` (`Features/Accounts/Services`, statique, sans accès base) et `ManualEntryMatch` : paire si compte, type et montant identiques et écart de dates ≤ tolérance ; appariement un-pour-un, meilleures paires d'abord (écart de dates, puis mots communs), le libellé ne sert qu'à départager. 12 tests (rouge prouvé : 8 échecs). `verify.ps1` : 38 + 741 + 53 E2E verts, QUALITY GATE PASSED.
+- Prochaine étape : **lot 4** (`ManualEntryMerger` : compléter les champs vides de l'importée, l'importée prévaut, supprimer la saisie ; le chargement des candidats et la tolérance viendront de `GetDuplicateToleranceDaysAsync`).
