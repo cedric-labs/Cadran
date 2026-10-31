@@ -113,3 +113,13 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 - Lot 7 : E2E `ReconcilePageTests` (état vide, fusion avec opération importée amorcée en base) et `ReconcilePage` ; section 2.5 des guides en/fr/de/es ; feuille de route passée à « Existe ».
 - `verify.ps1` : 38 + 763 + 55 E2E verts, QUALITY GATE PASSED.
 - Reste : captures de documentation (facultatif, non fait) ; `git push` non fait (sur accord). Pas de release : plusieurs `feat:` depuis `v1.2.2`, donc MINOR (1.3.0) à proposer à l'utilisateur.
+
+### Passation du 31/10/2026 (fin de la saisie manuelle)
+- **État** : `main` poussé jusqu'à `6106ebe` (lots 5 à 7 de la saisie manuelle, `verify.ps1` : 38 + 763 + 55 E2E verts, Quality Gate PASSED). Un commit **non poussé** : `03f21b3` (`fix:` MA0002, `StringComparer.Ordinal` dans `UiSettingsService`, lignes 119 et 147 ; le build en ligne de commande passait déjà, l'erreur venait de l'IDE, compilation confirmée par l'utilisateur). Seul fichier non suivi : `Cadran.Launcher/Properties/` (ne pas l'ajouter).
+- **Reste à faire** :
+  1. Sur accord : `git push origin main` (commit `03f21b3`).
+  2. Release : plusieurs `feat:` depuis `v1.2.2` ⇒ proposer **1.3.0** (MINOR) avec la liste des commits (`git log v1.2.2..HEAD --oneline`) ; ne poser ni pousser le tag, ni publier, sans accord (skill `github-release`).
+  3. Facultatif : captures de documentation (`dotnet test tests/Ledger.Tests.E2E --filter DocumentationScreenshot`, puis `scripts/refresh-doc-screenshots.ps1`, comparer avant de commiter). Ajouter si voulu des captures de l'écran `/Accounts/Reconcile`.
+- **Écarts à connaître** : `ReconcileModel` écrit sans test rouge préalable (Règle 15) ; rouge du chargeur et du lot 6 prouvé par échec de compilation seulement ; test E2E du lot 2 écrit après l'IHM.
+- **Risque résiduel faible** : `CategorySeedService.LoadCategoryTranslationsAsync` charge les traductions de tous les utilisateurs puis filtre en mémoire (voir plus haut).
+- **Pratique** : `verify.ps1` se lance en arrière-plan (≈ 8 min, E2E ≈ 4,5 min) ; ne pas modifier de fichier pendant son exécution. Le dépôt est en LF (`core.autocrlf=true`), Python absent : éditer avec `sed` ou l'outil Edit.
