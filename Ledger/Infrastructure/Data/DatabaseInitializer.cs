@@ -34,6 +34,9 @@ public static class DatabaseInitializer
             var referenceDataSeeder = new DatabaseReferenceDataSeeder(loggerFactory.CreateLogger<DatabaseReferenceDataSeeder>(), timeProvider);
             var translationSeeder = new EntityTranslationSeeder(loggerFactory.CreateLogger<EntityTranslationSeeder>());
 
+            var staleLockRemover = new StaleMigrationLockRemover(loggerFactory.CreateLogger<StaleMigrationLockRemover>(), timeProvider);
+            await staleLockRemover.RemoveIfStaleAsync(context, cancellationToken).ConfigureAwait(false);
+
             // 1. Synchronisation du schéma SQLite et tables/colonnes complémentaires
             await schemaSynchronizer.SynchronizeSchemaAsync(context, cancellationToken).ConfigureAwait(false);
 
