@@ -69,9 +69,6 @@ try {
     Write-Host "Creating $linuxTar ..." -ForegroundColor Yellow
     tar -czf $linuxTar -C $linuxPublishDir .
 
-    $linuxStandaloneBin = Join-Path $DistDir "Cadran-$Version-linux-x64"
-    Copy-Item (Join-Path $linuxPublishDir "Cadran") $linuxStandaloneBin -Force
-
     Write-Step "4. Calculating SHA256 checksums"
     $checksumFile = Join-Path $DistDir "SHA256SUMS.txt"
     $lines = @()
