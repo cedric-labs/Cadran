@@ -142,3 +142,9 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
   3. Demander à l'utilisateur de confirmer sous Linux : langue qui tient en HTTP direct ; déverrouillage sans page d'erreur avec la 1.3.2 ; installation depuis le tar.gz uniquement.
 - **Points d'attention** : le tag `v1.3.0` pointe sur `bdcf930`, avant les correctifs ; ne pas le déplacer. Un `taskkill` global de `Cadran.exe` est refusé par l'environnement : cibler le processus par chemin (`Get-Process … | Where Path`). Ne jamais ajouter `Cadran.Launcher/Properties/` aux commits. Le mot de passe de la base de l'utilisateur n'est écrit nulle part ; ne pas travailler sur ses bases réelles, seulement sur des copies temporaires supprimées ensuite.
 - **Réseau (hors dépôt)** : l'utilisateur place Cadran derrière Nginx Proxy Manager en accès interne uniquement (LAN et WireGuard) : DNS interne, certificat par challenge DNS, Access List `Interne` (LAN + sous-réseau WireGuard, puis Deny all). Rien à faire côté code.
+
+### Release 1.3.2 (31/10/2026)
+- Commits poussés (`main` à `b4882d6`, après retrait du domaine et des IP internes de cette fiche, exigé par le hook `pre-push`). Tag annoté `v1.3.2` posé et poussé sur `b4882d6`. `verify.ps1` sur ce commit : QUALITY GATE PASSED.
+- Release publiée avec le zip Windows, le tar.gz Linux et `SHA256SUMS.txt` (aucun `*.db`, `appsettings.Development.json` ni `.sonar-token` dans les archives). Notes « What's New » du script mises à jour.
+- **Reste à faire** : l'utilisateur confirme sous Linux avec le tar.gz 1.3.2 que la langue tient en HTTP direct et que le déverrouillage se fait sans page d'erreur.
+- **Point d'attention** : ne jamais écrire dans le dépôt de nom de domaine privé ni d'IP internes (hook `pre-push`).
