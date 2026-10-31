@@ -15,6 +15,9 @@
             <p class="text-muted small mb-0">@Localizer["Transactions.Subtitle"]</p>
         </div>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#manualEntryModal" data-testid="manual-entry-open">
+                <i class="bi bi-plus-lg me-1"></i> @Localizer["Accounts.ManualEntryNew"]
+            </button>
             <a href="/Imports" class="btn btn-outline-primary btn-sm">
                 <i class="bi bi-cloud-upload me-1"></i> @Localizer["Dashboard.ImportStatement"]
             </a>
@@ -29,6 +32,15 @@
             </a>
         </div>
     </div>
+
+    @if (TempData["ManualEntryResult"] is string manualEntryResult)
+    {
+        var manualEntrySucceeded = string.Equals(manualEntryResult, "Created", StringComparison.Ordinal);
+        <div class="alert @(manualEntrySucceeded ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert" data-testid="manual-entry-result">
+            @Localizer[$"Accounts.ManualEntryResult_{manualEntryResult}"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@Localizer["Common.Close"]"></button>
+        </div>
+    }
 
     <!-- Barre de filtres de recherche -->
     <div class="card shadow-sm border-0 mb-4">
@@ -833,6 +845,7 @@
 
 
 <partial name="~/Features/Accounts/Pages/_TransactionOperationsModals.cshtml" model="Model" />
+<partial name="~/Features/Accounts/Pages/_ManualEntryModal.cshtml" model="Model" />
 
 <!-- Modal Scinder l'opération (Ventilation) -->
 <div class="modal fade" id="splitTransactionModal" tabindex="-1" aria-labelledby="splitTransactionModalLabel" aria-hidden="true">

@@ -169,6 +169,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccountBalanceService, AccountBalanceService>();
 builder.Services.AddScoped<IAccountTypeService, AccountTypeService>();
 builder.Services.AddScoped<ITransactionStatusService, TransactionStatusService>();
+builder.Services.AddScoped<ManualTransactionService>();
 
 // Module Catégories & Initialisation par défaut
 builder.Services.AddScoped<Ledger.Features.Categories.Services.ICategorySeedService, Ledger.Features.Categories.Services.CategorySeedService>();

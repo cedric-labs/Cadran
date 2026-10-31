@@ -132,6 +132,44 @@ public class TransactionsModel(
         return Page();
     }
 
+    /// <summary>
+    /// Champs de la modale de saisie manuelle. Le montant reste un texte pour accepter la virgule décimale quelle que soit la culture.
+    /// </summary>
+    public sealed class ManualTransactionForm
+    {
+        public Guid BankAccountId { get; set; }
+        public DateTime? Date { get; set; }
+        public string? Label { get; set; }
+        public string? AmountText { get; set; }
+        public TransactionType Type { get; set; } = TransactionType.Debit;
+        public Guid? CategoryId { get; set; }
+        public string? Notes { get; set; }
+    }
+
+    public async Task<IActionResult> OnPostCreateTransactionAsync(
+        [FromServices] ManualTransactionService manualTransactionService,
+        [FromForm(Name = "manual")] ManualTransactionForm form,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(manualTransactionService);
+        ArgumentNullException.ThrowIfNull(form);
+
+        var request = new ManualTransactionRequest(
+            form.BankAccountId,
+            form.Date ?? default,
+            form.Label,
+            ManualAmountParser.ParseOrZero(form.AmountText),
+            form.Type,
+            form.CategoryId == Guid.Empty ? null : form.CategoryId,
+            form.Notes);
+
+        var result = await manualTransactionService.CreateAsync(request, cancellationToken);
+
+        // Le résultat est transmis par clé et non par texte : la vue le localise dans la langue de l'utilisateur.
+        TempData["ManualEntryResult"] = result.Succeeded ? "Created" : result.Error.ToString();
+        return RedirectToRefererOrDefault();
+    }
+
     public string GetPageUrl(int page)
     {
         var qs = BuildPageQueryString(page);

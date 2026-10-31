@@ -28,4 +28,23 @@ public sealed class TransactionsPageTests(AppWebTestFixture webFixture, Playwrig
         response.Status.Should().Be(StatusCodes.Status200OK);
         await Expect(page.MainHeading).ToBeVisibleAsync();
     }
+
+    [Fact]
+    public async Task ManualEntryModal_WhenDebitIsSubmitted_ShowsOperationWithManualBadge()
+    {
+        // Arrange
+        await RegisterAndSignInAsync();
+        await CreateAccountAndGetIdAsync();
+        var page = new TransactionsPage(Page);
+        await page.NavigateAsync(BaseUrl);
+
+        // Act
+        await page.CreateManualDebitAsync("Boulangerie E2E", "12,50");
+
+        // Assert
+        await Expect(page.ManualEntryResult).ToContainTextAsync("L'opération a été ajoutée.");
+        await Expect(page.ManualOriginBadges).ToHaveCountAsync(1);
+        await Expect(page.ManualOriginBadges.First).ToContainTextAsync("Saisie manuelle");
+        await Expect(Page.GetByText("Boulangerie E2E")).ToBeVisibleAsync();
+    }
 }

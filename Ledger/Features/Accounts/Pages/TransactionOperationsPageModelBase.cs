@@ -33,6 +33,9 @@ public abstract class TransactionOperationsPageModelBase(
     protected readonly Ledger.Features.Recurring.Services.IRecurringExpenseService RecurringExpenseService = recurringExpenseService;
     protected readonly ILocalizedEntityService LocalizedEntityService = localizedEntityService;
 
+    /// <summary>Date du jour au format attendu par un champ HTML de type date.</summary>
+    public string TodayInputValue => timeProvider.GetLocalNow().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
     public abstract string DefaultTableKey { get; }
     protected abstract string GetDefaultRedirectUrl(Transaction? transaction = null);
 
@@ -720,7 +723,7 @@ public abstract class TransactionOperationsPageModelBase(
                Request.Headers.Accept.ToString().Contains("application/json", StringComparison.OrdinalIgnoreCase);
     }
 
-    private RedirectResult RedirectToRefererOrDefault(Transaction? transaction = null)
+    protected RedirectResult RedirectToRefererOrDefault(Transaction? transaction = null)
     {
         var referer = Request.Headers.Referer.ToString();
         return Redirect(!string.IsNullOrEmpty(referer) ? referer : GetDefaultRedirectUrl(transaction));

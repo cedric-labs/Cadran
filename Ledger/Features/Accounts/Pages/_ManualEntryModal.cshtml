@@ -1,0 +1,76 @@
+@model Ledger.Features.Accounts.Pages.TransactionsModel
+@using Ledger.Features.Accounts.Entities
+
+<!-- Modal de saisie manuelle d'une opération -->
+<div class="modal fade" id="manualEntryModal" tabindex="-1" aria-labelledby="manualEntryModalLabel" aria-hidden="true" data-testid="manual-entry-modal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow border-0">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="manualEntryModalLabel">
+                    <i class="bi bi-pencil-square me-2 text-primary"></i>@Localizer["Accounts.ManualEntryTitle"]
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="@Localizer["Common.Close"]"></button>
+            </div>
+            <form method="post" asp-page-handler="CreateTransaction">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <p class="text-muted small">@Localizer["Accounts.ManualEntryHelp"]</p>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="manualAccount">@Localizer["Accounts.ManualEntryAccount"]</label>
+                        <select class="form-select form-select-sm" id="manualAccount" name="manual.BankAccountId" required>
+                            @foreach (var account in Model.AvailableAccounts)
+                            {
+                                <option value="@account.Id" selected="@(Model.AccountId == account.Id ? "selected" : null)">@account.Name</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold" for="manualDate">@Localizer["Accounts.ManualEntryDate"]</label>
+                            <input type="date" class="form-control form-control-sm" id="manualDate" name="manual.Date" value="@Model.TodayInputValue" required />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold" for="manualAmount">@Localizer["Accounts.ManualEntryAmount"]</label>
+                            <input type="text" inputmode="decimal" class="form-control form-control-sm" id="manualAmount" name="manual.AmountText" autocomplete="off" required />
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="manualType">@Localizer["Accounts.ManualEntryType"]</label>
+                        <select class="form-select form-select-sm" id="manualType" name="manual.Type">
+                            <option value="@((int)TransactionType.Debit)">@Localizer["Accounts.ManualEntryDebit"]</option>
+                            <option value="@((int)TransactionType.Credit)">@Localizer["Accounts.ManualEntryCredit"]</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="manualLabel">@Localizer["Accounts.ManualEntryLabel"]</label>
+                        <input type="text" class="form-control form-control-sm" id="manualLabel" name="manual.Label" maxlength="200" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold" for="manualCategory">@Localizer["Accounts.ManualEntryCategory"]</label>
+                        <select class="form-select form-select-sm" id="manualCategory" name="manual.CategoryId">
+                            <option value="">@Localizer["Accounts.Uncategorized"]</option>
+                            @foreach (var category in Model.AvailableCategories)
+                            {
+                                <option value="@category.Id">@(Model.CategoryTranslations.TryGetValue(category.Id, out var translated) ? translated : category.Name)</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-1">
+                        <label class="form-label small fw-semibold" for="manualNotes">@Localizer["Accounts.ManualEntryNotes"]</label>
+                        <textarea class="form-control form-control-sm" id="manualNotes" name="manual.Notes" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">@Localizer["Common.Cancel"]</button>
+                    <button type="submit" class="btn btn-sm btn-primary" data-testid="manual-entry-submit">@Localizer["Accounts.ManualEntrySubmit"]</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
