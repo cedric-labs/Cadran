@@ -116,7 +116,7 @@ public sealed class UiSettingsService(
     public async Task SetFontSizeAsync(string fontSize, CancellationToken cancellationToken = default)
     {
         var validSizes = new[] { "13px", "14px", "15px", "16px" };
-        if (!validSizes.Contains(fontSize))
+        if (!validSizes.Contains(fontSize, StringComparer.Ordinal))
         {
             fontSize = "14px";
         }
@@ -144,7 +144,7 @@ public sealed class UiSettingsService(
     public async Task SetDefaultPeriodAsync(string period, CancellationToken cancellationToken = default)
     {
         var validPeriods = new[] { "current-month", "two-weeks", "last-month", "three-months", "six-months", "all" };
-        if (!validPeriods.Contains(period))
+        if (!validPeriods.Contains(period, StringComparer.Ordinal))
         {
             period = "current-month";
         }
