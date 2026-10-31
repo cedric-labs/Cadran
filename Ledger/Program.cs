@@ -26,14 +26,11 @@ var builder = WebApplication.CreateBuilder(args);
 // ==============================================================================
 var serverSection = builder.Configuration.GetSection("Server");
 var configuredPort = serverSection.GetValue<int?>("Port");
-var allowNetwork = serverSection.GetValue<bool?>("AllowNetworkAccess") ?? false;
 var autoLaunchBrowser = serverSection.GetValue<bool?>("AutoLaunchBrowser") ?? false;
 
-if (configuredPort.HasValue)
+if (ServerUrlResolver.Resolve(builder.Configuration) is { } serverUrl)
 {
-    var scheme = serverSection.GetValue<string>("Scheme") ?? Uri.UriSchemeHttp;
-    var host = allowNetwork ? "0.0.0.0" : "localhost";
-    builder.WebHost.UseUrls($"{scheme}://{host}:{configuredPort.Value}");
+    builder.WebHost.UseUrls(serverUrl);
 }
 
 // ==============================================================================
