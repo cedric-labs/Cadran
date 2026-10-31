@@ -24,7 +24,8 @@ public class IndexModel(
     Ledger.Features.Settings.Services.IUiSettingsService uiSettingsService,
     IStringLocalizer localizer,
     Ledger.Infrastructure.Configuration.ILocalizedEntityService localizedEntityService,
-    ILogger<IndexModel>? logger = null) : PageModel
+    ILogger<IndexModel>? logger = null,
+    ManualEntryMatchLoader? matchLoader = null) : PageModel
 {
     private readonly ILogger<IndexModel> _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<IndexModel>.Instance;
 
@@ -40,6 +41,9 @@ public class IndexModel(
 
     public ImportResultDto? LastResult { get; set; }
     public string? SerializedSuspectedDuplicates { get; set; }
+
+    // Saisies manuelles qui ressemblent à une opération désormais importée : la fusion se fait sur l'écran de rapprochement.
+    public int PendingManualMatchCount { get; set; }
 
     // Tolérance d'écart de date pour les doublons
     public int ConfiguredToleranceDays { get; set; } = 5;
@@ -122,6 +126,11 @@ public class IndexModel(
                 await readStream.CopyToAsync(fileStream);
             }
             PendingOfxTempFile = tempFile;
+        }
+
+        if (LastResult.Success && matchLoader is not null)
+        {
+            PendingManualMatchCount = (await matchLoader.LoadAsync()).Count;
         }
 
         if (LastResult.SuspectedDuplicates != null && LastResult.SuspectedDuplicates.Count > 0)

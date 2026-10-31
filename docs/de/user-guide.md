@@ -93,6 +93,10 @@ Wenn ein Kassenbon Artikel unterschiedlicher Budgetbereiche umfasst (z. B. Leben
 
 ---
 
+### 2.5. Eine Buchung manuell erfassen und mit dem Kontoauszug abgleichen
+
+Über **Neue Buchung** im Buchungsregister lässt sich eine Buchung vor Eintreffen des Kontoauszugs erfassen. Manuelle Buchungen tragen das Kennzeichen „Manuelle Eingabe“ und lassen sich mit dem Filter **Herkunft** isolieren. Nach dem Import des Kontoauszugs **Manuelle Buchungen abgleichen** öffnen (oder dem Link im Importergebnis folgen): Jedes vorgeschlagene Paar stimmt in Konto, Typ und Betrag überein, die Daten liegen innerhalb der Duplikat-Toleranz. **Zusammenführen** behält die importierte Buchung, ergänzt deren leere Felder (Kategorie, Händler, Budgetdatum, Status, Notizen, Aufteilung) aus der manuellen Buchung und löscht diese.
+
 ## 3. Bereitstellung & Produktionsbetrieb
 
 ### 3.1. Windows-Tray-Supervisor (`Cadran.Launcher.exe`)

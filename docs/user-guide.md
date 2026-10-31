@@ -93,6 +93,10 @@ When a single store receipt contains items that belong to different budget bucke
 
 ---
 
+### 2.5. Entering a Transaction by Hand and Matching It to the Statement
+
+Use **New operation** in the transactions register to add a transaction before the statement arrives. Manual entries carry a "Manual entry" badge and can be isolated with the **Origin** filter. After importing the statement, open **Match manual entries** (or follow the link shown in the import result): each proposed pair shares account, type and amount, with dates within the duplicate tolerance. **Merge** keeps the imported transaction, fills its empty fields (category, merchant, budget date, status, notes, split) from the manual entry, then deletes the manual entry.
+
 ## 3. Deployment & Production Operations
 
 ### 3.1. Windows Tray Supervisor (`Cadran.Launcher.exe`)

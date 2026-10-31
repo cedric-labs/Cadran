@@ -106,3 +106,10 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 ### Lot 4 de la saisie manuelle (31/10/2026)
 - `ManualEntryMerger` (`Features/Accounts/Services`, scoped) : `MergeAsync(manualId, importedId)` renvoie `ManualEntryMergeResult` (`Merged`, `NotFound`, `NotManual`, `NotImported`, `Incompatible` ; rien n'est modifié en cas de refus). L'importée prévaut ; elle reçoit catégorie, marchand, date budgétaire, statut personnalisé et notes seulement s'ils sont vides. Ventilation de la saisie reportée sur l'importée si celle-ci n'en a pas, sinon supprimée. La saisie est supprimée. 11 tests (rouge prouvé : 9 échecs). `verify.ps1` : 38 + 752 + 53 E2E verts, QUALITY GATE PASSED.
 - Prochaine étape : **lot 5** (écran de rapprochement : liste des paires de `ManualEntryMatchFinder`, tolérance via `GetDuplicateToleranceDaysAsync`, action de fusion par `ManualEntryMerger`, localisation en/fr/es/de, E2E au lot 7).
+
+### Lots 5 à 7 de la saisie manuelle (31/10/2026)
+- Lot 5 (`b56ba7e`) : `ManualEntryMatchLoader` (paires via la tolérance de doublons), page `/Accounts/Reconcile` (`ReconcileModel`, action Fusionner via `ManualEntryMerger`), lien depuis le registre, clés `Accounts.Reconcile*` en en/fr/es/de. Rouge du chargeur prouvé par échec de compilation ; la page n'a pas eu de test rouge préalable.
+- Lot 6 : `IndexModel` des imports reçoit `ManualEntryMatchLoader?` (paramètre optionnel final) et expose `PendingManualMatchCount` après un import réussi ; badge `import-manual-matches` vers l'écran de rapprochement ; clé `Imports.ManualMatchesBadge` x4. Rouge prouvé (compilation).
+- Lot 7 : E2E `ReconcilePageTests` (état vide, fusion avec opération importée amorcée en base) et `ReconcilePage` ; section 2.5 des guides en/fr/de/es ; feuille de route passée à « Existe ».
+- `verify.ps1` : 38 + 763 + 55 E2E verts, QUALITY GATE PASSED.
+- Reste : captures de documentation (facultatif, non fait) ; `git push` non fait (sur accord). Pas de release : plusieurs `feat:` depuis `v1.2.2`, donc MINOR (1.3.0) à proposer à l'utilisateur.

@@ -93,6 +93,10 @@ Cuando un único recibo o ticket incluye compras pertenecientes a diferentes par
 
 ---
 
+### 2.5. Introducir una operación a mano y conciliarla con el extracto
+
+El botón **Nueva operación** del registro de operaciones añade una operación antes de que llegue el extracto. Las entradas manuales llevan la etiqueta «Entrada manual» y se aíslan con el filtro **Origen**. Tras importar el extracto, abrir **Conciliar entradas manuales** (o seguir el enlace del resultado de la importación): cada par propuesto comparte cuenta, tipo e importe, con fechas dentro de la tolerancia de duplicados. **Fusionar** conserva la operación importada, completa sus campos vacíos (categoría, comercio, fecha presupuestaria, estado, notas, desglose) con los de la entrada y elimina esta última.
+
 ## 3. Despliegue y Operaciones de Producción
 
 ### 3.1. Supervisor Windows Tray (`Cadran.Launcher.exe`)

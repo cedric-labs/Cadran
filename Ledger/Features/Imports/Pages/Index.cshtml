@@ -38,6 +38,10 @@
                             <span class="badge bg-success me-1">@string.Format(Localizer["Imports.ImportedBadge"], Model.LastResult.TotalImported)</span>
                             <span class="badge bg-secondary me-1">@string.Format(Localizer["Imports.DuplicatesSkippedBadge"], Model.LastResult.TotalDuplicatesSkipped)</span>
                             <span class="badge bg-info me-1">@string.Format(Localizer["Imports.AutoCategorizedBadge"], Model.LastResult.TotalAutoCategorized)</span>
+                            @if (Model.PendingManualMatchCount > 0)
+                            {
+                                <a href="/Accounts/Reconcile" class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle text-decoration-none" data-testid="import-manual-matches"><i class="bi bi-intersect me-1"></i>@string.Format(Localizer["Imports.ManualMatchesBadge"], Model.PendingManualMatchCount)</a>
+                            }
                             @if (Model.LastResult.AutoMatchedByOfx)
                             {
                                 <span class="badge bg-primary-subtle text-primary border border-primary-subtle"><i class="bi bi-magic me-1"></i>@Localizer["Imports.AutoMatchedAcctId"]</span>

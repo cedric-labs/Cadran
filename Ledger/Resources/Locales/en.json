@@ -284,6 +284,7 @@
     "ImportSuccess": "Import processing completed",
     "ImportFailed": "Import failed",
     "ImportedBadge": "{0} imported",
+    "ManualMatchesBadge": "{0} manual entries to match",
     "DuplicatesSkippedBadge": "{0} duplicates skipped",
     "AutoCategorizedBadge": "{0} auto-categorized",
     "AutoMatchedAcctId": "Auto-detection <ACCTID>",

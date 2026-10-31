@@ -93,6 +93,10 @@ Lorsqu'un ticket de caisse comporte des achats relevant de postes budgétaires d
 
 ---
 
+### 2.5. Saisir une opération à la main et la rapprocher du relevé
+
+Le bouton **Nouvelle opération** du registre des opérations ajoute une opération avant l'arrivée du relevé. Les saisies manuelles portent le badge « Saisie manuelle » et se isolent avec le filtre **Origine**. Après l'import du relevé, ouvrir **Rapprocher les saisies** (ou suivre le lien affiché dans le résultat de l'import) : chaque paire proposée partage le compte, le type et le montant, avec des dates dans la tolérance des doublons. **Fusionner** conserve l'opération importée, complète ses champs vides (catégorie, tiers, date budgétaire, statut, notes, ventilation) avec ceux de la saisie, puis supprime la saisie.
+
 ## 3. Déploiement & Exploitation en Production
 
 ### 3.1. Superviseur Windows Tray (`Cadran.Launcher.exe`)
