@@ -1,0 +1,84 @@
+@page "/Accounts/Reconcile"
+@model Ledger.Features.Accounts.Pages.ReconcileModel
+@using Ledger.Infrastructure.Configuration
+@{
+    ViewData["Title"] = Localizer["Accounts.ReconcileTitle"].Value;
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-4 max-w-6xl">
+    <div class="mb-4">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb small mb-1">
+                <li class="breadcrumb-item"><a href="/Accounts" class="text-decoration-none">@Localizer["Nav.Accounts"]</a></li>
+                <li class="breadcrumb-item"><a href="/Transactions" class="text-decoration-none">@Localizer["Nav.Transactions"]</a></li>
+                <li class="breadcrumb-item active" aria-current="page">@Localizer["Accounts.ReconcileTitle"]</li>
+            </ol>
+        </nav>
+        <h1 class="h3 fw-bold mb-1"><i class="bi bi-intersect text-primary me-2"></i>@Localizer["Accounts.ReconcileTitle"]</h1>
+        <p class="text-muted small mb-0">@Localizer["Accounts.ReconcileSubtitle"]</p>
+    </div>
+
+    @if (TempData["ReconcileResult"] is string reconcileResult)
+    {
+        var merged = string.Equals(reconcileResult, "Merged", StringComparison.Ordinal);
+        <div class="alert @(merged ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert" data-testid="reconcile-result">
+            @Localizer[$"Accounts.ReconcileResult_{reconcileResult}"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="@Localizer["Common.Close"]"></button>
+        </div>
+    }
+
+    @if (Model.Matches.Count == 0)
+    {
+        <div class="card shadow-sm border-0">
+            <div class="card-body text-center text-muted py-5" data-testid="reconcile-empty">
+                <i class="bi bi-check2-circle fs-2 d-block mb-2"></i>
+                @Localizer["Accounts.ReconcileEmpty"]
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" data-testid="reconcile-table">
+                    <thead class="table-light small">
+                        <tr>
+                            <th>@Localizer["Accounts.ReconcileManual"]</th>
+                            <th>@Localizer["Accounts.ReconcileImported"]</th>
+                            <th class="text-end">@Localizer["Accounts.ManualEntryAmount"]</th>
+                            <th class="text-end">@Localizer["Accounts.ReconcileGap"]</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var match in Model.Matches)
+                        {
+                            <tr data-testid="reconcile-row-@match.Manual.Id">
+                                <td>
+                                    <div class="fw-semibold">@match.Manual.Label</div>
+                                    <div class="small text-muted">@match.Manual.Date.ToString("d")</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">@match.Imported.Label</div>
+                                    <div class="small text-muted">@match.Imported.Date.ToString("d") · @match.Imported.BankAccount?.Name</div>
+                                </td>
+                                <td class="text-end">@match.Imported.Amount.ToCurrency(match.Imported.BankAccount?.Currency)</td>
+                                <td class="text-end">@match.DayGap</td>
+                                <td class="text-end">
+                                    <form method="post" asp-page-handler="Merge">
+                                        <input type="hidden" name="manualId" value="@match.Manual.Id" />
+                                        <input type="hidden" name="importedId" value="@match.Imported.Id" />
+                                        <button type="submit" class="btn btn-primary btn-sm" data-testid="reconcile-merge-@match.Manual.Id">
+                                            <i class="bi bi-intersect me-1"></i>@Localizer["Accounts.ReconcileMerge"]
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+</div>

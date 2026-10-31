@@ -171,6 +171,7 @@ builder.Services.AddScoped<IAccountTypeService, AccountTypeService>();
 builder.Services.AddScoped<ITransactionStatusService, TransactionStatusService>();
 builder.Services.AddScoped<ManualTransactionService>();
 builder.Services.AddScoped<ManualEntryMerger>();
+builder.Services.AddScoped<ManualEntryMatchLoader>();
 
 // Module Catégories & Initialisation par défaut
 builder.Services.AddScoped<Ledger.Features.Categories.Services.ICategorySeedService, Ledger.Features.Categories.Services.CategorySeedService>();
