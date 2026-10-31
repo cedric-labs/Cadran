@@ -66,3 +66,9 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 - Voir « Points d'attention » plus haut (commande `verify.ps1`, fins de ligne).
 - Scripts d'édition : écrire le script avec `Write` plutôt qu'en heredoc, les échappements `\n` et `\U` y sont altérés par le shell de l'outil.
 - Il ne reste aucune fiche de délégation ouverte ; le lot 5 est absorbé par MA0051.
+
+### Mise à jour du 31/10/2026 (suite de la reprise)
+- `git push origin main` fait (`e9f6826` en tête). Reste local : le dossier non suivi `Cadran.Launcher/Properties/`.
+- Décisions saisie manuelle prises par l'utilisateur : a) colonne enum d'origine (Import/Manuelle) avec migration et filtre ; b) écran de rapprochement dédié plus signalement à l'import ; c) fusion qui complète les champs vides de l'opération importée (l'importée prévaut).
+- Plan en lots (TDD, E2E, en/fr/es/de) : L1 enum `TransactionOrigin` + migration + filtre/badge dans le registre ; L2 création manuelle (service + modale + handler) ; L3 `ManualEntryMatchFinder` (paires candidates, inspiré d'`ExistingDuplicateDetector`) ; L4 `ManualEntryMerger` (fusion, suppression de la saisie) ; L5 écran de rapprochement ; L6 signalement à l'import ; L7 E2E, docs et captures. Plan à valider par l'utilisateur avant L1.
+
