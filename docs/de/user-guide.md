@@ -203,7 +203,7 @@ Cadran wird für Linux x64 in zwei Varianten angeboten. Beide sind vollständig 
    After=network.target
 
    [Service]
-   Type=notify
+   Type=simple
    User=cadran
    Group=cadran
    WorkingDirectory=/opt/cadran

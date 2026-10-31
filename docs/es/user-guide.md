@@ -203,7 +203,7 @@ Cadran se distribuye en dos formatos Linux x64 complementarios. Ambos son 100 % 
    After=network.target
 
    [Service]
-   Type=notify
+   Type=simple
    User=cadran
    Group=cadran
    WorkingDirectory=/opt/cadran

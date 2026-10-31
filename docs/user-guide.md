@@ -203,7 +203,7 @@ Cadran provides two distinct Linux x64 distribution formats, each tailored to sp
    After=network.target
 
    [Service]
-   Type=notify
+   Type=simple
    User=cadran
    Group=cadran
    WorkingDirectory=/opt/cadran
