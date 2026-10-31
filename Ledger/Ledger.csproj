@@ -69,7 +69,7 @@
 
   <ItemGroup>
     <PackageReference Include="StatementForge" Version="1.1.1" />
-    <PackageReference Include="SqliteForge" Version="1.1.1" />
+    <PackageReference Include="SqliteForge" Version="1.1.2" />
     <PackageReference Include="LocaleForge" Version="1.1.1" />
   </ItemGroup>
 
