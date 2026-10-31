@@ -127,3 +127,6 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 ### Mise à jour du 31/10/2026 (clôture du reste à faire)
 - `git push origin main` fait (`d4377e9`). Captures régénérées : seules celles du registre (`12-*`) sont commitées (`2ef54d1`, bouton « New operation » et filtre Origine) ; les 20 autres ne changeaient que par bruit et ont été restaurées. Pas de capture de `/Accounts/Reconcile` (non ajoutée).
 - **Release 1.3.0 non faite** : la skill `github-release` ne peut être lancée que par l'utilisateur (`/github-release`). Commits depuis `v1.2.2` : 6 `feat:`, aucun breaking ⇒ MINOR 1.3.0 validé. `2ef54d1` reste à pousser.
+
+### Release 1.3.0 (31/10/2026)
+- `verify.ps1` sur `bdcf930` : 38 + 763 + 55 E2E verts, QUALITY GATE PASSED. Tag `v1.3.0` posé et poussé, Release publiée avec le zip Windows, le tar.gz et le binaire Linux, `SHA256SUMS.txt` (aucun `*.db`, `appsettings.Development.json` ni `.sonar-token` dans les archives). Notes « What's New » du script mises à jour. Dépôts déjà publics ; topics réappliqués par le script.
