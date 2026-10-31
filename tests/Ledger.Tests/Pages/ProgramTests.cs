@@ -158,6 +158,36 @@ public class ProgramTests : IClassFixture<AppWebApplicationFactory>
     }
 
     [Fact]
+    public async Task SetLanguageEndpoint_WhenRequestIsPlainHttp_SetsCookieWithoutSecureFlag()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            BaseAddress = new Uri("http://localhost")
+        });
+
+        var response = await client.GetAsync("/SetLanguage?culture=en");
+
+        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
+        cookies.Should().Contain(c => c.Contains(".AspNetCore.Culture=") && !c.Contains("secure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task SetLanguageEndpoint_WhenRequestIsHttps_SetsCookieWithSecureFlag()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
+        {
+            AllowAutoRedirect = false,
+            BaseAddress = new Uri("https://localhost")
+        });
+
+        var response = await client.GetAsync("/SetLanguage?culture=en");
+
+        response.Headers.TryGetValues("Set-Cookie", out var cookies).Should().BeTrue();
+        cookies.Should().Contain(c => c.Contains(".AspNetCore.Culture=") && c.Contains("secure", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public async Task SetLanguageEndpoint_WhenCultureUnsupported_FallsBackToFrenchAndRoot()
     {
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions

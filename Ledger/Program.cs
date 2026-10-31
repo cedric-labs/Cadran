@@ -301,12 +301,22 @@ app.MapGet("/SetLanguage", (string culture, string? returnUrl, HttpContext httpC
 {
     var targetCulture = langSvc.IsSupported(culture) ? culture.Trim().ToLowerInvariant() : "fr";
 
+    // Le cookie ne doit être marqué Secure que si la requête l'est : un navigateur rejette un cookie Secure reçu en HTTP simple
+    // (accès direct sur le réseau local), et la langue retomberait alors systématiquement sur le français.
+    var cookieOptions = new CookieBuilder
+    {
+        Expiration = TimeSpan.FromDays(365),
+        IsEssential = true,
+        SameSite = SameSiteMode.Lax,
+        HttpOnly = true,
+        SecurePolicy = CookieSecurePolicy.SameAsRequest
+    }.Build(httpContext);
+
     httpContext.Response.Cookies.Append(
         Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.DefaultCookieName,
         Microsoft.AspNetCore.Localization.CookieRequestCultureProvider.MakeCookieValue(
             new Microsoft.AspNetCore.Localization.RequestCulture(targetCulture)),
-        new CookieOptions { Expires = DateTimeOffset.UtcNow.AddYears(1), IsEssential = true, SameSite = SameSiteMode.Lax, HttpOnly = true, Secure = true }
-    );
+        cookieOptions);
 
     return Results.LocalRedirect(string.IsNullOrEmpty(returnUrl) ? "/" : returnUrl);
 });
