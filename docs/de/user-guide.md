@@ -221,6 +221,7 @@ Cadran wird für Linux x64 in zwei Varianten angeboten. Beide sind vollständig 
    # Umgebung
    Environment=ASPNETCORE_ENVIRONMENT=Production
    Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+   Environment=XDG_DATA_HOME=/opt/cadran/data
 
    [Install]
    WantedBy=multi-user.target

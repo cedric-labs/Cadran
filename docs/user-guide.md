@@ -221,6 +221,7 @@ Cadran provides two distinct Linux x64 distribution formats, each tailored to sp
    # Environment
    Environment=ASPNETCORE_ENVIRONMENT=Production
    Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+   Environment=XDG_DATA_HOME=/opt/cadran/data
 
    [Install]
    WantedBy=multi-user.target

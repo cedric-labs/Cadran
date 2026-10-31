@@ -221,6 +221,7 @@ Cadran se distribuye en dos formatos Linux x64 complementarios. Ambos son 100 % 
    # Entorno
    Environment=ASPNETCORE_ENVIRONMENT=Production
    Environment=DOTNET_PRINT_TELEMETRY_MESSAGE=false
+   Environment=XDG_DATA_HOME=/opt/cadran/data
 
    [Install]
    WantedBy=multi-user.target
