@@ -79,3 +79,8 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 - Pour diagnostiquer un blocage : `dotnet-stack report -p <pid du testhost>` (outil global installé).
 - La base de test partagée `bin/.../data/cadran.db` n'est pas celle de la fixture (`%TEMP%\cadran_e2e_<guid>.db`, absente au moment du blocage) : comprendre quel test ou quel chemin écrit dans `data/cadran.db`.
 
+### Mise à jour du 31/10/2026 (fin de session)
+- **Lot 1 clos** : commit `3da38ad`, `verify.ps1` complet : 38 + 706 + 52 E2E verts, QUALITY GATE PASSED. Prochaine étape : **lot 2** (création manuelle : service, modale, handler ; `Origin = Manual`).
+- **Doublons de traductions : écartés.** Base `tests/Ledger.Tests.E2E/bin/Release/net9.0/data/cadran.db` après une suite E2E complète : 5,9 Mo, 26 utilisateurs, 115 catégories chacun, 12 353 traductions, **0 doublon** (groupement par type, entité, langue, champ). Les tests d'idempotence de `CategorySeedService` existent déjà. Le gonflement vient de l'accumulation d'un utilisateur par test dans cette base partagée (à comprendre : la fixture vise `%TEMP%`, mais ce fichier est écrit).
+- **Risque résiduel, faible** : `CategorySeedService.LoadCategoryTranslationsAsync` charge les traductions `Category` de **tous** les utilisateurs puis filtre en mémoire, pour chaque utilisateur amorcé au démarrage (coût quadratique en nombre d'utilisateurs). Sans effet pour une base mono-utilisateur ; filtre SQL sur les identifiants de catégories possible si besoin.
+
