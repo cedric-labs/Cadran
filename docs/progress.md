@@ -123,3 +123,7 @@ Remédier aux écarts relevés par l'audit du 29/10/2026 aux 17 règles d'or, pa
 - **Écarts à connaître** : `ReconcileModel` écrit sans test rouge préalable (Règle 15) ; rouge du chargeur et du lot 6 prouvé par échec de compilation seulement ; test E2E du lot 2 écrit après l'IHM.
 - **Risque résiduel faible** : `CategorySeedService.LoadCategoryTranslationsAsync` charge les traductions de tous les utilisateurs puis filtre en mémoire (voir plus haut).
 - **Pratique** : `verify.ps1` se lance en arrière-plan (≈ 8 min, E2E ≈ 4,5 min) ; ne pas modifier de fichier pendant son exécution. Le dépôt est en LF (`core.autocrlf=true`), Python absent : éditer avec `sed` ou l'outil Edit.
+
+### Mise à jour du 31/10/2026 (clôture du reste à faire)
+- `git push origin main` fait (`d4377e9`). Captures régénérées : seules celles du registre (`12-*`) sont commitées (`2ef54d1`, bouton « New operation » et filtre Origine) ; les 20 autres ne changeaient que par bruit et ont été restaurées. Pas de capture de `/Accounts/Reconcile` (non ajoutée).
+- **Release 1.3.0 non faite** : la skill `github-release` ne peut être lancée que par l'utilisateur (`/github-release`). Commits depuis `v1.2.2` : 6 `feat:`, aucun breaking ⇒ MINOR 1.3.0 validé. `2ef54d1` reste à pousser.
