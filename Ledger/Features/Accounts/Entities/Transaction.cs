@@ -91,6 +91,11 @@ public class Transaction : BaseEntity, IUserOwnedEntity
     public Guid? ImportBatchId { get; set; }
 
     /// <summary>
+    /// Provenance de l'opération : importée depuis un fichier bancaire ou saisie à la main.
+    /// </summary>
+    public TransactionOrigin Origin { get; set; } = TransactionOrigin.Import;
+
+    /// <summary>
     /// Indique si cette opération a été scindée / ventilée en plusieurs sous-opérations.
     /// </summary>
     public bool IsSplit { get; set; } = false;

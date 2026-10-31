@@ -7,6 +7,12 @@ public enum TransactionType
     Transfer = 2  // Virement interne entre comptes
 }
 
+public enum TransactionOrigin
+{
+    Import = 0,   // Issue d'un fichier bancaire importé
+    Manual = 1    // Saisie à la main par l'utilisateur
+}
+
 public enum TransactionStatus
 {
     Pending = 0,     // À venir / Engagée

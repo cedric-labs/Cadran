@@ -60,6 +60,9 @@ public abstract class TransactionOperationsPageModelBase(
     public TransactionType? Type { get; set; }
 
     [BindProperty(SupportsGet = true)]
+    public TransactionOrigin? Origin { get; set; }
+
+    [BindProperty(SupportsGet = true)]
     public string? AmountOperator { get; set; }
 
     [BindProperty(SupportsGet = true)]
@@ -100,6 +103,7 @@ public abstract class TransactionOperationsPageModelBase(
         StartDate.HasValue ||
         EndDate.HasValue ||
         Type.HasValue ||
+        Origin.HasValue ||
         (AmountValue.HasValue && !string.IsNullOrWhiteSpace(AmountOperator)) ||
         (!string.IsNullOrWhiteSpace(RuleFilter) && !string.Equals(RuleFilter, "all", StringComparison.Ordinal)) ||
         (!string.IsNullOrWhiteSpace(RecurringFilter) && !string.Equals(RecurringFilter, "all", StringComparison.Ordinal));
@@ -111,6 +115,7 @@ public abstract class TransactionOperationsPageModelBase(
             int count = 0;
             if (CategoryId.HasValue) count++;
             if (Type.HasValue) count++;
+            if (Origin.HasValue) count++;
             if (StartDate.HasValue || EndDate.HasValue) count++;
             if (AmountValue.HasValue && !string.IsNullOrWhiteSpace(AmountOperator)) count++;
             if (!string.IsNullOrWhiteSpace(RuleFilter) && !string.Equals(RuleFilter, "all", StringComparison.Ordinal)) count++;
@@ -202,6 +207,11 @@ public abstract class TransactionOperationsPageModelBase(
         if (Type.HasValue)
         {
             query = query.Where(t => t.Type == Type.Value);
+        }
+
+        if (Origin.HasValue)
+        {
+            query = query.Where(t => t.Origin == Origin.Value);
         }
 
         if (AmountValue.HasValue && !string.IsNullOrWhiteSpace(AmountOperator))

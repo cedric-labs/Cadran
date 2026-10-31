@@ -15,9 +15,9 @@ namespace Ledger.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "9.0.21");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.22");
 
-            modelBuilder.Entity("Ledger.Common.Domain.EntityTranslation", b =>
+            modelBuilder.Entity("Ledger.Domain.Entities.EntityTranslation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -269,6 +269,9 @@ namespace Ledger.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("Origin")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("RawLabel")
                         .HasMaxLength(500)

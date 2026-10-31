@@ -137,6 +137,54 @@ public sealed class TransactionsPageFilteringTests : IDisposable
     }
 
     [Fact]
+    public async Task OnGetAsync_WithOriginFilterManual_ReturnsOnlyManualTransactions()
+    {
+        _context.Transactions.Add(new Transaction
+        {
+            UserId = "test-user-id",
+            BankAccountId = _account1Id,
+            Date = DateTime.Today.AddDays(-1),
+            Amount = 12m,
+            Type = TransactionType.Debit,
+            Label = "Cafe saisi",
+            Origin = TransactionOrigin.Manual
+        });
+        await _context.SaveChangesAsync();
+        var unfiltered = CreateModel();
+        await unfiltered.OnGetAsync();
+        var model = CreateModel();
+        model.Origin = TransactionOrigin.Manual;
+
+        await model.OnGetAsync();
+
+        model.Transactions.Should().ContainSingle().Which.Label.Should().Be("Cafe saisi");
+        model.ActiveFilterCriteriaCount.Should().Be(unfiltered.ActiveFilterCriteriaCount + 1);
+    }
+
+    [Fact]
+    public async Task OnGetAsync_WithOriginFilterImport_ExcludesManualTransactions()
+    {
+        _context.Transactions.Add(new Transaction
+        {
+            UserId = "test-user-id",
+            BankAccountId = _account1Id,
+            Date = DateTime.Today.AddDays(-1),
+            Amount = 12m,
+            Type = TransactionType.Debit,
+            Label = "Cafe saisi",
+            Origin = TransactionOrigin.Manual
+        });
+        await _context.SaveChangesAsync();
+        var model = CreateModel();
+        model.Origin = TransactionOrigin.Import;
+
+        await model.OnGetAsync();
+
+        model.Transactions.Should().HaveCount(3);
+        model.Transactions.Should().NotContain(t => t.Label == "Cafe saisi");
+    }
+
+    [Fact]
     public async Task OnGetAsync_WithoutFilters_ShouldReturnAllTransactions()
     {
         var model = CreateModel();
